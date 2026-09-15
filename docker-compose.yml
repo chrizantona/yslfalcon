@@ -1,0 +1,14 @@
+# docker compose up --build  ->  artifacts/<exp_id>/submission/. Not verified yet: the development pod has no Docker.
+services:
+  inference:
+    build: .
+    volumes:
+      - ${DATASET_DIR:-./BIG_DATA/dataset}:/data:ro
+      - ./artifacts:/app/artifacts
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

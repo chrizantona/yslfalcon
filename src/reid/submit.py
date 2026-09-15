@@ -1,0 +1,75 @@
+"""Test submission: embeddings.npy (all query rows, then all gallery rows, csv order), submission.csv (top-10)
+and candidates.csv (refusal mode).
+
+Writes to artifacts/<exp_id>/submission/. The refusal threshold is refusal.threshold from the config, or the one
+calibrated by reid.evaluate if that is null.
+
+Usage: PYTHONPATH=src python -m reid.submit --data-config configs/data.yaml --config configs/exp000_clip_zeroshot.yaml
+"""
+import argparse
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from reid.data import load_csv, load_yaml
+from reid.embed import ClipEmbedder, pick_device
+from reid.metrics import zscore
+
+TOP_K = 10
+
+
+def build_submission(query_emb, gallery_emb, query_ids, gallery_ids, threshold, max_candidates=10):
+    """(submission, candidates) frames. Candidates are the top items with z-score >= threshold; a query with none
+    gets a single row with empty gallery_id and confidence (refusal)."""
+    sim = query_emb @ gallery_emb.T
+    order = np.argsort(-sim, axis=1, kind="stable")
+    submission = pd.DataFrame(gallery_ids[order[:, :TOP_K]], columns=[f"gallery_id_{i}" for i in range(1, TOP_K + 1)])
+    submission.insert(0, "query_id", query_ids)
+
+    z = zscore(sim)
+    rows = []
+    for qi, query_id in enumerate(query_ids):
+        top = order[qi, :max_candidates]
+        accepted = top[z[qi, top] >= threshold]
+        if len(accepted) == 0:
+            rows.append({"query_id": query_id, "gallery_id": "", "confidence": ""})
+        rows += [{"query_id": query_id, "gallery_id": gallery_ids[j], "confidence": round(float(z[qi, j]), 4)}
+                 for j in accepted]
+    return submission, pd.DataFrame(rows, columns=["query_id", "gallery_id", "confidence"])
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-config", required=True)
+    parser.add_argument("--config", required=True)
+    args = parser.parse_args()
+    data_cfg, cfg = load_yaml(args.data_config), load_yaml(args.config)
+
+    threshold = cfg["refusal"].get("threshold")
+    if threshold is None:
+        calibration = Path("artifacts") / cfg["exp_id"] / f"val_fold{cfg['eval_fold']}" / "threshold.json"
+        threshold = json.loads(calibration.read_text())["threshold"]
+
+    dataset_dir = Path(data_cfg["dataset_dir"])
+    query, gallery = load_csv(dataset_dir, "query"), load_csv(dataset_dir, "gallery")
+    embedder = ClipEmbedder(**cfg["model"], device=pick_device())
+    query_emb = embedder.embed_boxes(query, dataset_dir / "images", data_cfg["crop_max_side"], **cfg["embed"])
+    gallery_emb = embedder.embed_boxes(gallery, dataset_dir / "images", data_cfg["crop_max_side"], **cfg["embed"])
+
+    out = Path("artifacts") / cfg["exp_id"] / "submission"
+    out.mkdir(parents=True, exist_ok=True)
+    np.save(out / "embeddings.npy", np.concatenate([query_emb, gallery_emb]))
+    submission, candidates = build_submission(query_emb, gallery_emb, query.image_id.to_numpy(),
+                                              gallery.image_id.to_numpy(), threshold, cfg["refusal"]["max_candidates"])
+    submission.to_csv(out / "submission.csv", index=False)
+    candidates.to_csv(out / "candidates.csv", index=False)
+
+    refused = candidates.groupby("query_id").gallery_id.agg(lambda ids: (ids == "").all())
+    print(f"threshold {threshold:.3f} · {len(query)} queries · refused {refused.mean():.1%} · "
+          f"{(candidates.gallery_id != '').sum()} accepted candidates")
+
+
+if __name__ == "__main__":
+    main()

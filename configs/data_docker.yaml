@@ -1,0 +1,5 @@
+# Layout inside the inference container: the dataset is mounted read-only at /data.
+dataset_dir: /data
+crops_dir: /tmp/crops512
+crop_max_side: 512
+crop_jpeg_quality: 95

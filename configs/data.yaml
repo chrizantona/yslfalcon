@@ -1,0 +1,5 @@
+# Pod layout: only the dataset lives on the pod.
+dataset_dir: /dev/shm/lct2026/dataset   # images/, train.csv, test_query.csv, test_gallery.csv
+crops_dir: /dev/shm/lct2026/crops512    # training crops written by reid.crops
+crop_max_side: 512                      # longer side of a crop, px; smaller crops are not upscaled
+crop_jpeg_quality: 95
