@@ -19,7 +19,7 @@
 ## Работа на поде
 - На поде хранится только датасет: архив `/workspace/lct2026_data/dataset.zip` и распакованная копия в `/dev/shm/lct2026/` (`dataset/`, `crops512/`).
 - Код хранится только в локальном репозитории. Для прогона его копируют в `/workspace/yslfalcon_runs/<EXP-ID>/` (без `.git`, `eda/`, `artifacts/`).
-- Задача запускается отвязанно от сессии: `setsid nohup bash scripts/pod_job.sh > status/job.log 2>&1 < /dev/null &`. Текущий этап — `status/stage`, итог — `status/DONE` или `status/FAILED`, логи — `logs/`.
+- Задача запускается отвязанно от сессии: `setsid nohup bash scripts/pod_job.sh > status/job.log 2>&1 < /dev/null &` для EXP-000, `CONFIG=<конфиг> GPU=<id> setsid nohup bash scripts/pod_train_job.sh > status/job.log 2>&1 < /dev/null &` для обучения. Текущий этап — `status/stage`, итог — `status/DONE` или `status/FAILED`, логи — `logs/`.
 - После прогона результаты забирают на локальную машину (`artifacts/<EXP-ID>/`, новые файлы `protocol/`), а папку прогона на поде удаляют целиком вместе с venv и весами.
 - Коммиты и пуши — только с локальной машины.
 

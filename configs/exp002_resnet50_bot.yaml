@@ -1,0 +1,33 @@
+exp_id: EXP-002
+parent: EXP-001
+description: EXP-001 recipe with an ImageNet ResNet50 backbone (last stride 1) and its learning rate instead of CLIP ViT-B/16
+seeds: [0, 1, 2]
+model:
+  backbone: timm
+  name: resnet50.a1_in1k
+  last_stride_1: true
+  input_hw: [224, 224]
+train:
+  folds: [1, 2, 3]          # fold 0 = dev evaluation, fold 4 = untouched holdout
+  vehicles_per_batch: 32    # P
+  images_per_vehicle: 4     # K
+  epochs: 120               # one epoch = every training vehicle once
+  warmup_epochs: 10
+  lr_backbone: 3.5e-4       # changed together with the backbone (bag-of-tricks value for ResNet50)
+  lr_head: 3.5e-4
+  weight_decay: 1.0e-4
+  label_smoothing: 0.1
+  triplet_margin: 0.3
+  flip_p: 0.5
+  pad: 10
+  erasing_p: 0.5
+  num_workers: 12
+  eval_every: 20
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
