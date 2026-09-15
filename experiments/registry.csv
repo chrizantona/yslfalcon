@@ -1,4 +1,4 @@
 exp_id,parent,tag,change,status,protocol,seeds,mAP,mAP_std,R1,R5,mINP,F1,TNR,threshold,latency_bs1_ms,fps,weights_mb,date,author
 EXP-000,,exp-000,zero-shot CLIP ViT-B/16 (LAION-2B) pipeline check,reference,val_v1 fold0,,0.312,,0.274,0.485,0.246,0.272,0.504,2.708,,,,2026-09-15,rougenn
-EXP-001,EXP-000,exp-001,fine-tune CLIP ViT-B/16 with the ReID bag of tricks,running,val_v1 fold0,0 1 2,,,,,,,,,,,,2026-09-15,rougenn
-EXP-002,EXP-001,exp-002,ResNet50 (last stride 1) backbone and its lr instead of CLIP ViT-B/16,running,val_v1 fold0,0 1 2,,,,,,,,,,,,2026-09-15,rougenn
+EXP-001,EXP-000,exp-001,fine-tune CLIP ViT-B/16 with the ReID bag of tricks,accepted,val_v1 fold0,0 1 2,0.645,0.007,0.583,0.847,0.589,0.551,0.508,3.845,,,,2026-09-15,rougenn
+EXP-002,EXP-001,exp-002,ResNet50 (last stride 1) backbone and its lr instead of CLIP ViT-B/16,rejected,val_v1 fold0,0 1 2,0.393,0.002,0.339,0.579,0.338,0.279,0.506,3.852,,,,2026-09-15,rougenn
