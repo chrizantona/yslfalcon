@@ -1,6 +1,6 @@
 import numpy as np
 
-from reid.rerank import jaccard_distance, k_reciprocal_rerank, k_reciprocal_vectors
+from reid.rerank import jaccard_distance, k_reciprocal_rerank, k_reciprocal_vectors, streaming_similarity
 
 
 def unit(x):
@@ -33,3 +33,23 @@ def test_clusters_rank_their_own_gallery_first():
     query, gallery, q_lab, g_lab = x[::2], x[1::2], labels[::2], labels[1::2]
     top = np.argsort(k_reciprocal_rerank(query, gallery, k1=4, k2=2), 1)[:, 0]
     assert (g_lab[top] == q_lab).all()
+
+
+def test_streaming_rerank_scores_each_query_without_the_others():
+    rng = np.random.default_rng(3)
+    query, gallery = unit(rng.normal(size=(6, 8))), unit(rng.normal(size=(40, 8)))
+    together = streaming_similarity(query, gallery, k1=5, k2=3, lam=0.3)
+    alone = np.vstack([streaming_similarity(q[None], gallery, k1=5, k2=3, lam=0.3) for q in query])
+    assert together.shape == (6, 40) and np.array_equal(together, alone)
+
+
+def test_streaming_rerank_keeps_clusters_and_the_lambda_one_order():
+    rng = np.random.default_rng(2)
+    centres = unit(rng.normal(size=(4, 16)))
+    labels = np.repeat(np.arange(4), 6)
+    x = unit(centres[labels] + 0.1 * rng.normal(size=(24, 16)))
+    query, gallery, q_lab, g_lab = x[::2], x[1::2], labels[::2], labels[1::2]
+    top = np.argmax(streaming_similarity(query, gallery, k1=4, k2=2, lam=0.3), 1)
+    assert (g_lab[top] == q_lab).all()
+    plain = streaming_similarity(query, gallery, k1=4, k2=2, lam=1.0)
+    assert (np.argmax(plain, 1) == np.argmax(query @ gallery.T, 1)).all()
