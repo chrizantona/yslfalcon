@@ -1,6 +1,6 @@
 exp_id: EXP-018
 parent: EXP-017
-description: EXP-017 with backbone lr 3.5e-5 instead of 3.5e-4: gentler fine-tuning that keeps more of the VERI-Wild features
+description: EXP-017 with backbone lr 3.5e-5 instead of 3.5e-4 (gentler fine-tuning that keeps more of the VERI-Wild features)
 seeds: [0, 1, 2]
 model:                      # changed together: backbone, its VERI-Wild ReID weights, GeM pooling, input size
   backbone: fastreid_r50ibn
