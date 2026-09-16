@@ -135,7 +135,7 @@ def main():
     query, gallery, no_match = load_fold(protocol_dir, cfg["eval_fold"])
 
     backbone, feat_dim, mean, std = build_backbone(cfg["model"])
-    model = ReIDModel(backbone, feat_dim, len(classes)).to(device)
+    model = ReIDModel(backbone, feat_dim, len(classes), tcfg.get("id_head")).to(device)
     head = [p for p in [*model.bnneck.parameters(), *model.classifier.parameters()] if p.requires_grad]
     optimizer = torch.optim.AdamW([
         {"params": [p for p in model.backbone.parameters() if p.requires_grad], "lr": tcfg["lr_backbone"]},
@@ -172,7 +172,7 @@ def main():
         for x, y in loader:
             x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
             with torch.autocast("cuda", dtype=torch.bfloat16):
-                feat, logits = model(x)
+                feat, logits = model(x, y)
             loss_id = id_loss(logits.float(), y)
             loss_triplet = batch_hard_triplet(feat.float(), y, tcfg["triplet_margin"])
             optimizer.zero_grad(set_to_none=True)
