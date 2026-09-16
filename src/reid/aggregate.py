@@ -24,8 +24,10 @@ def main():
     root, seeds = Path("artifacts") / cfg["exp_id"], cfg["seeds"]
 
     runs = [json.loads((root / f"seed{s}" / "metrics.json").read_text()) for s in seeds]
-    summary = {"exp_id": cfg["exp_id"], "protocol": runs[0]["protocol"], "fold": runs[0]["fold"], "seeds": seeds,
-               "train_minutes": mean_std([r["train_minutes"] for r in runs])}
+    summary = {"exp_id": cfg["exp_id"], "protocol": runs[0]["protocol"], "fold": runs[0]["fold"], "seeds": seeds}
+    for key in ("train_minutes", "rerank_seconds", "checkpoint_mb"):  # training runs vs re-ranking runs
+        if key in runs[0]:
+            summary[key] = mean_std([r[key] for r in runs])
     for section in ("retrieval", "refusal"):
         summary[section] = {key: mean_std([r[section][key] for r in runs]) for key in runs[0][section]}
     summary["checkpoints"] = [run.get("checkpoint") for run in runs]  # file names on the pod, weights stay there

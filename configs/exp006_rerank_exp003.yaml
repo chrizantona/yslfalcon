@@ -1,0 +1,14 @@
+exp_id: EXP-006
+parent: EXP-003
+description: k-reciprocal re-ranking (Zhong et al. 2017) of the saved EXP-003 fold-0 embeddings, no training
+source_exp: EXP-003       # embeddings are read from artifacts/EXP-003/seed<k>/
+seeds: [0, 1, 2]          # one re-ranking per EXP-003 seed
+rerank:                   # values from the paper, not tuned on fold 0
+  k1: 20
+  k2: 6
+  lambda: 0.3
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Pod job for a training experiment: setup -> crops -> one training process per seed on one GPU -> aggregate.
+# Pod job for a training experiment: setup -> crops -> one training process per seed on one GPU -> aggregate ->
+# mAP by slice -> speed and size with the seed-0 checkpoint.
 # Run from a run dir holding a copy of the repo, detached from the ssh session:
 #   CONFIG=configs/exp001_clip_vitb16_bot.yaml GPU=2 setsid nohup bash scripts/pod_train_job.sh > status/job.log 2>&1 < /dev/null &
 # PARALLEL_SEEDS=0 trains the seeds one after another. Progress: status/stage, status/stages; result: status/DONE or
@@ -27,6 +28,17 @@ for pid in "${PIDS[@]}"; do wait "$pid"; done
 
 stage aggregate
 $PY -m reid.aggregate --config "$CONFIG" > logs/aggregate.log 2>&1
+
+EXP=$(sed -n 's/^exp_id: *\([^ #]*\).*/\1/p' "$CONFIG")
+stage slices
+$PY -m reid.slices --exp-dir "artifacts/$EXP" --val-config "$VAL_CFG" --attributes protocol/attributes.csv \
+  > logs/slices.log 2>&1
+
+stage benchmark  # after training, so the seeds don't share the GPU with the measurement
+CHECKPOINT_DIR=$(sed -n 's/^checkpoint_dir: *\([^ #]*\).*/\1/p' "$DATA_CFG")
+CHECKPOINT=$($PY -c "import json, sys; print(json.load(open(sys.argv[1]))['checkpoint'])" "artifacts/$EXP/seed0/metrics.json")
+$PY -m reid.benchmark --data-config "$DATA_CFG" --config "$CONFIG" --checkpoint "$CHECKPOINT_DIR/$CHECKPOINT" \
+  > logs/benchmark.log 2>&1
 
 stage done
 touch status/DONE

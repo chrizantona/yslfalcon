@@ -27,15 +27,20 @@ def load_fold(protocol_dir, fold):
             pd.read_csv(protocol_dir / f"fold{fold}_no_match_vehicles.csv").vehicle_id)
 
 
-def evaluate_fold(embed_fn, query, gallery, no_match_vehicles, refusal_cfg):
-    """Retrieval metrics and refusal calibration for embed_fn(df) -> L2-normalised embeddings."""
+def evaluate_fold(embed_fn, query, gallery, no_match_vehicles, refusal_cfg, score_fn=None):
+    """Retrieval metrics and refusal calibration for embed_fn(df) -> L2-normalised embeddings.
+
+    score_fn(query_emb, gallery_emb) -> similarity, cosine by default. The refusal gallery is scored on its own,
+    because a score such as re-ranking depends on the whole gallery."""
+    score_fn = score_fn or (lambda q, g: q @ g.T)
     query_emb, gallery_emb = embed_fn(query), embed_fn(gallery)
     q_pid, q_cam = query.vehicle_id.to_numpy(), query.camera_id.to_numpy()
     g_pid, g_cam = gallery.vehicle_id.to_numpy(), gallery.camera_id.to_numpy()
-    sim = query_emb @ gallery_emb.T
+    sim = score_fn(query_emb, gallery_emb)
     retrieval, ap = reid_eval(sim, q_pid, q_cam, g_pid, g_cam)
     keep = ~gallery.vehicle_id.isin(no_match_vehicles).to_numpy()
-    curve = refusal_curve(sim[:, keep], q_pid, q_cam, g_pid[keep], g_cam[keep], refusal_cfg["max_candidates"])
+    curve = refusal_curve(score_fn(query_emb, gallery_emb[keep]), q_pid, q_cam, g_pid[keep], g_cam[keep],
+                          refusal_cfg["max_candidates"])
     best = pick_threshold(curve, refusal_cfg["min_tnr"])
     return {"retrieval": retrieval, "refusal": {key: float(value) for key, value in best.items()}, "ap": ap,
             "curve": curve, "query_emb": query_emb, "gallery_emb": gallery_emb}
