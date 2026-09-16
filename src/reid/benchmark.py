@@ -26,6 +26,23 @@ from reid.embed import pick_device
 from reid.models import build_backbone
 
 
+class InferencePrecision(torch.nn.Module):
+    """Apply the configured inference autocast to the complete encoder, including BNNeck."""
+
+    def __init__(self, encoder, precision, device):
+        super().__init__()
+        if precision not in ("fp32", "fp16", "bf16"):
+            raise ValueError(f"unknown precision {precision}")
+        if precision != "fp32" and device != "cuda":
+            raise ValueError("fp16/bf16 benchmark requires CUDA")
+        self.encoder, self.precision, self.device = encoder, precision, device
+
+    def forward(self, x):
+        dtype = torch.float16 if self.precision == "fp16" else torch.bfloat16
+        with torch.autocast(self.device, dtype=dtype, enabled=self.precision != "fp32"):
+            return self.encoder(x)
+
+
 def sync(device):
     if device == "cuda":
         torch.cuda.synchronize()
@@ -113,11 +130,16 @@ def main():
         torch.cuda.reset_peak_memory_stats()
     load_start = time.perf_counter()
     model_cfg = cfg["model"] if "backbone" in cfg["model"] else {"backbone": "clip", **cfg["model"]}
-    encoder, feat_dim, mean, std = build_backbone(model_cfg, data_cfg.get("external_weights_dir"))
+    encoder, feat_dim, mean, std = build_backbone(model_cfg, data_cfg.get("external_weights_dir"),
+                                                load_pretrained=not bool(args.checkpoint))
     if args.checkpoint:  # the timing does not depend on the weights; loaded for the real file size and load time
         state = torch.load(args.checkpoint, map_location="cpu")["state_dict"]
         encoder.load_state_dict({k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")})
-    encoder = encoder.eval().to(device)
+        neck = torch.nn.BatchNorm1d(feat_dim)
+        neck.load_state_dict({k[len("bnneck."):]: v for k, v in state.items() if k.startswith("bnneck.")})
+        encoder = torch.nn.Sequential(encoder, neck)
+    precision = cfg.get("benchmark", {}).get("precision", "fp32")
+    encoder = InferencePrecision(encoder, precision, device).eval().to(device)
     sync(device)
     load_seconds = time.perf_counter() - load_start
 
@@ -133,6 +155,9 @@ def main():
         "backbone": model_cfg.get("name", model_cfg["backbone"]),  # FastReID configs name the weights file, not a model
         "input_hw": list(input_hw),
         "device": torch.cuda.get_device_name(0) if device == "cuda" else "cpu",
+        "precision": precision,
+        "bnneck": bool(args.checkpoint),
+        "weights_storage": "fp32",
         "latency_bs1_ms": round(latency_ms, 2),
         "forward_bs1_ms": round(forward_ms, 2),
         "embedding_dim": int(feat_dim),

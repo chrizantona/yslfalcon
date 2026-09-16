@@ -13,7 +13,9 @@ PARALLEL_SEEDS=${PARALLEL_SEEDS:-1}
 source scripts/pod_setup.sh
 
 stage crops  # derived copy of the dataset in /dev/shm; existing crops are skipped
+flock 8
 $PY -m reid.crops --data-config "$DATA_CFG" > logs/crops.log 2>&1
+flock -u 8
 
 if grep -q '^  source:' "$CONFIG"; then
   stage external  # pretraining set from data.yaml unpacked into /dev/shm; unpacking is skipped when already done
@@ -21,14 +23,34 @@ if grep -q '^  source:' "$CONFIG"; then
 fi
 
 stage train
-export CUDA_VISIBLE_DEVICES=$GPU
 SEEDS=$(sed -n 's/^seeds: *\[\(.*\)\].*/\1/p' "$CONFIG" | tr ',' ' ')
 PIDS=()
+cleanup_seeds() {
+  local rc=$?
+  if [ "$rc" != 0 ] && [ "${#PIDS[@]}" -gt 0 ]; then
+    kill "${PIDS[@]}" 2>/dev/null || true
+    wait 2>/dev/null || true
+  fi
+}
+trap cleanup_seeds EXIT
+IFS=',' read -ra SEED_GPU_LIST <<< "${SEED_GPUS:-$GPU}"
+seed_index=0
 for seed in $SEEDS; do
-  $PY -m reid.train --data-config "$DATA_CFG" --val-config "$VAL_CFG" --config "$CONFIG" --seed "$seed" \
+  seed_gpu=${SEED_GPU_LIST[$((seed_index % ${#SEED_GPU_LIST[@]}))]}
+  if [ "$seed_gpu" != "$GPU" ] && [ -n "${BENCHMARK_RUN:-}" ]; then
+    stage wait_benchmark
+    while [ ! -f "$BENCHMARK_RUN/status/DONE" ]; do
+      if [ -f "$BENCHMARK_RUN/status/FAILED" ]; then cat "$BENCHMARK_RUN/status/FAILED"; exit 1; fi
+      sleep 5
+    done
+    stage train
+  fi
+  seed_uuid=$(nvidia-smi -i "$seed_gpu" --query-gpu=uuid --format=csv,noheader)
+  CUDA_VISIBLE_DEVICES=$seed_uuid $PY -m reid.train --data-config "$DATA_CFG" --val-config "$VAL_CFG" --config "$CONFIG" --seed "$seed" \
     > "logs/train_seed$seed.log" 2>&1 &
   PIDS+=($!)
   if [ "$PARALLEL_SEEDS" = 0 ]; then wait "$!"; fi
+  seed_index=$((seed_index + 1))
 done
 for pid in "${PIDS[@]}"; do wait "$pid"; done
 

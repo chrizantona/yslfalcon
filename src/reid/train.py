@@ -13,7 +13,6 @@ import json
 import math
 import random
 import time
-import uuid
 from pathlib import Path
 
 import cv2
@@ -27,7 +26,7 @@ from torchvision.transforms import v2
 from reid.data import load_yaml, to_model_input
 from reid.embed import embed_boxes
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
-from reid.models import ReIDModel, build_backbone, load_backbone
+from reid.models import ReIDModel, build_backbone, load_backbone, checkpoint_name
 
 
 class CropDataset(Dataset):
@@ -140,7 +139,8 @@ def main():
     train_df["label"] = train_df.vehicle_id.map(classes)
     query, gallery, no_match = load_fold(protocol_dir, cfg["eval_fold"])
 
-    backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"))
+    backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"),
+                                                load_pretrained=not bool(cfg["model"].get("init_checkpoint")))
     model = ReIDModel(backbone, feat_dim, len(classes), tcfg.get("id_head"))
     if cfg["model"].get("init_checkpoint"):  # backbone from a pretraining run; BNNeck and classifier start fresh
         load_backbone(model, Path(data_cfg["checkpoint_dir"]) / cfg["model"]["init_checkpoint"])
@@ -213,7 +213,9 @@ def main():
         # weights stay on the pod; the random file name is recorded here, in the card and in the registry
         checkpoints = Path(data_cfg["checkpoint_dir"])
         checkpoints.mkdir(parents=True, exist_ok=True)
-        name = f"{uuid.uuid4().hex}.pt"
+        name = checkpoint_name(cfg, seed)
+        if (checkpoints / name).exists():
+            raise FileExistsError(checkpoints / name)
         torch.save({"exp_id": cfg["exp_id"], "seed": seed, "config": cfg, "state_dict": model.state_dict()},
                    checkpoints / name)
         header["checkpoint"] = name

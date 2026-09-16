@@ -8,7 +8,6 @@ Usage: PYTHONPATH=src python -m reid.soup --data-config configs/data.yaml --val-
 """
 import argparse
 import json
-import uuid
 from pathlib import Path
 
 import numpy as np
@@ -17,7 +16,7 @@ import torch
 from reid.data import load_yaml
 from reid.embed import embed_boxes, pick_device
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
-from reid.models import ReIDModel, build_backbone
+from reid.models import ReIDModel, build_backbone, checkpoint_name
 
 
 def average_state_dicts(states):
@@ -39,10 +38,12 @@ def main():
     checkpoints = Path(data_cfg["checkpoint_dir"])
     soup = average_state_dicts([torch.load(checkpoints / name, map_location="cpu")["state_dict"]
                                 for name in cfg["checkpoints"]])
-    backbone, feat_dim, mean, std = build_backbone(cfg["model"])
+    backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"), load_pretrained=False)
     model = ReIDModel(backbone, feat_dim, soup["classifier.weight"].shape[0])
     model.load_state_dict(soup)
-    name = f"{uuid.uuid4().hex}.pt"  # weights stay on the pod; the name goes to the card and the registry
+    name = checkpoint_name(cfg)
+    if (checkpoints / name).exists():
+        raise FileExistsError(checkpoints / name)
     torch.save({"exp_id": cfg["exp_id"], "config": cfg, "state_dict": soup}, checkpoints / name)
     model = model.eval().to(device)
 

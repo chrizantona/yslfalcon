@@ -4,6 +4,8 @@
 # Files that already exist with the right checksum are skipped. The competition dataset is not public: see DATA.md.
 set -Eeuo pipefail
 EXT_DIR=${EXT_DIR:-/workspace/ext_data}
+TARGET=${1:-all}  # all | clip_l | veriwild
+case "$TARGET" in all|clip_l|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
 GDRIVE="https://drive.usercontent.google.com/download?export=download&confirm=t&id="
 FASTREID="https://github.com/JDAI-CV/fast-reid/releases/download/v0.1.1"
 KAGGLE="https://www.kaggle.com/api/v1/datasets/download"
@@ -14,17 +16,24 @@ fetch() {  # relative path, url, sha256, [kaggle]
     echo "ok (cached) $1"; return
   fi
   if [ "${4:-}" = kaggle ]; then
-    : "${KAGGLE_API_TOKEN:?set KAGGLE_API_TOKEN to download from Kaggle}"
-    auth=(-H "Authorization: Bearer $KAGGLE_API_TOKEN")
+    if [ -n "${KAGGLE_API_TOKEN:-}" ]; then auth=(-H "Authorization: Bearer $KAGGLE_API_TOKEN"); fi
   fi
   mkdir -p "$(dirname "$path")"
   curl -sSfL --retry 5 -C - "${auth[@]}" -o "$path" "$url"
   echo "$sha  $path" | sha256sum -c --quiet && echo "ok $1"
 }
 
+if [ "$TARGET" = all ] || [ "$TARGET" = clip_l ]; then
+  fetch weights/clip/exp1.safetensors \
+    https://huggingface.co/laion/CLIP-ViT-L-14-laion2B-s32B-b82K/resolve/1627032197142fbe2a7cfec626f4ced3ae60d07a/open_clip_pytorch_model.safetensors \
+    7d129ed747e0ed53e82dfcc140382b51be66b56e6a9bdc3258afd2846e3bb019
+fi
+[ "$TARGET" != clip_l ] || exit 0
+
 # VERI-Wild large test split (10,000 vehicles), used for the EXP-009 pretraining
-fetch kaggle/veriwild_test.zip "$KAGGLE/mrkdagods/veriwild-test" \
+fetch kaggle/veriwild_test.zip "$KAGGLE/mrkdagods/veriwild-test?datasetVersionNumber=1" \
   34f4ba6bf73302145ce85ab2477cb2761972d053706cdb5932e8ab44a39c3b56 kaggle
+[ "$TARGET" != veriwild ] || exit 0
 # VeRi-776, downloaded but not used by any experiment yet
 fetch kaggle/veri776.zip "$KAGGLE/abhyudaya12/veri-vehicle-re-identification-dataset" \
   9d45b9ad779d04d58c14abc09a0f681427145464c0aa9faa3ac19b3fea4d0694 kaggle

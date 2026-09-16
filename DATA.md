@@ -23,6 +23,7 @@ Kaggle-копии сверены с официальной статистико�
 | Файл | Источник | Лицензия | sha256 | Где используется |
 |---|---|---|---|---|
 | CLIP ViT-B/16 `laion2b_s34b_b88k` | open_clip 3.3.0 скачивает `open_clip_model.safetensors` из [HF `laion/CLIP-ViT-B-16-laion2B-s34B-b88K`](https://huggingface.co/laion/CLIP-ViT-B-16-laion2B-s34B-b88K), ревизия `7288da5a0d6f0b51c4a2b27c624837a9236d0112` | MIT | `3f25d29d3cc74e1d25d47e0593b4dd0864ced1e9b4d8e486a247ca4502f227f1` | все ViT-эксперименты кроме EXP-011…014, 017, 018 |
+| CLIP ViT-L/14 `laion2b_s32b_b82k`, `weights/clip/exp1.safetensors` | [LAION/OpenCLIP, Ross Wightman](https://huggingface.co/laion/CLIP-ViT-L-14-laion2B-s32B-b82K), `open_clip_pytorch_model.safetensors`, ревизия `1627032197142fbe2a7cfec626f4ced3ae60d07a` | MIT | `7d129ed747e0ed53e82dfcc140382b51be66b56e6a9bdc3258afd2846e3bb019` | EXP-020…024 |
 | timm `resnet50.a1_in1k` | [HF `timm/resnet50.a1_in1k`](https://huggingface.co/timm/resnet50.a1_in1k), `model.safetensors`, ревизия `767268603ca0cb0bfe326fa87277f19c419566ef` | Apache-2.0 | `773525d5821de224f8f30c33377b7a795d7863e08522698200d3217d3f2a41bb` | EXP-002 |
 | `weights/fast-reid/veriwild_bot_R50-ibn.pth` | [FastReID release v0.1.1](https://github.com/JDAI-CV/fast-reid/releases/download/v0.1.1/veriwild_bot_R50-ibn.pth), JDAI-CV | Apache-2.0 (обучен на VERI-Wild train) | `f591e4f7f31ce0be2f4079171cfc03fcbecab5ea5b40f9148c753b9c6f061e8e` | EXP-011, EXP-017, EXP-018 |
 | `weights/fast-reid/vehicleid_bot_R50-ibn.pth` | [FastReID release v0.1.1](https://github.com/JDAI-CV/fast-reid/releases/download/v0.1.1/vehicleid_bot_R50-ibn.pth) | Apache-2.0 (обучен на VehicleID) | `48992dbfdb99b93c9a0c2f15dd27b7a738f8b8a7e49dd231391ed211f88d759a` | EXP-012 |
@@ -37,3 +38,12 @@ Kaggle-копии сверены с официальной статистико�
 1. Положить `dataset.zip` в `/workspace/lct2026_data/` и сверить sha256.
 2. `KAGGLE_API_TOKEN=<токен> bash scripts/fetch_external.sh` — внешние данные и публичные веса.
 3. Эксперименты — в порядке номеров, командой из карточки с тега `exp-NNN`; пересчёт на текущий протокол — `scripts/pod_v2_job.sh`.
+
+## Ночной прогон ViT-L
+`bash scripts/fetch_external.sh clip_l` скачивает только закреплённые веса ViT-L, `bash scripts/fetch_external.sh veriwild` — только внешний датасет. Публичная версия 1 Kaggle доступна без токена; оба файла проверяются по sha256.
+
+Окружение пода отдельное: `uv python install 3.13.7`; `uv venv --python 3.13.7 .venv`; `uv pip install --python .venv/bin/python -r requirements-pod.txt --index-url https://download.pytorch.org/whl/cu130`; `uv pip install --python .venv/bin/python -r requirements.txt pytest==9.1.1`. Системные пакеты сервисов не меняются.
+
+По просьбе пользователя директории новых запусков названы `exp1`…`exp5`, наши чекпоинты — `exp1_seed0.pt` и т. п.; номера EXP сохраняются в реестре и метаданных.
+
+Перед ночным прогоном полный архив передаётся с локальной машины. Для ускорения старта отдельно подготовлены все 11 416 вырезок кодом `crop_box`/`save_crop` из репозитория (OpenCV 5.0.0.93, max_side=512, JPEG quality=95) и переданы оригинальные JPEG фолда 0 и `test_query.csv`. Контрольные суммы каждой вырезки, каждого кадра и CSV сверяются на поде; `scripts/pod_preflight.py` сравнивает байты вырезок с повторной обработкой оригиналов на поде. CSV и фиксированные фолды не изменены. Полный архив — тот же файл с sha256 из раздела датасета соревнования.

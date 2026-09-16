@@ -8,7 +8,6 @@ set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 : "${GPU:?set GPU}"
 source scripts/pod_setup.sh
-export CUDA_VISIBLE_DEVICES=$GPU
 
 run() {  # module, space-separated configs
   for config in $2; do

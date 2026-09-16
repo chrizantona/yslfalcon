@@ -1,5 +1,6 @@
 """Backbones and the BNNeck ReID head."""
 import math
+import hashlib
 from pathlib import Path
 
 import open_clip
@@ -13,14 +14,30 @@ from torch import nn
 from reid.teachers import load_fastreid
 
 
-def build_backbone(cfg, external_weights_dir=None):
+def build_backbone(cfg, external_weights_dir=None, load_pretrained=True):
     """(module mapping images to a global feature, feature dim, normalisation mean, std) for a model config."""
     if cfg["backbone"] == "fastreid_r50ibn":  # public FastReID checkpoint as the start; its BN head is dropped
         model, feat_dim, mean, std = load_fastreid(Path(external_weights_dir) / cfg["weights"])
         model.bottleneck = None  # ReIDModel adds a fresh BNNeck, as for the other backbones
         return model, feat_dim, mean, std
     if cfg["backbone"] == "clip":
-        model, _, _ = open_clip.create_model_and_transforms(cfg["name"], pretrained=cfg["pretrained"])
+        pretrained = cfg["pretrained"]
+        kwargs = {}
+        if cfg.get("weights") or not load_pretrained:
+            metadata = open_clip.get_pretrained_cfg(cfg["name"], pretrained)
+            kwargs = {f"image_{key}": metadata[key] for key in ("mean", "std", "interpolation", "resize_mode")
+                      if key in metadata}
+        if cfg.get("weights") and load_pretrained:
+            path = Path(external_weights_dir) / cfg["weights"]
+            with path.open("rb") as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            if digest != cfg["sha256"]:
+                raise ValueError(f"checksum mismatch: {path}")
+            # A local checkpoint does not carry the original tag's preprocessing metadata.
+            pretrained = str(path)
+        if not load_pretrained:
+            pretrained = None  # a complete trained state follows; no extra public weights at inference
+        model, _, _ = open_clip.create_model_and_transforms(cfg["name"], pretrained=pretrained, **kwargs)
         preprocess = getattr(model.visual, "preprocess_cfg", None) or {}
         mean, std = preprocess.get("mean", OPENAI_DATASET_MEAN), preprocess.get("std", OPENAI_DATASET_STD)
         return model.visual, model.visual.output_dim, mean, std
@@ -33,6 +50,15 @@ def build_backbone(cfg, external_weights_dir=None):
         data_cfg = resolve_data_config({}, model=model)
         return model, model.num_features, data_cfg["mean"], data_cfg["std"]
     raise ValueError(f"unknown backbone {cfg['backbone']}")
+
+
+def checkpoint_name(cfg, seed=None):
+    """Optional readable checkpoint name; legacy experiments keep their random names."""
+    import uuid
+    name = cfg.get("checkpoint_name", f"{uuid.uuid4().hex}.pt").format(seed=seed)
+    if Path(name).name != name or not name.endswith(".pt"):
+        raise ValueError("checkpoint_name must be a .pt filename without a directory")
+    return name
 
 
 def load_backbone(model, checkpoint_path):

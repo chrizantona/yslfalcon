@@ -3,3 +3,5 @@ hf/
 .venv/
 eda/cache/
 artifacts/
+__pycache__/
+.pytest_cache/
