@@ -28,6 +28,12 @@ def build_backbone(cfg):
     raise ValueError(f"unknown backbone {cfg['backbone']}")
 
 
+def load_backbone(model, checkpoint_path):
+    """Copy the backbone weights of a reid.train checkpoint into model; the head (BNNeck, classifier) is left as is."""
+    state = torch.load(checkpoint_path, map_location="cpu")["state_dict"]
+    model.backbone.load_state_dict({k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")})
+
+
 class MarginClassifier(nn.Module):
     """Cosine classifier with a margin on the target class: CosFace s * (cos - m), ArcFace s * cos(theta + m).
 

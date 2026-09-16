@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Pod job for a training experiment: setup -> crops -> one training process per seed on one GPU -> aggregate ->
+# Pod job for a training experiment: setup -> crops -> external set (pretraining configs with train.source) ->
+# one training process per seed on one GPU -> aggregate ->
 # mAP by slice -> speed and size with the seed-0 checkpoint.
 # Run from a run dir holding a copy of the repo, detached from the ssh session:
 #   CONFIG=configs/exp001_clip_vitb16_bot.yaml GPU=2 setsid nohup bash scripts/pod_train_job.sh > status/job.log 2>&1 < /dev/null &
@@ -13,6 +14,11 @@ source scripts/pod_setup.sh
 
 stage crops  # derived copy of the dataset in /dev/shm; existing crops are skipped
 $PY -m reid.crops --data-config "$DATA_CFG" > logs/crops.log 2>&1
+
+if grep -q '^  source:' "$CONFIG"; then
+  stage external  # pretraining set from data.yaml unpacked into /dev/shm; unpacking is skipped when already done
+  $PY -m reid.external --data-config "$DATA_CFG" --config "$CONFIG" > logs/external.log 2>&1
+fi
 
 stage train
 export CUDA_VISIBLE_DEVICES=$GPU

@@ -1,5 +1,7 @@
 """Train a ReID model (ID + batch-hard triplet loss, BNNeck, PK sampler) on protocol folds, evaluate on the dev fold.
 
+train.source switches training to an external set (pretraining); model.init_checkpoint starts from a pretrained backbone.
+
 One seed per call. Writes to artifacts/<exp_id>/seed<k>/: train_log.jsonl (losses, lr, speed, periodic dev metrics),
 metrics.json, threshold.json, refusal_curve.csv, per_query_ap.csv, query_emb.npy and gallery_emb.npy (float16).
 
@@ -25,7 +27,7 @@ from torchvision.transforms import v2
 from reid.data import load_yaml, to_model_input
 from reid.embed import embed_boxes
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
-from reid.models import ReIDModel, build_backbone
+from reid.models import ReIDModel, build_backbone, load_backbone
 
 
 class CropDataset(Dataset):
@@ -127,15 +129,22 @@ def main():
     torch.manual_seed(seed)
 
     protocol_dir = Path(val_cfg["out_dir"])
-    assert cfg["eval_fold"] not in tcfg["folds"] and val_cfg["holdout_fold"] not in tcfg["folds"]
-    folds = pd.read_csv(protocol_dir / "folds.csv")
-    train_df = folds[folds.fold.isin(tcfg["folds"])].reset_index(drop=True)
+    if tcfg.get("source"):  # pretraining on an external set prepared by reid.external; our folds are not used
+        source_dir = Path(data_cfg["external"][tcfg["source"]]["dir"])
+        train_df, crops_dir = pd.read_csv(source_dir / "train.csv"), source_dir / "images"
+    else:
+        assert cfg["eval_fold"] not in tcfg["folds"] and val_cfg["holdout_fold"] not in tcfg["folds"]
+        folds = pd.read_csv(protocol_dir / "folds.csv")
+        train_df, crops_dir = folds[folds.fold.isin(tcfg["folds"])].reset_index(drop=True), data_cfg["crops_dir"]
     classes = {vehicle: k for k, vehicle in enumerate(sorted(train_df.vehicle_id.unique()))}
     train_df["label"] = train_df.vehicle_id.map(classes)
     query, gallery, no_match = load_fold(protocol_dir, cfg["eval_fold"])
 
     backbone, feat_dim, mean, std = build_backbone(cfg["model"])
-    model = ReIDModel(backbone, feat_dim, len(classes), tcfg.get("id_head")).to(device)
+    model = ReIDModel(backbone, feat_dim, len(classes), tcfg.get("id_head"))
+    if cfg["model"].get("init_checkpoint"):  # backbone from a pretraining run; BNNeck and classifier start fresh
+        load_backbone(model, Path(data_cfg["checkpoint_dir"]) / cfg["model"]["init_checkpoint"])
+    model = model.to(device)
     head = [p for p in [*model.bnneck.parameters(), *model.classifier.parameters()] if p.requires_grad]
     optimizer = torch.optim.AdamW([
         {"params": [p for p in model.backbone.parameters() if p.requires_grad], "lr": tcfg["lr_backbone"]},
@@ -144,7 +153,7 @@ def main():
 
     P, K = tcfg["vehicles_per_batch"], tcfg["images_per_vehicle"]
     sampler = PKSampler(train_df, P, K, seed)
-    dataset = CropDataset(train_df, data_cfg["crops_dir"], cfg["model"]["input_hw"], mean, std, tcfg)
+    dataset = CropDataset(train_df, crops_dir, cfg["model"]["input_hw"], mean, std, tcfg)
     loader = DataLoader(dataset, batch_sampler=sampler, num_workers=tcfg["num_workers"], pin_memory=True,
                         persistent_workers=True, worker_init_fn=_worker_init,
                         generator=torch.Generator().manual_seed(seed))
