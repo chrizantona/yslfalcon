@@ -1,0 +1,14 @@
+exp_id: EXP-014
+description: CLIP-ReID ViT-B/16 (OpenAI CLIP) trained on VeRi-776 train (576 vehicles); public checkpoint, MIT; scored on fold 0 as is, without fine-tuning (reference)
+model:
+  backbone: clipreid_vitb16
+  weights: clip-reid/VeRi_clipreid_ViT-B-16_60.pth   # relative to external_weights_dir in data.yaml
+  input_hw: [256, 256]   # the size the checkpoint was trained with
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null

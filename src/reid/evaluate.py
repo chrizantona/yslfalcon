@@ -1,7 +1,8 @@
 """Evaluate an embedding model on one fold of the frozen protocol and calibrate the refusal threshold.
 
 load_fold / evaluate_fold / save_fold_results are shared with reid.train, so every experiment is scored the same way.
-The CLI evaluates a zero-shot CLIP config and writes to artifacts/<exp_id>/val_fold<k>/: metrics.json, threshold.json,
+The CLI evaluates a zero-shot CLIP config or a public ReID checkpoint (reid.teachers) and writes to
+artifacts/<exp_id>/val_fold<k>/: metrics.json, threshold.json,
 refusal_curve.csv, per_query_ap.csv, query_emb.npy, gallery_emb.npy.
 
 Usage: PYTHONPATH=src python -m reid.evaluate --data-config configs/data.yaml --val-config configs/val_v1.yaml \
@@ -15,8 +16,11 @@ import numpy as np
 import pandas as pd
 
 from reid.data import load_yaml
-from reid.embed import ClipEmbedder, pick_device
+from reid.embed import ClipEmbedder, embed_boxes, pick_device
 from reid.metrics import pick_threshold, refusal_curve, reid_eval
+from reid.teachers import build_teacher
+
+TEACHERS = ("fastreid_r50ibn", "clipreid_vitb16")
 
 
 def load_fold(protocol_dir, fold):
@@ -71,11 +75,20 @@ def main():
 
     fold = cfg["eval_fold"]
     query, gallery, no_match = load_fold(val_cfg["out_dir"], fold)
-    embedder = ClipEmbedder(**cfg["model"], device=pick_device())
     images_dir = Path(data_cfg["dataset_dir"]) / "images"
+    if cfg["model"].get("backbone") in TEACHERS:  # public ReID checkpoint scored as is
+        device = pick_device()
+        encoder, _, mean, std = build_teacher(cfg["model"], data_cfg["external_weights_dir"])
+        encoder = encoder.eval().to(device)
 
-    def embed(df):
-        return embedder.embed_boxes(df, images_dir, data_cfg["crop_max_side"], **cfg["embed"])
+        def embed(df):
+            return embed_boxes(encoder, df, images_dir, cfg["model"]["input_hw"], mean, std, data_cfg["crop_max_side"],
+                               device=device, **cfg["embed"])
+    else:
+        embedder = ClipEmbedder(**cfg["model"], device=pick_device())
+
+        def embed(df):
+            return embedder.embed_boxes(df, images_dir, data_cfg["crop_max_side"], **cfg["embed"])
 
     result = evaluate_fold(embed, query, gallery, no_match, cfg["refusal"])
     header = {"exp_id": cfg["exp_id"], "protocol": val_cfg["version"], "fold": fold,

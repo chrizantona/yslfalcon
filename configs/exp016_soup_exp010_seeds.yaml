@@ -1,0 +1,20 @@
+exp_id: EXP-016
+parent: EXP-010
+description: uniform weight soup of the three EXP-010 seed checkpoints (same EXP-009 init); one forward pass at inference
+model:
+  backbone: clip
+  name: ViT-B-16
+  pretrained: laion2b_s34b_b88k   # architecture only; every weight comes from the soup
+  input_hw: [224, 224]
+checkpoints:               # EXP-010 seeds 0, 1, 2 in checkpoint_dir
+  - ed53c4d756fc4bd49cae5a4527af94bc.pt
+  - 037f42c11b064897845965f1823f1857.pt
+  - a8f7a23753424b47b6d4e8744c32fb74.pt
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null

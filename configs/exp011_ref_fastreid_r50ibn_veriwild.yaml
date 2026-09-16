@@ -1,0 +1,14 @@
+exp_id: EXP-011
+description: FastReID BoT ResNet50-IBN trained on VERI-Wild train (30,671 vehicles); public checkpoint, Apache-2.0; scored on fold 0 as is, without fine-tuning (reference)
+model:
+  backbone: fastreid_r50ibn
+  weights: fast-reid/veriwild_bot_R50-ibn.pth   # relative to external_weights_dir in data.yaml
+  input_hw: [256, 256]   # the size the checkpoint was trained with
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
