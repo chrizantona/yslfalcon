@@ -114,7 +114,7 @@ def main():
     params = sum(p.numel() for p in encoder.parameters())
     result = {
         "exp_id": cfg["exp_id"],
-        "backbone": model_cfg["name"],
+        "backbone": model_cfg.get("name", model_cfg["backbone"]),  # FastReID configs name the weights file, not a model
         "input_hw": list(input_hw),
         "device": torch.cuda.get_device_name(0) if device == "cuda" else "cpu",
         "latency_bs1_ms": round(latency_ms, 2),
