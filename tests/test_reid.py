@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
+import torch
 
+from reid.data import to_model_input
 from reid.metrics import paired_bootstrap, refusal_curve, reid_eval
 from reid.protocol import assign_folds, pseudo_test
 from reid.submit import build_submission
@@ -64,3 +66,9 @@ def test_build_submission_ranks_and_refuses():
     assert submission.shape == (2, 11) and submission.loc[0, "gallery_id_1"] == "g5"
     assert candidates[candidates.query_id == "q0"].gallery_id.tolist() == ["g5"]
     assert candidates[candidates.query_id == "q1"].gallery_id.tolist() == [""]
+
+
+def test_to_model_input_keeps_float32_with_plain_tuple_normalisation():
+    crop = np.zeros((10, 20, 3), np.uint8)
+    x = to_model_input(crop, (8, 8), (0.5, 0.5, 0.5), (0.25, 0.25, 0.25))
+    assert x.dtype == torch.float32 and tuple(x.shape) == (3, 8, 8)

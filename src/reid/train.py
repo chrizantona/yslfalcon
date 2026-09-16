@@ -11,6 +11,7 @@ import json
 import math
 import random
 import time
+import uuid
 from pathlib import Path
 
 import cv2
@@ -199,6 +200,15 @@ def main():
 
     header = {"exp_id": cfg["exp_id"], "seed": seed, "protocol": val_cfg["version"], "fold": cfg["eval_fold"],
               "n_query": len(query), "n_gallery": len(gallery), "train_minutes": (time.time() - start) / 60}
+    if tcfg.get("save_checkpoint", True):
+        # weights stay on the pod; the random file name is recorded here, in the card and in the registry
+        checkpoints = Path(data_cfg["checkpoint_dir"])
+        checkpoints.mkdir(parents=True, exist_ok=True)
+        name = f"{uuid.uuid4().hex}.pt"
+        torch.save({"exp_id": cfg["exp_id"], "seed": seed, "config": cfg, "state_dict": model.state_dict()},
+                   checkpoints / name)
+        header["checkpoint"] = name
+        header["checkpoint_mb"] = round((checkpoints / name).stat().st_size / 1e6, 1)
     save_fold_results(out, result, query, header, emb_dtype=np.float16)
 
 

@@ -8,6 +8,7 @@ import torch
 import yaml
 from torch.utils.data import Dataset
 
+
 CSV_FILES = {"train": "train.csv", "query": "test_query.csv", "gallery": "test_gallery.csv"}
 
 
@@ -41,7 +42,9 @@ def to_model_input(crop_bgr, input_hw, mean, std):
     upscale = crop_bgr.shape[0] < h or crop_bgr.shape[1] < w
     resized = cv2.resize(crop_bgr, (w, h), interpolation=cv2.INTER_LINEAR if upscale else cv2.INTER_AREA)
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-    return torch.from_numpy(((rgb - mean) / std).transpose(2, 0, 1).copy())
+    # mean/std may arrive as plain tuples; without the cast numpy would promote the image to float64
+    normalised = (rgb - np.asarray(mean, np.float32)) / np.asarray(std, np.float32)
+    return torch.from_numpy(normalised.transpose(2, 0, 1).copy())
 
 
 class BoxDataset(Dataset):

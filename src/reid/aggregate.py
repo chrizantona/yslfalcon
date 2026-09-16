@@ -28,6 +28,7 @@ def main():
                "train_minutes": mean_std([r["train_minutes"] for r in runs])}
     for section in ("retrieval", "refusal"):
         summary[section] = {key: mean_std([r[section][key] for r in runs]) for key in runs[0][section]}
+    summary["checkpoints"] = [run.get("checkpoint") for run in runs]  # file names on the pod, weights stay there
     (root / "summary.json").write_text(json.dumps(summary, indent=2))
 
     per_seed = [pd.read_csv(root / f"seed{s}" / "per_query_ap.csv") for s in seeds]
