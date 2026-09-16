@@ -4,5 +4,5 @@ EXP-001,EXP-000,exp-001,fine-tune CLIP ViT-B/16 with the ReID bag of tricks,acce
 EXP-002,EXP-001,exp-002,ResNet50 (last stride 1) backbone and its lr instead of CLIP ViT-B/16,rejected,val_v1 fold0,0 1 2,0.393,0.002,0.339,0.579,0.338,0.279,0.506,3.852,13.46,534.7,94.0,2026-09-15,rougenn,
 EXP-003,EXP-001,exp-003,EXP-001 with 30 epochs instead of 120,accepted,val_v1 fold0,0 1 2,0.719,0.003,0.661,0.894,0.670,0.652,0.508,3.707,13.82,392.7,344.8,2026-09-15,rougenn,
 EXP-004,EXP-001,exp-004,EXP-001 with backbone lr 5e-6 instead of 1e-5,accepted,val_v1 fold0,0 1 2,0.663,0.004,0.600,0.848,0.611,0.550,0.511,3.827,13.87,405.5,344.8,2026-09-15,rougenn,
-EXP-005,EXP-003,exp-005,EXP-003 with backbone lr 5e-6 instead of 1e-5,running,val_v1 fold0,0 1 2,,,,,,,,,,,,2026-09-16,rougenn,
-EXP-006,EXP-003,exp-006,k-reciprocal re-ranking (k1=20 k2=6 lambda=0.3) of EXP-003 embeddings,running,val_v1 fold0,0 1 2,,,,,,,,,,,,2026-09-16,rougenn,
+EXP-005,EXP-003,exp-005,EXP-003 with backbone lr 5e-6 instead of 1e-5,rejected,val_v1 fold0,0 1 2,0.702,0.002,0.642,0.885,0.653,0.627,0.502,3.651,13.82,394.2,344.8,2026-09-16,rougenn,1804e113cb434846bdf1f4d637b7a62d.pt a78c9bdacdcc4f3e9ec82036c29c1cdb.pt e38f6b193f434b7daf92467b117ac7ae.pt
+EXP-006,EXP-003,exp-006,k-reciprocal re-ranking (k1=20 k2=6 lambda=0.3) of EXP-003 embeddings,accepted,val_v1 fold0,0 1 2,0.762,0.002,0.706,0.899,0.736,0.601,0.508,8.584,13.82,392.7,344.8,2026-09-16,rougenn,
