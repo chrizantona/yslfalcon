@@ -24,7 +24,7 @@ fetch() {  # relative path, url, sha256, [kaggle]
 }
 
 if [ "$TARGET" = all ] || [ "$TARGET" = clip_l ]; then
-  fetch weights/clip/exp1.safetensors \
+  fetch weights/clip/exp020.safetensors \
     https://huggingface.co/laion/CLIP-ViT-L-14-laion2B-s32B-b82K/resolve/1627032197142fbe2a7cfec626f4ced3ae60d07a/open_clip_pytorch_model.safetensors \
     7d129ed747e0ed53e82dfcc140382b51be66b56e6a9bdc3258afd2846e3bb019
 fi

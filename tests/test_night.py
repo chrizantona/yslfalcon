@@ -40,9 +40,9 @@ def test_conditional_chain_requires_gain_over_both_seed_spreads():
 
 
 def test_checkpoint_names_cannot_escape_checkpoint_directory():
-    assert checkpoint_name({"checkpoint_name": "exp1_seed{seed}.pt"}, 2) == "exp1_seed2.pt"
+    assert checkpoint_name({"checkpoint_name": "exp020_seed{seed}.pt"}, 2) == "exp020_seed2.pt"
     with pytest.raises(ValueError):
-        checkpoint_name({"checkpoint_name": "../exp1.pt"})
+        checkpoint_name({"checkpoint_name": "../EXP-020.pt"})
 
 
 def test_precision_wrapper_preserves_full_encoder_and_rejects_cpu_fp16():

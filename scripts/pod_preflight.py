@@ -12,7 +12,7 @@ from reid.data import load_yaml, crop_box
 from reid.models import build_backbone, ReIDModel, checkpoint_name
 
 
-base, first = load_yaml("configs/exp003_clip_vitb16_bot_30ep.yaml"), load_yaml("configs/exp1.yaml")
+base, first = load_yaml("configs/exp003_clip_vitb16_bot_30ep.yaml"), load_yaml("configs/exp020_clip_vitl14_bot_30ep.yaml")
 for key in ("train", "embed", "eval_fold", "refusal", "seeds"):
     assert first[key] == base[key], f"recipe changed: {key}"
 assert first["model"]["input_hw"] == base["model"]["input_hw"]
@@ -26,7 +26,7 @@ assert cv2.__version__ == "5.0.0"
 assert torch.cuda.is_available()
 
 data, val = load_yaml("configs/data.yaml"), load_yaml("configs/val_v2.yaml")
-for filename in ("exp1.yaml", "exp3.yaml", "exp4.yaml", "exp5.yaml"):
+for filename in ("exp020_clip_vitl14_bot_30ep.yaml", "exp022_pretrain_veriwild_test_vitl14.yaml", "exp023_finetune_veriwild_init_vitl14.yaml", "exp024_soup_exp023_seeds.yaml"):
     config = load_yaml(Path("configs") / filename)
     for seed in config.get("seeds", [None]):
         assert not (Path(data["checkpoint_dir"]) / checkpoint_name(config, seed)).exists(), "checkpoint name already used"
