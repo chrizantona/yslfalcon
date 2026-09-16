@@ -16,3 +16,5 @@ EXP-013,,exp-013,public CLIP-ReID ViT-B/16 trained on VehicleID; fold 0 without 
 EXP-014,,exp-014,public CLIP-ReID ViT-B/16 trained on VeRi-776; fold 0 without fine-tuning,reference,val_v1 fold0,,0.375,,0.326,0.527,0.325,0.370,0.516,2.769,,,,2026-09-16,rougenn,
 EXP-015,EXP-010,exp-015,mean of L2-normalised embeddings of the three EXP-010 seeds,accepted,val_v1 fold0,0 1 2,0.781,,0.739,0.919,0.740,0.716,0.513,3.915,,,1034.4,2026-09-16,rougenn,
 EXP-016,EXP-010,exp-016,uniform weight soup of the three EXP-010 seed checkpoints,accepted,val_v1 fold0,0 1 2,0.779,,0.736,0.918,0.738,0.716,0.501,3.874,15.11,400.0,344.8,2026-09-16,rougenn,e4faeb2a745c4006a6d81b52f081ab13.pt
+EXP-017,EXP-010,exp-017,ResNet50-IBN from the public FastReID VERI-Wild checkpoint instead of CLIP ViT-B/16 (package: weights + GeM + 256 input + lr 3.5e-4),running,val_v1 fold0,0 1 2,,,,,,,,,,,,2026-09-16,rougenn,
+EXP-018,EXP-017,exp-018,EXP-017 with backbone lr 3.5e-5 instead of 3.5e-4,running,val_v1 fold0,0 1 2,,,,,,,,,,,,2026-09-16,rougenn,

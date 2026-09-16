@@ -3,6 +3,7 @@ import open_clip
 import torch
 
 from reid.ensemble import mean_embedding
+from reid.models import ReIDModel, build_backbone
 from reid.soup import average_state_dicts
 from reid.teachers import FastReIDResNet50IBN, load_clipreid, load_fastreid
 
@@ -48,3 +49,20 @@ def test_soup_averages_floats_and_keeps_integer_buffers():
     states = [{"w": torch.tensor([1.0, 3.0]), "n": torch.tensor(5)}, {"w": torch.tensor([3.0, 5.0]), "n": torch.tensor(7)}]
     soup = average_state_dicts(states)
     assert torch.equal(soup["w"], torch.tensor([2.0, 4.0])) and soup["n"].item() == 5
+
+
+def test_fastreid_backbone_for_training_drops_its_bn_and_fits_reidmodel(tmp_path):
+    torch.manual_seed(0)
+    source = FastReIDResNet50IBN().eval()
+    state = {k if k.startswith("backbone.") else "heads.bottleneck.0." + k[len("bottleneck."):]: v
+             for k, v in source.state_dict().items()}
+    state.update({"pixel_mean": torch.full((1, 3, 1, 1), 127.5), "pixel_std": torch.full((1, 3, 1, 1), 127.5)})
+    (tmp_path / "fast-reid").mkdir()
+    torch.save({"model": state}, tmp_path / "fast-reid" / "w.pth")
+
+    backbone, dim, mean, _ = build_backbone({"backbone": "fastreid_r50ibn", "weights": "fast-reid/w.pth"}, tmp_path)
+    model = ReIDModel(backbone, dim, n_classes=7).train()
+    x, y = torch.randn(4, 3, 64, 64), torch.tensor([0, 0, 1, 1])
+    feat, logits = model(x, y)
+    assert feat.shape == (4, 2048) and logits.shape == (4, 7) and np.allclose(mean, (0.5, 0.5, 0.5))
+    assert not any(k.startswith("backbone.bottleneck") for k in model.state_dict())  # only our BNNeck remains

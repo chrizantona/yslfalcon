@@ -1,5 +1,6 @@
 """Backbones and the BNNeck ReID head."""
 import math
+from pathlib import Path
 
 import open_clip
 import timm
@@ -9,9 +10,15 @@ from open_clip.constants import OPENAI_DATASET_MEAN, OPENAI_DATASET_STD
 from timm.data import resolve_data_config
 from torch import nn
 
+from reid.teachers import load_fastreid
 
-def build_backbone(cfg):
+
+def build_backbone(cfg, external_weights_dir=None):
     """(module mapping images to a global feature, feature dim, normalisation mean, std) for a model config."""
+    if cfg["backbone"] == "fastreid_r50ibn":  # public FastReID checkpoint as the start; its BN head is dropped
+        model, feat_dim, mean, std = load_fastreid(Path(external_weights_dir) / cfg["weights"])
+        model.bottleneck = None  # ReIDModel adds a fresh BNNeck, as for the other backbones
+        return model, feat_dim, mean, std
     if cfg["backbone"] == "clip":
         model, _, _ = open_clip.create_model_and_transforms(cfg["name"], pretrained=cfg["pretrained"])
         preprocess = getattr(model.visual, "preprocess_cfg", None) or {}

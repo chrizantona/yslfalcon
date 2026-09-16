@@ -140,7 +140,7 @@ def main():
     train_df["label"] = train_df.vehicle_id.map(classes)
     query, gallery, no_match = load_fold(protocol_dir, cfg["eval_fold"])
 
-    backbone, feat_dim, mean, std = build_backbone(cfg["model"])
+    backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"))
     model = ReIDModel(backbone, feat_dim, len(classes), tcfg.get("id_head"))
     if cfg["model"].get("init_checkpoint"):  # backbone from a pretraining run; BNNeck and classifier start fresh
         load_backbone(model, Path(data_cfg["checkpoint_dir"]) / cfg["model"]["init_checkpoint"])

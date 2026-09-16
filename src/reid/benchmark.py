@@ -99,7 +99,7 @@ def main():
 
     device = pick_device()
     model_cfg = cfg["model"] if "backbone" in cfg["model"] else {"backbone": "clip", **cfg["model"]}
-    encoder, feat_dim, mean, std = build_backbone(model_cfg)
+    encoder, feat_dim, mean, std = build_backbone(model_cfg, data_cfg.get("external_weights_dir"))
     if args.checkpoint:  # weights change nothing for timing; loaded only when the real file size is wanted
         state = torch.load(args.checkpoint, map_location="cpu")["state_dict"]
         encoder.load_state_dict({k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")})

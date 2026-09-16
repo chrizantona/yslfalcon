@@ -50,6 +50,8 @@ class FastReIDResNet50IBN(nn.Module):
         x = b.maxpool(b.relu(b.bn1(b.conv1(x))))
         x = b.layer4(b.layer3(b.layer2(b.layer1(x))))
         pooled = F.adaptive_avg_pool2d(x.float().clamp(min=1e-6).pow(self.gem_p), 1).pow(1 / self.gem_p)
+        if self.bottleneck is None:  # used as a training backbone: global feature before any BN
+            return pooled[..., 0, 0]
         return self.bottleneck(pooled)[..., 0, 0]
 
 
