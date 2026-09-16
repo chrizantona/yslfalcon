@@ -1,5 +1,5 @@
-"""Test submission: embeddings.npy (all query rows, then all gallery rows, csv order), submission.csv (top-10)
-and candidates.csv (refusal mode).
+"""Test submission: embeddings.npy (all query rows, then all gallery rows, csv order), submission.csv (top-10 for every
+query, refusals included) and candidates.csv (query_id, gallery_id, confidence; a refused query has no rows).
 
 Writes to artifacts/<exp_id>/submission/. The refusal threshold is refusal.threshold from the config, or the one
 calibrated by reid.evaluate if that is null.
@@ -15,28 +15,22 @@ import pandas as pd
 
 from reid.data import load_csv, load_yaml
 from reid.embed import ClipEmbedder, pick_device
-from reid.metrics import zscore
-
-TOP_K = 10
+from reid.metrics import TOP_K, zscore
 
 
-def build_submission(query_emb, gallery_emb, query_ids, gallery_ids, threshold, max_candidates=10):
-    """(submission, candidates) frames. Candidates are the top items with z-score >= threshold; a query with none
-    gets a single row with empty gallery_id and confidence (refusal)."""
+def build_submission(query_emb, gallery_emb, query_ids, gallery_ids, threshold, max_candidates=TOP_K):
+    """(submission, candidates) frames. A query is answered when its top-1 z-score >= threshold; it then lists its top
+    max_candidates items with their z-scores, so a same-camera twin dropped by the scorer still leaves a candidate.
+    A refused query gets no rows, as the organisers read candidates.csv."""
     sim = query_emb @ gallery_emb.T
     order = np.argsort(-sim, axis=1, kind="stable")
     submission = pd.DataFrame(gallery_ids[order[:, :TOP_K]], columns=[f"gallery_id_{i}" for i in range(1, TOP_K + 1)])
     submission.insert(0, "query_id", query_ids)
 
     z = zscore(sim)
-    rows = []
-    for qi, query_id in enumerate(query_ids):
-        top = order[qi, :max_candidates]
-        accepted = top[z[qi, top] >= threshold]
-        if len(accepted) == 0:
-            rows.append({"query_id": query_id, "gallery_id": "", "confidence": ""})
-        rows += [{"query_id": query_id, "gallery_id": gallery_ids[j], "confidence": round(float(z[qi, j]), 4)}
-                 for j in accepted]
+    rows = [{"query_id": query_id, "gallery_id": gallery_ids[j], "confidence": round(float(z[qi, j]), 4)}
+            for qi, query_id in enumerate(query_ids) if z[qi, order[qi, 0]] >= threshold
+            for j in order[qi, :max_candidates]]
     return submission, pd.DataFrame(rows, columns=["query_id", "gallery_id", "confidence"])
 
 
@@ -66,9 +60,9 @@ def main():
     submission.to_csv(out / "submission.csv", index=False)
     candidates.to_csv(out / "candidates.csv", index=False)
 
-    refused = candidates.groupby("query_id").gallery_id.agg(lambda ids: (ids == "").all())
-    print(f"threshold {threshold:.3f} · {len(query)} queries · refused {refused.mean():.1%} · "
-          f"{(candidates.gallery_id != '').sum()} accepted candidates")
+    answered = candidates.query_id.nunique()
+    print(f"threshold {threshold:.3f} · {len(query)} queries · refused {1 - answered / len(query):.1%} · "
+          f"{len(candidates)} candidate rows")
 
 
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ def main():
         return embed_boxes(model, df, images_dir, cfg["model"]["input_hw"], mean, std, data_cfg["crop_max_side"],
                            device=device, **cfg["embed"])
 
-    result = evaluate_fold(embed, query, gallery, no_match, cfg["refusal"])
+    result = evaluate_fold(embed, query, gallery, no_match)
     header = {"exp_id": cfg["exp_id"], "protocol": val_cfg["version"], "fold": fold, "n_query": len(query),
               "n_gallery": len(gallery), "members": cfg["checkpoints"], "checkpoint": name,
               "checkpoint_mb": round((checkpoints / name).stat().st_size / 1e6, 1)}

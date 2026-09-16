@@ -36,7 +36,7 @@ def main():
                                  for s in cfg["seeds"]])
            for part in ("query", "gallery")}
     result = evaluate_fold(lambda df: emb["query"] if df is query else emb["gallery"],
-                           query, gallery, no_match, cfg["refusal"])
+                           query, gallery, no_match)
     header = {"exp_id": cfg["exp_id"], "protocol": val_cfg["version"], "fold": fold, "n_query": len(query),
               "n_gallery": len(gallery), "members": [f"{cfg['source_exp']}/seed{s}" for s in cfg["seeds"]]}
     metrics = save_fold_results(Path("artifacts") / cfg["exp_id"] / f"val_fold{fold}", result, query, header,

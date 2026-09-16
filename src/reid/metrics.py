@@ -1,6 +1,8 @@
-"""Retrieval metrics (Market-1501 protocol), refusal-mode curve and paired bootstrap."""
+"""Retrieval metrics (official mAP@10, full-ranking mAP and mINP), candidate-mode scoring and paired bootstrap."""
 import numpy as np
 import pandas as pd
+
+TOP_K = 10  # candidates per query in submission.csv
 
 
 def reid_eval(sim, q_pid, q_cam, g_pid, g_cam, chunk=1024):
@@ -38,44 +40,81 @@ def reid_eval(sim, q_pid, q_cam, g_pid, g_cam, chunk=1024):
     return summary, ap
 
 
+def reid_eval_top10(sim, q_pid, q_cam, g_pid, g_cam, k=10):
+    """Main metric of the challenge: mAP@10, Rank-1 and Rank-5 from the top-10 list that submission.csv holds.
+
+    Junk (same vehicle AND camera) is dropped from the list and the rest keeps its order; with only ten ids in the
+    file nothing moves up from rank 11 (unconfirmed until the organisers' evaluate.py is available). AP@10 sums the
+    precision at every positive in the list and divides by min(n_pos, 10), n_pos = cross-camera positives in the
+    whole gallery. Queries without a positive are excluded. Returns (summary, per-query AP@10 with NaN)."""
+    order = np.argsort(-sim, axis=1, kind="stable")[:, :k]
+    same = g_pid[order] == q_pid[:, None]
+    junk = same & (g_cam[order] == q_cam[:, None])
+    good = same & ~junk
+    rank = np.cumsum(~junk, axis=1)
+    hits = np.cumsum(good, axis=1)
+    n_pos = ((g_pid[None, :] == q_pid[:, None]) & (g_cam[None, :] != q_cam[:, None])).sum(1)
+    ok = n_pos > 0
+    with np.errstate(invalid="ignore", divide="ignore"):
+        ap = np.where(ok, np.where(good, hits / rank, 0).sum(1) / np.minimum(n_pos, k), np.nan)
+    first_good = np.where(good.any(1), rank[np.arange(len(q_pid)), good.argmax(1)], k + 1)
+    summary = {
+        "mAP10": float(np.nanmean(ap)),
+        "R1": float(np.mean(first_good[ok] <= 1)),
+        "R5": float(np.mean(first_good[ok] <= 5)),
+        "n_queries": int(ok.sum()),
+    }
+    return summary, ap
+
+
 def zscore(sim):
     """Each similarity standardised against its query's similarity distribution over the gallery."""
     return (sim - sim.mean(1, keepdims=True)) / np.maximum(sim.std(1, keepdims=True), 1e-12)
 
 
-def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, max_candidates=10, n_thresholds=201):
-    """Query-level precision / recall / F1 / TNR of the candidate mode over a grid of z-score thresholds.
+def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201):
+    """Candidate mode scored as the organisers do, for a grid of thresholds on the top-1 z-score.
 
-    A query is answered if its best candidate has z >= t; accepted candidates are its top items with z >= t.
-    The answer is correct only if an accepted candidate is the same vehicle from another camera (same-camera matches
-    don't count). Queries whose vehicle has no other-camera frame in the gallery are the negatives for TNR."""
+    A query is answered when its best gallery item has z >= t; answered queries list their top items in candidates.csv.
+    The decisive candidate is the first listed one that is not junk (same vehicle AND camera), as for mAP@10; the
+    strict variant takes the very first one, junk included, and counts junk as wrong. Query level, micro-averaged:
+    TP - a cross-camera pair exists and the decisive candidate is that vehicle; FP - answered but the candidate is
+    wrong or no pair exists; FN - a pair exists but no answer; TN - no pair and no answer.
+    F1 = 2TP / (2TP + FP + FN), TNR = TN / (TN + FP) over queries without a pair, score = 0.7 F1 + 0.3 TNR."""
     z = zscore(sim)
-    order = np.argsort(-z, axis=1, kind="stable")[:, :max_candidates]
-    z_top = np.take_along_axis(z, order, 1)
-    hit = (g_pid[order] == q_pid[:, None]) & (g_cam[order] != q_cam[:, None])
-    has_match = ((g_pid[None, :] == q_pid[:, None]) & (g_cam[None, :] != q_cam[:, None])).any(1)
-    rows = []
-    for t in np.unique(np.quantile(z_top[:, 0], np.linspace(0, 1, n_thresholds))):
-        accepted = z_top >= t
-        answered = accepted.any(1)
-        tp = (accepted & hit).any(1).sum()
-        precision = tp / max(answered.sum(), 1)
-        recall = tp / max(has_match.sum(), 1)
-        rows.append({
-            "threshold": float(t),
-            "precision": precision,
-            "recall": recall,
-            "F1": 2 * precision * recall / max(precision + recall, 1e-12),
-            "TNR": (~answered & ~has_match).sum() / max((~has_match).sum(), 1),
-            "answered": answered.mean(),
-        })
-    return pd.DataFrame(rows)
+    order = np.argsort(-z, axis=1, kind="stable")[:, :TOP_K]
+    rows = np.arange(len(q_pid))
+    same = g_pid[order] == q_pid[:, None]
+    junk = same & (g_cam[order] == q_cam[:, None])
+    decisive = order[rows, np.argmax(~junk, axis=1)]
+    correct = g_pid[decisive] == q_pid
+    correct_strict = same[:, 0] & ~junk[:, 0]
+    has_pair = ((g_pid[None, :] == q_pid[:, None]) & (g_cam[None, :] != q_cam[:, None])).any(1)
+    top_z = z[rows, order[:, 0]]
+
+    def confusion(answered, right):
+        tp = (answered & has_pair & right).sum()
+        fp = (answered & ~(has_pair & right)).sum()
+        fn = (~answered & has_pair).sum()
+        tn = (~answered & ~has_pair).sum()
+        f1 = 2 * tp / max(2 * tp + fp + fn, 1)
+        tnr = tn / max((~has_pair).sum(), 1)
+        return tp, fp, fn, f1, tnr
+
+    curve = []
+    for t in np.unique(np.quantile(top_z, np.linspace(0, 1, n_thresholds))):
+        answered = top_z >= t
+        tp, fp, fn, f1, tnr = confusion(answered, correct)
+        f1_strict = confusion(answered, correct_strict)[3]
+        curve.append({"threshold": float(t), "score": 0.7 * f1 + 0.3 * tnr, "F1": f1, "TNR": tnr,
+                      "precision": tp / max(tp + fp, 1), "recall": tp / max(tp + fn, 1), "answered": answered.mean(),
+                      "F1_strict": f1_strict, "score_strict": 0.7 * f1_strict + 0.3 * tnr})
+    return pd.DataFrame(curve)
 
 
-def pick_threshold(curve, min_tnr):
-    """Best-F1 row among thresholds with TNR >= min_tnr (all rows if none qualifies)."""
-    eligible = curve[curve.TNR >= min_tnr]
-    return (eligible if len(eligible) else curve).sort_values("F1", kind="stable").iloc[-1]
+def pick_threshold(curve):
+    """The row with the best organisers' score 0.7 F1 + 0.3 TNR (the higher threshold on ties)."""
+    return curve.sort_values(["score", "threshold"], kind="stable").iloc[-1]
 
 
 def paired_bootstrap(ap_base, ap_new, vehicle_ids, n_boot=2000, seed=0):

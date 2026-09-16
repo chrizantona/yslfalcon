@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from reid.data import load_csv, load_yaml
-from reid.submit import TOP_K
+from reid.metrics import TOP_K
 
 
 def check(sub_dir, query_ids, gallery_ids):
@@ -46,16 +46,15 @@ def check(sub_dir, query_ids, gallery_ids):
     cand = pd.read_csv(sub_dir / "candidates.csv", dtype=str, keep_default_na=False)
     if list(cand.columns) != ["query_id", "gallery_id", "confidence"]:
         problems.append(f"candidates.csv: columns {list(cand.columns)}, expected [query_id, gallery_id, confidence]")
-    else:
-        refused = cand.gallery_id == ""
-        if set(cand.query_id) != set(query_ids):
-            problems.append("candidates.csv: every test query must appear at least once")
-        if (refused != (cand.confidence == "")).any():
-            problems.append("candidates.csv: gallery_id and confidence must be empty together")
-        if not cand.gallery_id[~refused].isin(gallery_ids).all():
+    else:  # a refusal is a query without rows; empty ids or scores are not allowed
+        if (cand.gallery_id == "").any() or (cand.confidence == "").any():
+            problems.append("candidates.csv: empty gallery_id or confidence; a refused query must have no rows")
+        if not cand.query_id.isin(query_ids).all():
+            problems.append("candidates.csv: unknown query ids")
+        if not cand.gallery_id[cand.gallery_id != ""].isin(gallery_ids).all():
             problems.append("candidates.csv: unknown gallery ids")
-        if set(cand.query_id[refused]) & set(cand.query_id[~refused]):
-            problems.append("candidates.csv: a query is both refused and answered")
+        if pd.to_numeric(cand.confidence, errors="coerce").isna().any():
+            problems.append("candidates.csv: confidence must be a number")
     return problems
 
 

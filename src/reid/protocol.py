@@ -4,9 +4,14 @@ Test recipe (reverse-engineered in eda/): gallery = one random frame per (vehicl
 Writes to <out_dir>: folds.csv, fold{k}_query.csv and fold{k}_gallery.csv (rows shuffled), fold{k}_no_match_vehicles.csv
 (vehicles whose gallery frames are dropped when calibrating the refusal mode). Never overwrites an existing protocol.
 
-Usage: PYTHONPATH=src python -m reid.protocol --data-config configs/data.yaml --config configs/val_v1.yaml
+A config with base_dir (val_v2) copies folds and pseudo-tests of the base version unchanged, so saved embeddings stay
+valid, and only rebuilds the no-match vehicles: whole vehicles are dropped until about no_match_query_share of the
+queries have no pair, as in the closed test (20%).
+
+Usage: PYTHONPATH=src python -m reid.protocol --data-config configs/data.yaml --config configs/val_v2.yaml
 """
 import argparse
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -39,6 +44,35 @@ def pseudo_test(fold_df, seed):
     return query, gallery
 
 
+def no_match_by_query_share(query, share, rng):
+    """Sorted vehicle ids, taken in random order until their queries make up at least share of all queries."""
+    counts = query.vehicle_id.value_counts()
+    picked, covered = [], 0
+    for vehicle in rng.permutation(np.sort(counts.index.to_numpy())):
+        if covered >= share * len(query):
+            break
+        picked.append(vehicle)
+        covered += counts[vehicle]
+    return np.sort(picked)
+
+
+def derive_version(cfg, out):
+    """Copy folds and pseudo-tests from cfg["base_dir"]; write new no-match vehicles per fold."""
+    base = Path(cfg["base_dir"])
+    shutil.copy(base / "folds.csv", out / "folds.csv")
+    rng = np.random.default_rng(cfg["no_match_seed"])
+    summary = []
+    for k in range(cfg["n_folds"]):
+        for part in ("query", "gallery"):
+            shutil.copy(base / f"fold{k}_{part}.csv", out / f"fold{k}_{part}.csv")
+        query = pd.read_csv(out / f"fold{k}_query.csv")
+        no_match = no_match_by_query_share(query, cfg["no_match_query_share"], rng)
+        pd.DataFrame({"vehicle_id": no_match}).to_csv(out / f"fold{k}_no_match_vehicles.csv", index=False)
+        summary.append({"fold": k, "query": len(query), "no_match_vehicles": len(no_match),
+                        "queries_without_pair": round(query.vehicle_id.isin(no_match).mean(), 3)})
+    print(pd.DataFrame(summary).to_string(index=False))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-config", required=True)
@@ -50,6 +84,9 @@ def main():
     if out.exists() and any(out.iterdir()):
         raise SystemExit(f"{out} already exists: the protocol is frozen, create a new version instead")
     out.mkdir(parents=True, exist_ok=True)
+    if cfg.get("base_dir"):
+        derive_version(cfg, out)
+        return
 
     train = load_csv(data_cfg["dataset_dir"], "train")
     train["fold"] = assign_folds(train, cfg["n_folds"], cfg["split_seed"])

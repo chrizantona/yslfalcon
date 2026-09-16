@@ -5,7 +5,7 @@ train.source switches training to an external set (pretraining); model.init_chec
 One seed per call. Writes to artifacts/<exp_id>/seed<k>/: train_log.jsonl (losses, lr, speed, periodic dev metrics),
 metrics.json, threshold.json, refusal_curve.csv, per_query_ap.csv, query_emb.npy and gallery_emb.npy (float16).
 
-Usage: PYTHONPATH=src python -m reid.train --data-config configs/data.yaml --val-config configs/val_v1.yaml \
+Usage: PYTHONPATH=src python -m reid.train --data-config configs/data.yaml --val-config configs/val_v2.yaml \
            --config configs/exp001_clip_vitb16_bot.yaml --seed 0
 """
 import argparse
@@ -201,7 +201,7 @@ def main():
             "elapsed_min": (time.time() - start) / 60,
         }
         if epoch % tcfg["eval_every"] == 0 or epoch == tcfg["epochs"]:
-            result = evaluate_fold(embed, query, gallery, no_match, cfg["refusal"])
+            result = evaluate_fold(embed, query, gallery, no_match)
             record["dev"] = {**result["retrieval"], "refusal_F1": result["refusal"]["F1"], "refusal_TNR": result["refusal"]["TNR"]}
         log.write(json.dumps(record) + "\n")
         log.flush()

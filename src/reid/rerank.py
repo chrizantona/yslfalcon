@@ -2,6 +2,9 @@
 
 Distances are recomputed from the neighbourhoods of query and gallery items together, so re-ranking is a batch step
 over all queries at once and its time is reported separately from the per-vehicle latency.
+
+Not allowed for submissions: the organisers' streaming protocol forbids using other queries, and the neighbourhoods
+here include them. Kept to reproduce EXP-006, which is invalid for that reason.
 Reads artifacts/<source>/seed<k>/{query,gallery}_emb.npy and writes artifacts/<exp_id>/seed<k>/ like reid.train.
 
 Usage: PYTHONPATH=src python -m reid.rerank --val-config configs/val_v1.yaml --config configs/exp006_rerank_exp003.yaml
@@ -84,7 +87,7 @@ def main():
         rerank_seconds = time.perf_counter() - start
 
         result = evaluate_fold(lambda df: embeddings["query"] if df is query else embeddings["gallery"],
-                               query, gallery, no_match, cfg["refusal"], score_fn=score)
+                               query, gallery, no_match, score_fn=score)
         # the saved float16 embeddings must reproduce the source run, otherwise the comparison is not paired
         source_map, _ = reid_eval(embeddings["query"] @ embeddings["gallery"].T, query.vehicle_id.to_numpy(),
                                   query.camera_id.to_numpy(), gallery.vehicle_id.to_numpy(), gallery.camera_id.to_numpy())
