@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Download the external data and public weights listed in DATA.md into EXT_DIR and verify every sha256.
+# Usage on the pod: KAGGLE_API_TOKEN=<token> bash scripts/fetch_external.sh   (EXT_DIR defaults to /workspace/ext_data)
+# Files that already exist with the right checksum are skipped. The competition dataset is not public: see DATA.md.
+set -Eeuo pipefail
+EXT_DIR=${EXT_DIR:-/workspace/ext_data}
+GDRIVE="https://drive.usercontent.google.com/download?export=download&confirm=t&id="
+FASTREID="https://github.com/JDAI-CV/fast-reid/releases/download/v0.1.1"
+KAGGLE="https://www.kaggle.com/api/v1/datasets/download"
+
+fetch() {  # relative path, url, sha256, [kaggle]
+  local path="$EXT_DIR/$1" url=$2 sha=$3 auth=()
+  if [ -f "$path" ] && echo "$sha  $path" | sha256sum -c --status; then
+    echo "ok (cached) $1"; return
+  fi
+  if [ "${4:-}" = kaggle ]; then
+    : "${KAGGLE_API_TOKEN:?set KAGGLE_API_TOKEN to download from Kaggle}"
+    auth=(-H "Authorization: Bearer $KAGGLE_API_TOKEN")
+  fi
+  mkdir -p "$(dirname "$path")"
+  curl -sSfL --retry 5 -C - "${auth[@]}" -o "$path" "$url"
+  echo "$sha  $path" | sha256sum -c --quiet && echo "ok $1"
+}
+
+# VERI-Wild large test split (10,000 vehicles), used for the EXP-009 pretraining
+fetch kaggle/veriwild_test.zip "$KAGGLE/mrkdagods/veriwild-test" \
+  34f4ba6bf73302145ce85ab2477cb2761972d053706cdb5932e8ab44a39c3b56 kaggle
+# VeRi-776, downloaded but not used by any experiment yet
+fetch kaggle/veri776.zip "$KAGGLE/abhyudaya12/veri-vehicle-re-identification-dataset" \
+  9d45b9ad779d04d58c14abc09a0f681427145464c0aa9faa3ac19b3fea4d0694 kaggle
+# FastReID (Apache-2.0) release v0.1.1: EXP-011, EXP-012, EXP-017, EXP-018
+fetch weights/fast-reid/veriwild_bot_R50-ibn.pth "$FASTREID/veriwild_bot_R50-ibn.pth" \
+  f591e4f7f31ce0be2f4079171cfc03fcbecab5ea5b40f9148c753b9c6f061e8e
+fetch weights/fast-reid/vehicleid_bot_R50-ibn.pth "$FASTREID/vehicleid_bot_R50-ibn.pth" \
+  48992dbfdb99b93c9a0c2f15dd27b7a738f8b8a7e49dd231391ed211f88d759a
+fetch weights/fast-reid/veri_sbs_R50-ibn.pth "$FASTREID/veri_sbs_R50-ibn.pth" \
+  57fb9c17d88911ea64390bf5427f43511435e7f88f6eed9dbc969d4b611e53cd
+# CLIP-ReID (MIT), links from the README of github.com/Syliz517/CLIP-ReID: EXP-013, EXP-014
+fetch weights/clip-reid/VehicleID_clipreid_ViT-B-16_60.pth "${GDRIVE}168BLegHHxNqatW5wx1YyL2REaThWoof5" \
+  538e8288741b45deb1dd8225e47b57fc0702fde79156ca673599e53c1905b27b
+fetch weights/clip-reid/VeRi_clipreid_ViT-B-16_60.pth "${GDRIVE}1RyfHdOBI2pan_wIGSim5-l6cM4S2WN8e" \
+  71f6f2723be4d563f1df201133daa53f57bee2a67266486559d5ce453a60f805
+curl -sSfL -o "$EXT_DIR/weights/fast-reid/LICENSE" https://raw.githubusercontent.com/JDAI-CV/fast-reid/master/LICENSE
+curl -sSfL -o "$EXT_DIR/weights/clip-reid/LICENSE" https://raw.githubusercontent.com/Syliz517/CLIP-ReID/master/LICENSE
