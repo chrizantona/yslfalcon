@@ -19,6 +19,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", type=Path, default=Path("artifacts/handoff"))
     parser.add_argument("--tag", default="exp-024")
+    parser.add_argument("--title", default="EXP-022…024: validation artifacts and checkpoints")
+    parser.add_argument("--body-file", type=Path)
     args = parser.parse_args()
     result = subprocess.run(["git", "credential", "fill"],
                             input=f"protocol=https\nhost=github.com\npath={REPO}.git\n\n",
@@ -52,12 +54,14 @@ def main():
     releases = request("GET", f"/repos/{REPO}/releases?per_page=100")
     release = next((r for r in releases if r["tag_name"] == args.tag), None)
     if release is None:
-        body = {"tag_name": args.tag, "name": "EXP-022…024: validation artifacts and checkpoints",
+        body = {"tag_name": args.tag, "name": args.title,
                 "draft": True, "prerelease": True,
                 "body": "Verified AP per query, validation embeddings, logs and source snapshots for EXP-022…024. "
                         "Weights: exp022_seed0.pt (pretraining), exp024.pt (current quality baseline). "
                         "Check SHA256SUMS before use. val_v2, development fold 0; holdout fold 4 untouched. "
                         "H200 performance only; RTX A5000 pending. See README.md and DATA.md."}
+        if args.body_file:
+            body["body"] = args.body_file.read_text()
         release = request("POST", f"/repos/{REPO}/releases", json.dumps(body).encode())
     assets = request("GET", f"/repos/{REPO}/releases/{release['id']}/assets?per_page=100")
     existing = {asset["name"]: asset for asset in assets}

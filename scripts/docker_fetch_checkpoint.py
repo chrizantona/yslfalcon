@@ -24,7 +24,10 @@ def main():
         if urllib.parse.urlparse(url).hostname != "api.github.com":
             raise ValueError("GitHub credentials may only be sent to api.github.com")
         headers["Authorization"] = "Bearer " + secret.read_text().strip()
-    target = Path("/opt/checkpoints/exp024.pt")
+    name = os.environ.get("CHECKPOINT_NAME", "exp024.pt")
+    if Path(name).name != name or not name.endswith(".pt"):
+        raise ValueError("checkpoint name must be a .pt basename")
+    target = Path("/opt/checkpoints") / name
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(".download")
     checksum = hashlib.sha256()

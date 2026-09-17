@@ -2,22 +2,25 @@
 services:
   inference:
     platform: linux/amd64
+    user: "${INFERENCE_UID:-1000}:${INFERENCE_GID:-1000}"
     build:
       context: .
       args:
-        WEIGHTS_URL: ${WEIGHTS_URL:?set the pinned checkpoint URL}
-        WEIGHTS_SHA256: b1a937546b14b693d35196d3dab23fcbae48b1e7657fe30743307a4a8b125bde
+        WEIGHTS_URL: ${WEIGHTS_URL:-https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/569756756}
+        WEIGHTS_SHA256: ${WEIGHTS_SHA256:-b1a937546b14b693d35196d3dab23fcbae48b1e7657fe30743307a4a8b125bde}
+        CHECKPOINT_NAME: ${CHECKPOINT_NAME:-exp024.pt}
       secrets:
         - github_token
     volumes:
       - ${DATASET_DIR:-./BIG_DATA/dataset}:/data:ro
       - ./artifacts:/app/artifacts
+    command: ["${SUBMIT_CONFIG:-configs/submit_exp024.yaml}"]
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              device_ids: ["${INFERENCE_GPU:-1}"]
               capabilities: [gpu]
 secrets:
   github_token:
