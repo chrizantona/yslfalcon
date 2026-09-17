@@ -4,8 +4,8 @@
 # Files that already exist with the right checksum are skipped. The competition dataset is not public: see DATA.md.
 set -Eeuo pipefail
 EXT_DIR=${EXT_DIR:-/workspace/ext_data}
-TARGET=${1:-all}  # all | clip_l | veriwild
-case "$TARGET" in all|clip_l|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
+TARGET=${1:-all}  # all | clip_l | backbones | veriwild
+case "$TARGET" in all|clip_l|backbones|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
 GDRIVE="https://drive.usercontent.google.com/download?export=download&confirm=t&id="
 FASTREID="https://github.com/JDAI-CV/fast-reid/releases/download/v0.1.1"
 KAGGLE="https://www.kaggle.com/api/v1/datasets/download"
@@ -30,11 +30,24 @@ if [ "$TARGET" = all ] || [ "$TARGET" = clip_l ]; then
 fi
 [ "$TARGET" != clip_l ] || exit 0
 
+if [ "$TARGET" = all ] || [ "$TARGET" = backbones ]; then  # backbone screens EXP-030…032
+  fetch weights/clip/dfn2b_vitl14.bin \
+    https://huggingface.co/apple/DFN2B-CLIP-ViT-L-14/resolve/13d68e40771108ec1812f566404e8c6f7de85f67/open_clip_pytorch_model.bin \
+    c02c84198ede77ad80df0803224022f1e9e95ce42551baa91a1b5d87e229e2bb
+  fetch weights/clip/eva02_l14_merged2b.safetensors \
+    https://huggingface.co/timm/eva02_large_patch14_clip_224.merged2b_s4b_b131k/resolve/bf4190eb65dd5204ffb03e980108beb1200e0873/open_clip_model.safetensors \
+    00af04296f09f24dcc69559440a80b7a44daf4855a72827e016067e6e571b851
+  fetch weights/clip/siglip2_so400m14_webli.safetensors \
+    https://huggingface.co/timm/ViT-SO400M-14-SigLIP2/resolve/f9e2bfdc4807cd0fbadf67301e45193d6f330c20/open_clip_model.safetensors \
+    bd5884118e72b5cc24c37cff23b8d202e2c3dac723b8a150901b022785235626
+fi
+[ "$TARGET" != backbones ] || exit 0
+
 # VERI-Wild large test split (10,000 vehicles), used for the EXP-009 pretraining
 fetch kaggle/veriwild_test.zip "$KAGGLE/mrkdagods/veriwild-test?datasetVersionNumber=1" \
   34f4ba6bf73302145ce85ab2477cb2761972d053706cdb5932e8ab44a39c3b56 kaggle
 [ "$TARGET" != veriwild ] || exit 0
-# VeRi-776, downloaded but not used by any experiment yet
+# VeRi-776, used by the EXP-033 pretraining together with VERI-Wild test
 fetch kaggle/veri776.zip "$KAGGLE/abhyudaya12/veri-vehicle-re-identification-dataset" \
   9d45b9ad779d04d58c14abc09a0f681427145464c0aa9faa3ac19b3fea4d0694 kaggle
 # FastReID (Apache-2.0) release v0.1.1: EXP-011, EXP-012, EXP-017, EXP-018

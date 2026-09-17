@@ -42,7 +42,9 @@ def build_backbone(cfg, external_weights_dir=None, load_pretrained=True):
         model, _, _ = open_clip.create_model_and_transforms(cfg["name"], pretrained=pretrained, **kwargs)
         preprocess = getattr(model.visual, "preprocess_cfg", None) or {}
         mean, std = preprocess.get("mean", OPENAI_DATASET_MEAN), preprocess.get("std", OPENAI_DATASET_STD)
-        return model.visual, model.visual.output_dim, mean, std
+        # timm-based towers (EVA02, SigLIP 2) have no output_dim; their projection ends at the model's embed_dim
+        dim = getattr(model.visual, "output_dim", None) or open_clip.get_model_config(cfg["name"])["embed_dim"]
+        return model.visual, dim, mean, std
     if cfg["backbone"] == "timm":
         model = timm.create_model(cfg["name"], pretrained=True, num_classes=0)
         if cfg.get("last_stride_1"):  # keep a 2x larger final feature map, as in the ReID bag of tricks

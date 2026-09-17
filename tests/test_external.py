@@ -2,7 +2,7 @@ import zipfile
 
 import pandas as pd
 
-from reid.external import prepare
+from reid.external import prepare, source_names
 
 
 def test_prepare_keeps_present_images_prefixes_vehicles_and_unpacks(tmp_path):
@@ -23,3 +23,28 @@ def test_prepare_keeps_present_images_prefixes_vehicles_and_unpacks(tmp_path):
     assert (tmp_path / "out" / "images" / "00007" / "000030.jpg").read_bytes() == b"jpeg"
     # pandas 3 reads strings back with its own string dtype, so compare values only
     pd.testing.assert_frame_equal(pd.read_csv(tmp_path / "out" / "train.csv"), table, check_dtype=False)
+
+
+def test_veri776_takes_train_and_test_ids_and_cameras_from_file_names(tmp_path):
+    archive = tmp_path / "veri776.zip"
+    with zipfile.ZipFile(archive, "w") as z:
+        for name in ("VeRi/image_train/0001_c001_00016450_0.jpg", "VeRi/image_train/0001_c014_00016510_1.jpg",
+                     "VeRi/image_test/0002_c002_00030600_0.jpg",
+                     "VeRi/image_query/0002_c002_00030600_0.jpg",  # repeats a test vehicle: skipped
+                     "VeRi/YongtaiPoint_Google.jpg"):
+            z.writestr(name, name.encode())
+        z.writestr("VeRi/name_train.txt", "")
+    table = prepare(archive, tmp_path / "out", "veri776")
+
+    assert table.image_id.tolist() == ["image_test/0002_c002_00030600_0", "image_train/0001_c001_00016450_0",
+                                       "image_train/0001_c014_00016510_1"]
+    assert table.vehicle_id.tolist() == ["v776_0002", "v776_0001", "v776_0001"]
+    assert table.camera_id.tolist() == [2, 1, 14]
+    image = tmp_path / "out" / "images" / "image_train" / "0001_c014_00016510_1.jpg"
+    assert image.read_bytes() == b"VeRi/image_train/0001_c014_00016510_1.jpg"
+    assert not (tmp_path / "out" / "images" / "image_query").exists()
+
+
+def test_source_is_one_set_or_a_list():
+    assert source_names({"source": "veriwild_test"}) == ["veriwild_test"]
+    assert source_names({"source": ["veriwild_test", "veri776"]}) == ["veriwild_test", "veri776"]

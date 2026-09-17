@@ -9,3 +9,6 @@ external:                               # pretraining sets: archive on /workspac
   veriwild_test:                        # VERI-Wild large test split (10,000 vehicles), Kaggle mirror mrkdagods/veriwild-test
     archive: /workspace/ext_data/kaggle/veriwild_test.zip
     dir: /dev/shm/ext/veriwild_test
+  veri776:                              # VeRi-776 train + test (776 vehicles), Kaggle mirror abhyudaya12/veri-vehicle-re-identification-dataset
+    archive: /workspace/ext_data/kaggle/veri776.zip
+    dir: /dev/shm/ext/veri776

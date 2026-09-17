@@ -1,6 +1,6 @@
 """Train a ReID model (ID + batch-hard triplet loss, BNNeck, PK sampler) on protocol folds, evaluate on the dev fold.
 
-train.source switches training to an external set (pretraining); model.init_checkpoint starts from a pretrained backbone.
+train.source switches training to an external set or a list of them (pretraining); model.init_checkpoint starts from a pretrained backbone.
 
 One seed per call. Writes to artifacts/<exp_id>/seed<k>/: train_log.jsonl (losses, lr, speed, periodic dev metrics),
 metrics.json, threshold.json, refusal_curve.csv, per_query_ap.csv, query_emb.npy and gallery_emb.npy (float16).
@@ -26,6 +26,7 @@ from torchvision.transforms import v2
 from reid.data import load_yaml, to_model_input
 from reid.embed import embed_boxes
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
+from reid.external import source_names
 from reid.models import ReIDModel, MarginClassifier, build_backbone, load_backbone, checkpoint_name
 from reid.optim import optimizer_groups
 
@@ -34,7 +35,8 @@ class CropDataset(Dataset):
     """Training crops with flip, pad-and-crop and random erasing; returns (image, class index)."""
 
     def __init__(self, df, crops_dir, input_hw, mean, std, cfg):
-        self.paths = [str(Path(crops_dir) / f"{image_id}.jpg") for image_id in df.image_id]
+        dirs = df.crops_dir if "crops_dir" in df else [crops_dir] * len(df)  # external sets carry a dir per row
+        self.paths = [str(Path(d) / f"{image_id}.jpg") for d, image_id in zip(dirs, df.image_id)]
         self.labels = df.label.to_numpy()
         self.input_hw = tuple(input_hw)
         self.mean, self.std = np.asarray(mean, np.float32), np.asarray(std, np.float32)
@@ -153,9 +155,11 @@ def main():
     torch.manual_seed(seed)
 
     protocol_dir = Path(val_cfg["out_dir"])
-    if tcfg.get("source"):  # pretraining on an external set prepared by reid.external; our folds are not used
-        source_dir = Path(data_cfg["external"][tcfg["source"]]["dir"])
-        train_df, crops_dir = pd.read_csv(source_dir / "train.csv"), source_dir / "images"
+    if tcfg.get("source"):  # pretraining on external sets prepared by reid.external; our folds are not used
+        tables = [pd.read_csv(Path(data_cfg["external"][name]["dir"]) / "train.csv")
+                  .assign(crops_dir=str(Path(data_cfg["external"][name]["dir"]) / "images"))
+                  for name in source_names(tcfg)]
+        train_df, crops_dir = pd.concat(tables, ignore_index=True), None
     else:
         assert cfg["eval_fold"] not in tcfg["folds"] and val_cfg["holdout_fold"] not in tcfg["folds"]
         folds = pd.read_csv(protocol_dir / "folds.csv")
