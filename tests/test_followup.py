@@ -98,3 +98,19 @@ def test_trained_inference_loads_backbone_and_bn_instead_of_public_weights(tmp_p
     x = torch.ones(2, 2)
     assert calls == [False] and dim == 3
     assert torch.equal(loaded.eval()(x), original(x))
+def test_single_checkpoint_gain_requires_positive_bootstrap_interval(monkeypatch):
+    import pandas as pd
+    from reid import research_compare
+
+    def describe(path):
+        return {"exp_id": path, "protocol": "val_v2", "fold": 0}, .5 if path == "base" else .5005, 0.
+
+    def load_ap(path):
+        return pd.DataFrame({"image_id": ["a", "b", "c", "d"], "vehicle_id": [1, 2, 3, 4],
+                             "AP": [.5] * 4 if path == "base" else [.6, .6, .4, .402]})
+
+    monkeypatch.setattr(research_compare, "describe", describe)
+    monkeypatch.setattr(research_compare, "load_ap", load_ap)
+    result = research_compare.compare("base", "new")
+    assert result["gain"] > 0 and result["ci95"][0] < 0 < result["ci95"][1]
+    assert result["decision"] == "inconclusive"

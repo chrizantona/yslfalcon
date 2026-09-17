@@ -32,7 +32,9 @@ def compare(base, new):
         raise ValueError("AP files do not reproduce recorded mAP@10")
     gain, low, high = paired_bootstrap(merged.AP_base.to_numpy(), merged.AP_new.to_numpy(), merged.vehicle_id.to_numpy())
     noise = max(base_std, new_std)
-    decision = "accepted" if gain > 0 and (gain > noise or low > 0) else ("rejected" if high < 0 else "inconclusive")
+    # Single checkpoint evaluations have no measured seed spread; zero is not evidence of zero noise.
+    clears_noise = noise > 0 and gain > noise
+    decision = "accepted" if gain > 0 and (clears_noise or low > 0) else ("rejected" if high < 0 else "inconclusive")
     return {"base": b["exp_id"], "new": n["exp_id"], "protocol": n["protocol"], "fold": n["fold"],
             "metric": "mAP@10", "base_mean": base_mean, "new_mean": new_mean, "gain": gain,
             "ci95": [low, high], "seed_noise": noise, "decision": decision,
