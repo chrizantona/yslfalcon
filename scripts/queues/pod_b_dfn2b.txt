@@ -1,5 +1,5 @@
 # Third pod: DFN-2B chain. EXP-044 pretrains on one GPU (~35-45 min, ~40 GB), then both fine-tunes train three seeds
 # in parallel (~40 GB each, ~15 min per EXP). Edit the GPU numbers to the free GPUs of the pod (>= 45 GB free each).
 EXP-044 configs/exp044_pretrain_veriwild_dfn2b.yaml 3 3 1
-EXP-045 configs/exp045_dfn2b_init_exp044.yaml 3 3,3,3 1
-EXP-046 configs/exp046_dfn2b_arcface_imprinting.yaml 3 3,3,3 1
+EXP-045 configs/exp045_dfn2b_init_exp044.yaml 3 3,0,3 1
+EXP-046 configs/exp046_dfn2b_arcface_imprinting.yaml 3 3,0,3 1
