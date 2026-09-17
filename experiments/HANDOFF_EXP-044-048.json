@@ -1,0 +1,463 @@
+{
+  "repo": "chrizantona/yslfalcon",
+  "release_url": "https://github.com/chrizantona/yslfalcon/releases/tag/exp-047",
+  "tag": "exp-047",
+  "training_source_commit": "7511a8e6a141cc42a773205e4816aa293d91fdd4",
+  "soup_source_commit": "f768edadd34eba0d8de06332cf75b44cb6f47091",
+  "verification": "Local archive and internal file SHA256, array NPY headers/order/SHA256, GitHub asset digest and size verified; trained checkpoint verified on pod and via GitHub API by local client",
+  "files_checked": 1359,
+  "assets": [
+    {
+      "name": "EXP-044_results.tar.gz",
+      "sha256": "0e117c6f38cd6e1b5b25845acefd1683989846fcdfc69e3320ebb5d5fdf48a28",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571280942",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/EXP-044_results.tar.gz",
+      "bytes": 4594129
+    },
+    {
+      "name": "EXP-045_results.tar.gz",
+      "sha256": "daf2a77e1063d6a3f3622656fc625c09abdfcd6513a486a8fa19ec3c6cc242b7",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281051",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/EXP-045_results.tar.gz",
+      "bytes": 10144275
+    },
+    {
+      "name": "EXP-046_results.tar.gz",
+      "sha256": "f23ac1ba9fdda74fde9ccd6d60ee64f91e208bc954a9012860a211250bdc3151",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281203",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/EXP-046_results.tar.gz",
+      "bytes": 10151362
+    },
+    {
+      "name": "EXP-047_results.tar.gz",
+      "sha256": "fbf0dcf374d1bdf9b1575da23977c3624c68be5a1b68c79fac08917b8244ef60",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281291",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/EXP-047_results.tar.gz",
+      "bytes": 7327256
+    },
+    {
+      "name": "EXP-048_results.tar.gz",
+      "sha256": "5399cc4c5f3d345253f55a9959c210422d38277891b4af7974c92c0a40570c6e",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281392",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/EXP-048_results.tar.gz",
+      "bytes": 10144152
+    },
+    {
+      "name": "analysis.json",
+      "sha256": "ebc5e74454a33f146bf20d5b091a1294158c67e30132af1ee4d38741d167db4e",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281497",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/analysis.json",
+      "bytes": 19695
+    },
+    {
+      "name": "archive_receipts.json",
+      "sha256": "c7a4fd7f47a88f33475a85661348a24cdde3f046b8099dbb9fac00514b023f16",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281534",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/archive_receipts.json",
+      "bytes": 1294
+    },
+    {
+      "name": "exp047_archive_receipt.json",
+      "sha256": "e8b633bafc56e384a0c2e8a5387db046265d02fdf3d53ca188dd90690add8dc3",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281576",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/exp047_archive_receipt.json",
+      "bytes": 303
+    },
+    {
+      "name": "checkpoint_manifest.json",
+      "sha256": "537ac67f7c9f2be5c6be5140df5c1961ba3082e54e64f11bf30b1810d8f71daf",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281617",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/checkpoint_manifest.json",
+      "bytes": 580
+    },
+    {
+      "name": "selected_members.json",
+      "sha256": "8100cd3f7dc529cb0bbdac21175cccec115795ad52352c300c75363ec463a713",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281646",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/selected_members.json",
+      "bytes": 633
+    },
+    {
+      "name": "embeddings_index.json",
+      "sha256": "736b36892644dd01ef8c7e6ded2e27e0f2e070f60665371264fd7e8dbad0bff6",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281671",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/embeddings_index.json",
+      "bytes": 9741
+    },
+    {
+      "name": "SHA256SUMS",
+      "sha256": "45c127acb8f362b6d4eb309abe7fc316b6bea828e02cbcf7eb43bf6e80c9846a",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281721",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/SHA256SUMS",
+      "bytes": 1076
+    },
+    {
+      "name": "manifest.json",
+      "sha256": "a0abd1618fde9d4b9aed0077e50b4a258f52479d762a1e654c9899c96cacfe13",
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571281765",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/manifest.json",
+      "bytes": 1499
+    },
+    {
+      "name": "398a6b20e0344621991d19cf5dc7f743.pt",
+      "sha256": "98b60ea55cc7cfd7627669a8969746178c97999621e471cfe9cff4965a80d035",
+      "bytes": 1218822583,
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/571284418",
+      "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-047/398a6b20e0344621991d19cf5dc7f743.pt"
+    }
+  ],
+  "embedding_index": {
+    "protocol": "val_v2",
+    "fold": 0,
+    "query_order": "pod/protocol/val_v2/fold0_query.csv in each experiment; AP CSV order independently checked",
+    "gallery_order": "pod/protocol/val_v2/fold0_gallery.csv in each experiment",
+    "validation_storage_dtype": "float16; convert to float32 when recomputing; submission format is separately float32",
+    "experiments": {
+      "EXP-044": {
+        "archive": "EXP-044_results.tar.gz",
+        "embeddings": [
+          {
+            "path": "artifacts/EXP-044/seed0/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "eb31cef6da311266fbebeee41db013119766d812596716d58aa996e7a869b75a",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-044/seed0/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "4b5861449eb92c096fd1c96e9bbe91f50650034525c8ed6cdc0bd17635d9ddf5",
+            "bytes": 1746560
+          }
+        ],
+        "per_query_ap": [
+          "artifacts/EXP-044/per_query_ap_mean.csv",
+          "artifacts/EXP-044/seed0/per_query_ap.csv"
+        ],
+        "query_order": "artifacts/EXP-044/pod/protocol/val_v2/fold0_query.csv",
+        "gallery_order": "artifacts/EXP-044/pod/protocol/val_v2/fold0_gallery.csv"
+      },
+      "EXP-045": {
+        "archive": "EXP-045_results.tar.gz",
+        "embeddings": [
+          {
+            "path": "artifacts/EXP-045/seed0/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "4c097ca3207ddf0c14ee6b82cc1c66889df6604683e50fe62214ff7daa95ba6d",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-045/seed0/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "df98e324d11d1b868f6b1a7b4c2a1c96d87aebe1966ce3e0dbc9674deeba4d57",
+            "bytes": 1746560
+          },
+          {
+            "path": "artifacts/EXP-045/seed1/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "80c3d56463cb78ddbe7ed03ebe52987a591edf9c6e579ffb777cc2be59ed6a7e",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-045/seed1/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "6c1f02e65213482401400e164333a3ebbd8d5831051ac3a4838948ac61306557",
+            "bytes": 1746560
+          },
+          {
+            "path": "artifacts/EXP-045/seed2/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "74b107122c517fc98c367b7ff9ec4b1c8e7c6142b335aac5f6199120736f3dfe",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-045/seed2/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "33a0e5a021d7696d1a162b4ddd31e2fb39d3fafaba97e112cb33c9d52f242ab6",
+            "bytes": 1746560
+          }
+        ],
+        "per_query_ap": [
+          "artifacts/EXP-045/per_query_ap_mean.csv",
+          "artifacts/EXP-045/seed0/per_query_ap.csv",
+          "artifacts/EXP-045/seed1/per_query_ap.csv",
+          "artifacts/EXP-045/seed2/per_query_ap.csv"
+        ],
+        "query_order": "artifacts/EXP-045/pod/protocol/val_v2/fold0_query.csv",
+        "gallery_order": "artifacts/EXP-045/pod/protocol/val_v2/fold0_gallery.csv"
+      },
+      "EXP-046": {
+        "archive": "EXP-046_results.tar.gz",
+        "embeddings": [
+          {
+            "path": "artifacts/EXP-046/seed0/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "11db0393132215e65bca572aece35eb68acebc1147fc1357368a8468c01bc89b",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-046/seed0/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "3a30d3dc1e034c8d2ec68cb5f9178423398d2bc69ee00d36b86e89d8f341198e",
+            "bytes": 1746560
+          },
+          {
+            "path": "artifacts/EXP-046/seed1/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "ef091bd93cb5711d97237b2e3dcd909df06a9b5a99b8fcb6a4a7cf989e9e9aa9",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-046/seed1/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "4cd811fe7a51ceb8c3d0ed18a2ef86272a440eb1093f1ff556168e8322ea7848",
+            "bytes": 1746560
+          },
+          {
+            "path": "artifacts/EXP-046/seed2/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "c21c530b870b195b340b1bc6e576387f6c0f12b3fbf6d88dc24700cf819452f5",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-046/seed2/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "c491042dd21ef8a4ad1faf6005297bc9b0f5611ec85ca55e910d2bfc5972cbf3",
+            "bytes": 1746560
+          }
+        ],
+        "per_query_ap": [
+          "artifacts/EXP-046/per_query_ap_mean.csv",
+          "artifacts/EXP-046/seed0/per_query_ap.csv",
+          "artifacts/EXP-046/seed1/per_query_ap.csv",
+          "artifacts/EXP-046/seed2/per_query_ap.csv"
+        ],
+        "query_order": "artifacts/EXP-046/pod/protocol/val_v2/fold0_query.csv",
+        "gallery_order": "artifacts/EXP-046/pod/protocol/val_v2/fold0_gallery.csv"
+      },
+      "EXP-047": {
+        "archive": "EXP-047_results.tar.gz",
+        "embeddings": [
+          {
+            "path": "artifacts/EXP-047/fp16_check/val_fold0/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "b0f3d07cfeed8879486283d5c5cf338edb674863ea3a2607f67e7975ce446d76",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-047/fp16_check/val_fold0/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "7f5bc60ac1894352c4b63afb672cd8ae940ed3df9c0414b44685e809f7c25751",
+            "bytes": 1746560
+          },
+          {
+            "path": "artifacts/EXP-047/val_fold0/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "a31451d9111dbe83ecad483b3411007b63137ed7fb7fdb78e216acbfc1badd46",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-047/val_fold0/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "fe3c6fd737ea890b5e7c39444854f2e70a3a71d95bba6af7896f30673f128555",
+            "bytes": 1746560
+          }
+        ],
+        "per_query_ap": [
+          "artifacts/EXP-047/fp16_check/val_fold0/per_query_ap.csv",
+          "artifacts/EXP-047/val_fold0/per_query_ap.csv"
+        ],
+        "query_order": "artifacts/EXP-047/pod/protocol/val_v2/fold0_query.csv",
+        "gallery_order": "artifacts/EXP-047/pod/protocol/val_v2/fold0_gallery.csv"
+      },
+      "EXP-048": {
+        "archive": "EXP-048_results.tar.gz",
+        "embeddings": [
+          {
+            "path": "artifacts/EXP-048/seed0/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "1408938029a51c06eb39e366cb5c3622de64970afd74437237204b642fa6f5bd",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-048/seed0/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "42b644819d28cf1fc9a66a07eb0506219513d1f458de57c84a9c7c7d392e394b",
+            "bytes": 1746560
+          },
+          {
+            "path": "artifacts/EXP-048/seed1/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "a1fa8a4db52ef0a62863cf103342314b04f0403761ead481b62886af39940252",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-048/seed1/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "d6746df4f7d460e44fdf1e74e9e964a449e24890ff8899ea52d69384c220d1e3",
+            "bytes": 1746560
+          },
+          {
+            "path": "artifacts/EXP-048/seed2/gallery_emb.npy",
+            "shape": [
+              789,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "0a3f62089c859d3d08158bb4f6417c1480965957dfc88f39b1fe3f1f309be932",
+            "bytes": 1212032
+          },
+          {
+            "path": "artifacts/EXP-048/seed2/query_emb.npy",
+            "shape": [
+              1137,
+              768
+            ],
+            "dtype": "float16",
+            "sha256": "b667e3546d433ae3feca733348b5488841c39710708a2ac09a11f7904a0d3627",
+            "bytes": 1746560
+          }
+        ],
+        "per_query_ap": [
+          "artifacts/EXP-048/per_query_ap_mean.csv",
+          "artifacts/EXP-048/seed0/per_query_ap.csv",
+          "artifacts/EXP-048/seed1/per_query_ap.csv",
+          "artifacts/EXP-048/seed2/per_query_ap.csv"
+        ],
+        "query_order": "artifacts/EXP-048/pod/protocol/val_v2/fold0_query.csv",
+        "gallery_order": "artifacts/EXP-048/pod/protocol/val_v2/fold0_gallery.csv"
+      }
+    }
+  },
+  "cleanup": {
+    "cleaned_utc": "2026-09-17 22:33:20",
+    "removed_paths": [
+      "/workspace/yslfalcon_runs/EXP-044",
+      "/workspace/yslfalcon_runs/EXP-045",
+      "/workspace/yslfalcon_runs/EXP-046",
+      "/workspace/yslfalcon_runs/EXP-047",
+      "/workspace/yslfalcon_runs/EXP-048",
+      "/workspace/yslfalcon_runs/queue_b",
+      "/tmp/EXP-044",
+      "/dev/shm/EXP-044",
+      "/workspace/EXP-044_results.tar.gz",
+      "/workspace/EXP-044_results.sha256",
+      "/workspace/EXP-045_results.tar.gz",
+      "/workspace/EXP-045_results.sha256",
+      "/workspace/EXP-046_results.tar.gz",
+      "/workspace/EXP-046_results.sha256",
+      "/workspace/EXP-047_results.tar.gz",
+      "/workspace/EXP-047_results.sha256",
+      "/workspace/EXP-048_results.tar.gz",
+      "/workspace/EXP-048_results.sha256"
+    ],
+    "owned_processes_after": [],
+    "preserved_checkpoints": [
+      "/workspace/checkpoints/5efa9f751a93443288075459a01447d5.pt",
+      "/workspace/checkpoints/c22fa7d359d644f1ad764977a4c0d1f6.pt",
+      "/workspace/checkpoints/5eae1d26ab0c4d9f91b207260b9023cd.pt",
+      "/workspace/checkpoints/3c2e4b9372cf4dd4b238ea990af3dee6.pt",
+      "/workspace/checkpoints/999849736e414b0483c2c3a8cfa3714d.pt",
+      "/workspace/checkpoints/8e748371c48f492996680e4959526b11.pt",
+      "/workspace/checkpoints/447a6fd154f74f678318d0ba7ef9faba.pt",
+      "/workspace/checkpoints/398a6b20e0344621991d19cf5dc7f743.pt",
+      "/workspace/checkpoints/4718026ca2bd46469e224792ba816d49.pt",
+      "/workspace/checkpoints/4c9608c68e584a8bbb6dd29c8f46fc4f.pt",
+      "/workspace/checkpoints/7e93d97934ee4429b754a98eb6521825.pt"
+    ],
+    "preserved_data": [
+      "/workspace/lct2026_data/dataset.zip",
+      "/dev/shm/lct2026/dataset",
+      "/dev/shm/lct2026/crops512",
+      "/workspace/ext_data"
+    ],
+    "verification": "No owned processes before/after; original stats of datasets and checkpoints unchanged; foreign GPU jobs preserved"
+  }
+}
