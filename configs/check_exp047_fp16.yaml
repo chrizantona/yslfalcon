@@ -1,0 +1,21 @@
+exp_id: EXP-047/fp16_check
+parent: EXP-047
+description: the EXP-047 soup scored in fp16 through the unchanged evaluate_fold
+checkpoint: 398a6b20e0344621991d19cf5dc7f743.pt
+model:
+  backbone: clip
+  name: ViT-L-14-quickgelu
+  pretrained: dfn2b
+  weights: clip/dfn2b_vitl14.bin
+  sha256: c02c84198ede77ad80df0803224022f1e9e95ce42551baa91a1b5d87e229e2bb
+  input_hw: [224, 224]
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
+benchmark:
+  precision: fp16
