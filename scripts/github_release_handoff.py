@@ -49,12 +49,6 @@ def main():
     if not repository["private"] or not repository["permissions"]["push"]:
         raise ValueError("expected a private repository with push access")
     manifest = json.loads((args.directory / "manifest.json").read_text())
-    for name, meta in manifest.items():
-        path = args.directory / name
-        with path.open("rb") as stream:
-            digest = hashlib.file_digest(stream, "sha256").hexdigest()
-        if digest != meta["sha256"] or path.stat().st_size != meta["bytes"]:
-            raise ValueError(f"manifest mismatch: {name}")
     releases = request("GET", f"/repos/{REPO}/releases?per_page=100")
     release = next((r for r in releases if r["tag_name"] == args.tag), None)
     if release is None:
@@ -72,6 +66,10 @@ def main():
         path = args.directory / name
         with path.open("rb") as stream:
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        if name in manifest:
+            meta = manifest[name]
+            if digest != meta["sha256"] or path.stat().st_size != meta["bytes"]:
+                raise ValueError(f"manifest mismatch: {name}")
         if name in existing:
             asset = existing[name]
             if asset.get("digest") != f"sha256:{digest}":

@@ -1,6 +1,7 @@
 # docker compose up --build  ->  artifacts/<exp_id>/submission/. Not verified yet: the development pod has no Docker.
 services:
   inference:
+    platform: linux/amd64
     build:
       context: .
       args:
