@@ -20,7 +20,7 @@ trap 'echo "series failed ($(date -Is))" > "$MASTER/status/series_FAILED"' ERR
 run() {  # EXP id, config, benchmark GPU, seed GPUs, seeds in parallel (1) or one after another (0)
   echo "$(date +%T) $1 start" >> "$MASTER/status/series_stage"
   if [ "$RUNS/$1" != "$MASTER" ]; then
-    mkdir -p "$RUNS/$1"
+    mkdir -p "$RUNS/$1/status"  # job.log below is opened before pod_train_job.sh creates status/
     tar -C "$MASTER" --exclude=./.venv --exclude=./.python --exclude=./.uv-cache --exclude=./status --exclude=./logs \
       --exclude=./artifacts -cf - . | tar -C "$RUNS/$1" -xf -
   fi
