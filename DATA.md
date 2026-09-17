@@ -17,6 +17,8 @@
 | `kaggle/veriwild_test.zip` | Kaggle [`mrkdagods/veriwild-test`](https://www.kaggle.com/datasets/mrkdagods/veriwild-test), версия от 14.07.2026 | VERI-Wild, Lou et al., CVPR 2019, [github.com/PKU-IMRE/VERI-Wild](https://github.com/PKU-IMRE/VERI-Wild); некоммерческое исследовательское использование; номера замаскированы | 8 202 185 309 байт, `34f4ba6bf73302145ce85ab2477cb2761972d053706cdb5932e8ab44a39c3b56` | EXP-009 (претрейн) → EXP-010, EXP-015, EXP-016, EXP-019 |
 | `kaggle/veri776.zip` | Kaggle [`abhyudaya12/veri-vehicle-re-identification-dataset`](https://www.kaggle.com/datasets/abhyudaya12/veri-vehicle-re-identification-dataset), версия 1 | VeRi-776, Liu et al., ECCV 2016, [github.com/VehicleReId/VeRi](https://github.com/VehicleReId/VeRi); CC BY-NC 4.0 по странице Kaggle | 992 234 678 байт, `9d45b9ad779d04d58c14abc09a0f681427145464c0aa9faa3ac19b3fea4d0694` | EXP-033 (претрейн вместе с VERI-Wild test: `image_train` и `image_test`, без повторяющего их `image_query`) → EXP-034 |
 
+| `vehicleid/VehicleID_V1.0.zip` | PKU IDM, выдаётся авторами по запросу (личная ссылка и пароли не публикуются) | VehicleID, Liu et al., CVPR 2016, [pkuml.org/resources/pku-vehicleid.html](https://www.pkuml.org/resources/pku-vehicleid.html); исследовательское использование по соглашению; номера закрыты чёрными прямоугольниками, на части снимков впечатан текст камеры | 7 568 990 734 байта, `75a3c8ba0b1cfb4ac4a088c4d0c3c0fceb0ae45abc17a15513e9915531739952`; zip зашифрован (ZipCrypto), 222 628 снимков, меток камер нет | пока нигде |
+
 Kaggle-копии сверены с официальной статистикой: VERI-Wild test — 10 000 машин, 128 517 снимков галереи + 10 000 запросов; VeRi-776 — 37 778 / 11 579 / 1 678 снимков.
 
 ## Публичные веса
