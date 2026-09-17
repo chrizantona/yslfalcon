@@ -101,6 +101,11 @@ def prepare(archive, out_dir, kind="veriwild_test"):
     return table
 
 
+def load_table(out_dir):
+    """train.csv of a prepared external set; ids stay strings (VehicleID image ids are digits with leading zeros)."""
+    return pd.read_csv(Path(out_dir) / "train.csv", dtype={"image_id": str, "vehicle_id": str})
+
+
 def source_names(train_cfg):
     """train.source names one external set or a list of them."""
     source = train_cfg["source"]

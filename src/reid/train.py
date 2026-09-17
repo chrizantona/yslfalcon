@@ -26,7 +26,7 @@ from torchvision.transforms import v2
 from reid.data import load_yaml, to_model_input
 from reid.embed import embed_boxes
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
-from reid.external import source_names
+from reid.external import load_table, source_names
 from reid.models import ReIDModel, MarginClassifier, build_backbone, load_backbone, checkpoint_name
 from reid.optim import optimizer_groups
 
@@ -156,7 +156,7 @@ def main():
 
     protocol_dir = Path(val_cfg["out_dir"])
     if tcfg.get("source"):  # pretraining on external sets prepared by reid.external; our folds are not used
-        tables = [pd.read_csv(Path(data_cfg["external"][name]["dir"]) / "train.csv")
+        tables = [load_table(data_cfg["external"][name]["dir"])
                   .assign(crops_dir=str(Path(data_cfg["external"][name]["dir"]) / "images"))
                   for name in source_names(tcfg)]
         train_df, crops_dir = pd.concat(tables, ignore_index=True), None

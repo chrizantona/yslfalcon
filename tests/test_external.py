@@ -3,7 +3,7 @@ import zipfile
 import pandas as pd
 import pytest
 
-from reid.external import prepare, source_names
+from reid.external import load_table, prepare, source_names
 
 
 def test_prepare_keeps_present_images_prefixes_vehicles_and_unpacks(tmp_path):
@@ -56,7 +56,8 @@ def test_vehicleid_keeps_labelled_present_images_with_one_camera_per_image(tmp_p
     assert table.image_id.tolist() == ["0000002", "0000003"]
     assert table.vehicle_id.tolist() == ["vid_00007", "vid_00007"]
     assert table.camera_id.nunique() == 2
-    assert (tmp_path / "train.csv").exists()
+    # training reads train.csv back: digit-only ids must keep their leading zeros to match the file names
+    assert load_table(tmp_path).image_id.tolist() == ["0000002", "0000003"]
 
 
 def test_vehicleid_must_be_unpacked_first(tmp_path):
