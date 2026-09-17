@@ -12,3 +12,6 @@ external:                               # pretraining sets: archive on /workspac
   veri776:                              # VeRi-776 train + test (776 vehicles), Kaggle mirror abhyudaya12/veri-vehicle-re-identification-dataset
     archive: /workspace/ext_data/kaggle/veri776.zip
     dir: /dev/shm/ext/veri776
+  vehicleid:                            # VehicleID (PKU, on request); encrypted, unpacked beforehand by scripts/prepare_vehicleid.sh
+    archive: /workspace/ext_data/vehicleid/VehicleID_V1.0.zip
+    dir: /dev/shm/ext/vehicleid

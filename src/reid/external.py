@@ -7,6 +7,10 @@ Supported:
 - veri776: VeRi-776 from the Kaggle mirror abhyudaya12/veri-vehicle-re-identification-dataset (VeRi/image_train and
   VeRi/image_test, files <vehicle>_c<camera>_<time>_<n>.jpg). image_query repeats vehicles of image_test and is
   skipped. Vehicle ids get a "v776_" prefix.
+- vehicleid: VehicleID (PKU, given by the authors on request). The archive is encrypted, so it is unpacked beforehand by
+  scripts/prepare_vehicleid.sh into <dir>/images/<image>.jpg and <dir>/img2vid.txt ("image vehicle" per line); images
+  without a vehicle label are skipped. Vehicle ids get a "vid_" prefix. There are no camera labels: every image counts
+  as its own camera, so the PK sampler picks random frames of a vehicle.
 The prefixes keep the vehicles of different sets, and ours, apart. Images are ready vehicle crops, read as
 <dir>/images/<image_id>.jpg by the training dataset.
 
@@ -65,9 +69,26 @@ def veri776_table(archive):
 SOURCES = {"veriwild_test": (veriwild_table, veriwild_members), "veri776": (veri776_table, veri776_members)}
 
 
+def vehicleid_table(out_dir):
+    """train.csv rows for VehicleID already unpacked by scripts/prepare_vehicleid.sh."""
+    out_dir = Path(out_dir)
+    if not (out_dir / "img2vid.txt").exists():
+        raise FileNotFoundError(f"{out_dir}: the VehicleID archive is encrypted, unpack it with scripts/prepare_vehicleid.sh")
+    table = pd.read_csv(out_dir / "img2vid.txt", sep=r"\s+", header=None, names=["image_id", "vehicle"], dtype=str)
+    present = {path.stem for path in (out_dir / "images").glob("*.jpg")}
+    table = table[table.image_id.isin(present)].sort_values("image_id").reset_index(drop=True)
+    table["vehicle_id"] = "vid_" + table.vehicle
+    table["camera_id"] = range(len(table))
+    return table[["image_id", "vehicle_id", "camera_id"]]
+
+
 def prepare(archive, out_dir, kind="veriwild_test"):
     """Unpack the images once and (re)write train.csv; returns the table."""
     out_dir = Path(out_dir)
+    if kind == "vehicleid":
+        table = vehicleid_table(out_dir)
+        table.to_csv(out_dir / "train.csv", index=False)
+        return table
     make_table, members = SOURCES[kind]
     table = make_table(archive)
     if not (out_dir / "train.csv").exists():

@@ -1,6 +1,7 @@
 import zipfile
 
 import pandas as pd
+import pytest
 
 from reid.external import prepare, source_names
 
@@ -43,6 +44,24 @@ def test_veri776_takes_train_and_test_ids_and_cameras_from_file_names(tmp_path):
     image = tmp_path / "out" / "images" / "image_train" / "0001_c014_00016510_1.jpg"
     assert image.read_bytes() == b"VeRi/image_train/0001_c014_00016510_1.jpg"
     assert not (tmp_path / "out" / "images" / "image_query").exists()
+
+
+def test_vehicleid_keeps_labelled_present_images_with_one_camera_per_image(tmp_path):
+    (tmp_path / "images").mkdir()
+    for image in ("0000002", "0000003", "0000006"):  # 0000006 has no vehicle label
+        (tmp_path / "images" / f"{image}.jpg").write_bytes(b"jpeg")
+    (tmp_path / "img2vid.txt").write_text("0000003 00007\n0000002 00007\n0000009 00008\n")  # 0000009 is not unpacked
+    table = prepare(None, tmp_path, "vehicleid")
+
+    assert table.image_id.tolist() == ["0000002", "0000003"]
+    assert table.vehicle_id.tolist() == ["vid_00007", "vid_00007"]
+    assert table.camera_id.nunique() == 2
+    assert (tmp_path / "train.csv").exists()
+
+
+def test_vehicleid_must_be_unpacked_first(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        prepare(None, tmp_path, "vehicleid")
 
 
 def test_source_is_one_set_or_a_list():

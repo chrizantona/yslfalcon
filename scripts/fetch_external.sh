@@ -30,7 +30,7 @@ if [ "$TARGET" = all ] || [ "$TARGET" = clip_l ]; then
 fi
 [ "$TARGET" != clip_l ] || exit 0
 
-if [ "$TARGET" = all ] || [ "$TARGET" = backbones ]; then  # backbone screens EXP-030…032
+if [ "$TARGET" = all ] || [ "$TARGET" = backbones ]; then  # backbone screens EXP-030…032, EXP-048 and their chains
   fetch weights/clip/dfn2b_vitl14.bin \
     https://huggingface.co/apple/DFN2B-CLIP-ViT-L-14/resolve/13d68e40771108ec1812f566404e8c6f7de85f67/open_clip_pytorch_model.bin \
     c02c84198ede77ad80df0803224022f1e9e95ce42551baa91a1b5d87e229e2bb
@@ -40,6 +40,9 @@ if [ "$TARGET" = all ] || [ "$TARGET" = backbones ]; then  # backbone screens EX
   fetch weights/clip/siglip2_so400m14_webli.safetensors \
     https://huggingface.co/timm/ViT-SO400M-14-SigLIP2/resolve/f9e2bfdc4807cd0fbadf67301e45193d6f330c20/open_clip_model.safetensors \
     bd5884118e72b5cc24c37cff23b8d202e2c3dac723b8a150901b022785235626
+  fetch weights/clip/convnext_large_d_320_ft_soup.safetensors \
+    https://huggingface.co/laion/CLIP-convnext_large_d_320.laion2B-s29B-b131K-ft-soup/resolve/654d0f80ff73c58e7281a3ca7dc425589049e2e1/open_clip_model.safetensors \
+    1a8e47bdefd6d36202ec66a8975edda9e3c89560bcd1ecefe6f676311637a671
 fi
 [ "$TARGET" != backbones ] || exit 0
 

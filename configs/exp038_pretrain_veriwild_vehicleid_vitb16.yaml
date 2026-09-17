@@ -1,0 +1,34 @@
+exp_id: EXP-038
+parent: EXP-009
+description: reference pretraining stage - EXP-009 (ViT-B/16) on VERI-Wild test plus VehicleID instead of VERI-Wild test alone; a cheap proxy before larger backbones
+seeds: [0]
+checkpoint_name: 06ed25e8b8f7444dbbc08ea455ffd7fd.pt  # random name fixed in advance: EXP-039 starts from it
+model:
+  backbone: clip
+  name: ViT-B-16
+  pretrained: laion2b_s34b_b88k
+  input_hw: [224, 224]
+train:
+  source: [veriwild_test, vehicleid]  # changed: + VehicleID (~26,000 vehicles, labelled images only)
+  vehicles_per_batch: 32    # P
+  images_per_vehicle: 4     # K
+  epochs: 30                # one epoch = every training vehicle once (~3.6x the steps of EXP-009)
+  warmup_epochs: 10
+  lr_backbone: 1.0e-5
+  lr_head: 5.0e-4
+  weight_decay: 1.0e-4
+  label_smoothing: 0.1
+  triplet_margin: 0.3
+  flip_p: 0.5
+  pad: 10
+  erasing_p: 0.5
+  num_workers: 12
+  eval_every: 10
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null

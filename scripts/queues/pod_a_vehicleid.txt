@@ -1,0 +1,4 @@
+# Second pod (rougenn): VehicleID proxy on ViT-B/16. Needs /dev/shm/ext/vehicleid from scripts/prepare_vehicleid.sh
+# and the EXP-009/EXP-010 artifacts for the comparison. ~10 GB per process, fits next to other jobs.
+EXP-038 configs/exp038_pretrain_veriwild_vehicleid_vitb16.yaml 0 0 1
+EXP-039 configs/exp039_vitb16_init_exp038.yaml 0 0 0
