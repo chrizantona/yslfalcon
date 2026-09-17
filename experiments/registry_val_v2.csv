@@ -45,3 +45,4 @@ EXP-044,EXP-030,planned,претрейн DFN-2B ViT-L/14 на VERI-Wild test (т
 EXP-045,EXP-030,planned,DFN-2B стартует с претрейна EXP-044 вместо публичных весов (третий под),0 1 2,,,,,,,,,,,,,,,,,
 EXP-046,EXP-045,planned,ArcFace с imprinting вместо линейной головы (DFN-2B после VERI-Wild; третий под),0 1 2,,,,,,,,,,,,,,,,,
 EXP-048,EXP-020,planned,CLIP ConvNeXt-L-D на входе 320 вместо ViT-L/14 на 224 (третий под),0 1 2,,,,,,,,,,,,,,,,,
+EXP-043,EXP-042,running,суп трёх сидов EXP-042 (SigLIP 2 после VERI-Wild с ArcFace и imprinting),0 1 2,,,,,,,,,,,,,,,,,3bfc4256917c47cc9af305a9010e6ab4.pt
