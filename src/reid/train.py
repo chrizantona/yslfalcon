@@ -26,7 +26,8 @@ from torchvision.transforms import v2
 from reid.data import load_yaml, to_model_input
 from reid.embed import embed_boxes
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
-from reid.models import ReIDModel, build_backbone, load_backbone, checkpoint_name
+from reid.models import ReIDModel, MarginClassifier, build_backbone, load_backbone, checkpoint_name
+from reid.optim import optimizer_groups
 
 
 class CropDataset(Dataset):
@@ -114,6 +115,30 @@ def _worker_init(_):
     cv2.setNumThreads(1)
 
 
+@torch.no_grad()
+def imprint_classifier(model, loader, device):
+    """Initialise ArcFace directions from train-only mean normalised embeddings; leave BN buffers unchanged."""
+    if not isinstance(model.classifier, MarginClassifier) or model.classifier.kind != "arcface":
+        raise ValueError("imprinting requires an ArcFace head")
+    was_training = model.training
+    model.eval()
+    sums = torch.zeros_like(model.classifier.weight, device=device)
+    counts = torch.zeros(sums.shape[0], device=device, dtype=torch.long)
+    try:
+        for x, labels in loader:
+            labels = labels.to(device)
+            embeddings = F.normalize(model(x.to(device)).float(), dim=1)
+            sums.index_add_(0, labels, embeddings)
+            counts += torch.bincount(labels, minlength=len(counts))
+        if (counts == 0).any() or (sums.norm(dim=1) == 0).any():
+            raise ValueError("every training class must have a nonzero imprinting centre")
+        model.classifier.weight.copy_(F.normalize(sums / counts[:, None], dim=1))
+        return {"classes": len(counts), "images": int(counts.sum()),
+                "min_images_per_class": int(counts.min()), "max_images_per_class": int(counts.max())}
+    finally:
+        model.train(was_training)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-config", required=True)
@@ -143,13 +168,11 @@ def main():
                                                 load_pretrained=not bool(cfg["model"].get("init_checkpoint")))
     model = ReIDModel(backbone, feat_dim, len(classes), tcfg.get("id_head"))
     if cfg["model"].get("init_checkpoint"):  # backbone from a pretraining run; BNNeck and classifier start fresh
-        load_backbone(model, Path(data_cfg["checkpoint_dir"]) / cfg["model"]["init_checkpoint"])
+        load_backbone(model, Path(data_cfg["checkpoint_dir"]) / cfg["model"]["init_checkpoint"],
+                      interpolate_position=cfg["model"].get("interpolate_positional_embedding", False))
     model = model.to(device)
-    head = [p for p in [*model.bnneck.parameters(), *model.classifier.parameters()] if p.requires_grad]
-    optimizer = torch.optim.AdamW([
-        {"params": [p for p in model.backbone.parameters() if p.requires_grad], "lr": tcfg["lr_backbone"]},
-        {"params": head, "lr": tcfg["lr_head"]},
-    ], weight_decay=tcfg["weight_decay"])
+    groups = optimizer_groups(model, tcfg)
+    optimizer = torch.optim.AdamW(groups, weight_decay=tcfg["weight_decay"])
 
     P, K = tcfg["vehicles_per_batch"], tcfg["images_per_vehicle"]
     sampler = PKSampler(train_df, P, K, seed)
@@ -170,6 +193,18 @@ def main():
 
     out = Path("artifacts") / cfg["exp_id"] / f"seed{seed}"
     out.mkdir(parents=True, exist_ok=True)
+    (out / "optimizer_groups.json").write_text(json.dumps([
+        {k: v for k, v in group.items() if k != "params"} | {"n_parameters": sum(p.numel() for p in group["params"])}
+        for group in groups], indent=2))
+    imprinting = None
+    if tcfg.get("id_head", {}).get("imprinting"):
+        initial_dataset = CropDataset(train_df, crops_dir, cfg["model"]["input_hw"], mean, std,
+                                      {**tcfg, "flip_p": 0, "pad": 0, "erasing_p": 0})
+        initial_loader = DataLoader(initial_dataset, batch_size=tcfg["id_head"]["imprint_batch_size"],
+                                    num_workers=tcfg["num_workers"], worker_init_fn=_worker_init,
+                                    generator=torch.Generator().manual_seed(seed))
+        imprinting = imprint_classifier(model, initial_loader, device)
+        print(json.dumps({"imprinting": imprinting}), flush=True)
     log = (out / "train_log.jsonl").open("w")
     print(f"{len(classes)} vehicles, {len(train_df)} images, {len(sampler)} batches/epoch", flush=True)
 
@@ -196,10 +231,12 @@ def main():
             "loss_id": totals[0] / steps,
             "loss_triplet": totals[1] / steps,
             "train_acc": totals[2] / steps,
-            "lr_backbone": optimizer.param_groups[0]["lr"],
+            "lr_backbone": max(g["lr"] for g in optimizer.param_groups[:-1]),
             "img_per_s": steps * P * K / (time.time() - epoch_start),
             "elapsed_min": (time.time() - start) / 60,
         }
+        if tcfg.get("layer_decay"):
+            record["lr_backbone_min"] = min(g["lr"] for g in optimizer.param_groups[:-1])
         if epoch % tcfg["eval_every"] == 0 or epoch == tcfg["epochs"]:
             result = evaluate_fold(embed, query, gallery, no_match)
             record["dev"] = {**result["retrieval"], "refusal_F1": result["refusal"]["F1"], "refusal_TNR": result["refusal"]["TNR"]}
@@ -209,6 +246,8 @@ def main():
 
     header = {"exp_id": cfg["exp_id"], "seed": seed, "protocol": val_cfg["version"], "fold": cfg["eval_fold"],
               "n_query": len(query), "n_gallery": len(gallery), "train_minutes": (time.time() - start) / 60}
+    if imprinting is not None:
+        header["imprinting"] = imprinting
     if tcfg.get("save_checkpoint", True):
         # weights stay on the pod; the random file name is recorded here, in the card and in the registry
         checkpoints = Path(data_cfg["checkpoint_dir"])

@@ -1,0 +1,11 @@
+.git
+.env*
+.venv
+.agents
+.codex
+BIG_DATA
+hf
+eda
+artifacts
+__pycache__
+.pytest_cache

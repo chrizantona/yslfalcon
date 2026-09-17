@@ -37,6 +37,8 @@ def build_backbone(cfg, external_weights_dir=None, load_pretrained=True):
             pretrained = str(path)
         if not load_pretrained:
             pretrained = None  # a complete trained state follows; no extra public weights at inference
+        if cfg.get("interpolate_positional_embedding"):
+            kwargs["force_image_size"] = tuple(cfg["input_hw"])
         model, _, _ = open_clip.create_model_and_transforms(cfg["name"], pretrained=pretrained, **kwargs)
         preprocess = getattr(model.visual, "preprocess_cfg", None) or {}
         mean, std = preprocess.get("mean", OPENAI_DATASET_MEAN), preprocess.get("std", OPENAI_DATASET_STD)
@@ -61,10 +63,27 @@ def checkpoint_name(cfg, seed=None):
     return name
 
 
-def load_backbone(model, checkpoint_path):
+def interpolate_position_embedding(position, target):
+    """Bicubic patch-grid interpolation; preserve the class token exactly."""
+    if position.shape == target.shape:
+        return position
+    old_side, new_side = math.isqrt(position.shape[0] - 1), math.isqrt(target.shape[0] - 1)
+    if (position.ndim != 2 or target.ndim != 2 or position.shape[1] != target.shape[1]
+            or old_side ** 2 != position.shape[0] - 1 or new_side ** 2 != target.shape[0] - 1):
+        raise ValueError("positional embeddings require square patch grids and one class token")
+    grid = position[1:].float().T.reshape(1, position.shape[1], old_side, old_side)
+    grid = F.interpolate(grid, size=(new_side, new_side), mode="bicubic", align_corners=False, antialias=True)
+    return torch.cat([position[:1], grid.reshape(position.shape[1], -1).T.to(position.dtype)])
+
+
+def load_backbone(model, checkpoint_path, interpolate_position=False):
     """Copy the backbone weights of a reid.train checkpoint into model; the head (BNNeck, classifier) is left as is."""
-    state = torch.load(checkpoint_path, map_location="cpu")["state_dict"]
-    model.backbone.load_state_dict({k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")})
+    state = torch.load(checkpoint_path, map_location="cpu", weights_only=True)["state_dict"]
+    backbone = {k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")}
+    if interpolate_position:
+        backbone["positional_embedding"] = interpolate_position_embedding(
+            backbone["positional_embedding"], model.backbone.positional_embedding)
+    model.backbone.load_state_dict(backbone)
 
 
 class MarginClassifier(nn.Module):

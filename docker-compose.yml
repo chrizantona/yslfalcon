@@ -1,7 +1,13 @@
 # docker compose up --build  ->  artifacts/<exp_id>/submission/. Not verified yet: the development pod has no Docker.
 services:
   inference:
-    build: .
+    build:
+      context: .
+      args:
+        WEIGHTS_URL: ${WEIGHTS_URL:?set the pinned checkpoint URL}
+        WEIGHTS_SHA256: b1a937546b14b693d35196d3dab23fcbae48b1e7657fe30743307a4a8b125bde
+      secrets:
+        - github_token
     volumes:
       - ${DATASET_DIR:-./BIG_DATA/dataset}:/data:ro
       - ./artifacts:/app/artifacts
@@ -12,3 +18,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+secrets:
+  github_token:
+    file: ${GITHUB_TOKEN_FILE:?set path to the GitHub token file for the private Release}

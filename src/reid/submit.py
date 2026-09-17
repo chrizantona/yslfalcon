@@ -14,7 +14,9 @@ import numpy as np
 import pandas as pd
 
 from reid.data import load_csv, load_yaml
-from reid.embed import ClipEmbedder, pick_device
+from reid.embed import ClipEmbedder, embed_boxes, pick_device
+from reid.inference import load_trained_encoder
+from reid.benchmark import InferencePrecision
 from reid.metrics import TOP_K, zscore
 
 
@@ -43,14 +45,31 @@ def main():
 
     threshold = cfg["refusal"].get("threshold")
     if threshold is None:
-        calibration = Path("artifacts") / cfg["exp_id"] / f"val_fold{cfg['eval_fold']}" / "threshold.json"
+        calibration_dir = cfg["refusal"].get("calibration_dir", Path("artifacts") / cfg["exp_id"] / f"val_fold{cfg['eval_fold']}")
+        calibration = Path(calibration_dir) / "threshold.json"
         threshold = json.loads(calibration.read_text())["threshold"]
 
     dataset_dir = Path(data_cfg["dataset_dir"])
     query, gallery = load_csv(dataset_dir, "query"), load_csv(dataset_dir, "gallery")
-    embedder = ClipEmbedder(**cfg["model"], device=pick_device())
-    query_emb = embedder.embed_boxes(query, dataset_dir / "images", data_cfg["crop_max_side"], **cfg["embed"])
-    gallery_emb = embedder.embed_boxes(gallery, dataset_dir / "images", data_cfg["crop_max_side"], **cfg["embed"])
+    device = pick_device()
+    checkpoint_name = cfg.get("checkpoint", cfg.get("checkpoint_name"))
+    if checkpoint_name:
+        checkpoint = Path(data_cfg["checkpoint_dir"]) / checkpoint_name
+        encoder, _, mean, std = load_trained_encoder(cfg["model"], checkpoint,
+                                                    data_cfg.get("external_weights_dir"), cfg.get("checkpoint_sha256"))
+        precision = cfg.get("inference", {}).get("precision", "fp32")
+        encoder = InferencePrecision(encoder, precision, device).eval().to(device)
+
+        def embed(rows):
+            return embed_boxes(encoder, rows, dataset_dir / "images", cfg["model"]["input_hw"], mean, std,
+                               data_cfg["crop_max_side"], device=device, **cfg["embed"])
+    else:
+        embedder = ClipEmbedder(**cfg["model"], device=device)
+
+        def embed(rows):
+            return embedder.embed_boxes(rows, dataset_dir / "images", data_cfg["crop_max_side"], **cfg["embed"])
+
+    query_emb, gallery_emb = embed(query), embed(gallery)
 
     out = Path("artifacts") / cfg["exp_id"] / "submission"
     out.mkdir(parents=True, exist_ok=True)

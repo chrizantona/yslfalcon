@@ -15,7 +15,7 @@ EXP-012,,reference,public FastReID BoT R50-IBN trained on VehicleID; fold 0 with
 EXP-013,,reference,public CLIP-ReID ViT-B/16 trained on VehicleID; fold 0 without fine-tuning,,0.218,,0.21,0.362,0.511,,0.325,0.943,4.535,0.011,0.236,0.188,,,,344.8,
 EXP-014,,reference,public CLIP-ReID ViT-B/16 trained on VeRi-776; fold 0 without fine-tuning,,0.356,,0.326,0.527,0.544,,0.447,0.769,3.338,0.035,0.375,0.325,,,,344.8,
 EXP-015,EXP-010,accepted,mean of L2-normalised embeddings of the three EXP-010 seeds (3 forward passes; not for submission),,0.774,,0.739,0.919,0.873,,0.834,0.965,6.17,0.036,0.781,0.739,,,,1034.4,
-EXP-016,EXP-010,accepted,uniform weight soup of the three EXP-010 seed checkpoints (current baseline),,0.773,,0.736,0.918,0.872,,0.832,0.965,6.134,0.036,0.779,0.738,14.31,371.4,20,344.8,e4faeb2a745c4006a6d81b52f081ab13.pt
+EXP-016,EXP-010,accepted,uniform weight soup of the three EXP-010 seed checkpoints (historical baseline),,0.773,,0.736,0.918,0.872,,0.832,0.965,6.134,0.036,0.779,0.738,14.31,371.4,20,344.8,e4faeb2a745c4006a6d81b52f081ab13.pt
 EXP-017,EXP-010,rejected,"ResNet50-IBN from the public FastReID VERI-Wild checkpoint instead of CLIP ViT-B/16, lr 3.5e-4",0 1 2,0.655,0.005,0.615,0.846,0.819,0.005,0.753,0.974,7.732,0.021,0.665,0.611,,,,94.0,26251e5ef1104725a173f8442ea2b389.pt 53957c77d8e94bd58c8159cd288650ee.pt 5a3328f2b6174c47a8ab0d67437d5812.pt
 EXP-018,EXP-017,inconclusive,EXP-017 with backbone lr 3.5e-5 instead of 3.5e-4,0 1 2,0.659,0.001,0.63,0.834,0.814,0.002,0.751,0.961,7.984,0.026,0.67,0.615,,,,94.0,1c08160b5d594e11b6a76dd32a65c95c.pt 3eca01d67d7740f6b125f9c37f7ade37.pt 0c43ebff63cd42a69a762a0cdc7147a3.pt
 EXP-019,EXP-016,rejected,"streaming k-reciprocal re-ranking of EXP-016 embeddings (gallery precomputed, queries independent)",,0.705,,0.62,0.902,0.715,,0.64,0.891,8.942,0.1,0.712,0.681,,,,344.8,
@@ -23,4 +23,10 @@ EXP-020,EXP-003,inconclusive,"ViT-L/14 LAION-2B instead of ViT-B/16, EXP-003 rec
 EXP-021,EXP-020,reference,fp16 benchmark and precision check on the fixed EXP-020 seed0 checkpoint,,0.791936,,0.756376,0.934916,0.861586,,0.835952,0.921397,5.686516,0.040212,0.797598,0.760933,18.21,421.0,20,1218.8,exp020_seed0.pt
 EXP-022,EXP-020,reference,ViT-L pretrain on VERI-Wild test; reference without LCT fine-tuning,0,0.630215,0.000000,0.613017,0.795954,0.798607,0.000000,0.736626,0.943231,5.320764,0.025723,0.642148,0.591683,19.48,188.4,20,1246.7,exp022_seed0.pt
 EXP-023,EXP-020,inconclusive,ViT-L backbone initialised from EXP-022; remaining EXP-020 recipe,0 1 2,0.824474,0.003115,0.797420,0.946057,0.895544,0.002291,0.867621,0.960699,6.835972,0.026511,0.829604,0.796649,19.79,190.3,20,1218.8,exp023_seed0.pt exp023_seed1.pt exp023_seed2.pt
-EXP-024,EXP-023,inconclusive,uniform weight soup of EXP-023 seed checkpoints; final candidate,0 1 2,0.830564,,0.802111,0.949868,0.898622,,0.868275,0.969432,7.055896,0.021622,0.835968,0.805471,18.13,426.2,20,1218.8,exp024.pt
+EXP-024,EXP-023,accepted,uniform weight soup of EXP-023 seed checkpoints; current quality baseline (A5000 pending),0 1 2,0.830564,,0.802111,0.949868,0.898622,,0.868275,0.969432,7.055896,0.021622,0.835968,0.805471,18.13,426.2,20,1218.8,exp024.pt
+EXP-025,EXP-024,running,flip TTA для супа EXP-024,,,,,,,,,,,,,,,,,,exp024.pt
+EXP-026,EXP-023,running,"LLRD 0,9 на блок",0 1 2,,,,,,,,,,,,,,,,,exp026_seed0.pt exp026_seed1.pt exp026_seed2.pt
+EXP-027,EXP-023,running,"ArcFace s=30 m=0,5",0 1 2,,,,,,,,,,,,,,,,,exp027_seed0.pt exp027_seed1.pt exp027_seed2.pt
+EXP-028,EXP-027,running,ArcFace с imprinting центров,0 1 2,,,,,,,,,,,,,,,,,exp028_seed0.pt exp028_seed1.pt exp028_seed2.pt
+EXP-029,EXP-023,running,вход 280,0 1 2,,,,,,,,,,,,,,,,,exp029_seed0.pt exp029_seed1.pt exp029_seed2.pt
+EXP-036,EXP-026,queued,"LLRD 0,9 с верхним lr 3e-5",0 1 2,,,,,,,,,,,,,,,,,exp036_seed0.pt exp036_seed1.pt exp036_seed2.pt

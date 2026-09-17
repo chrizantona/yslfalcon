@@ -1,0 +1,24 @@
+exp_id: EXP-024
+parent: EXP-023
+description: uniform weight soup of EXP-023 seeds 0, 1, 2
+checkpoint: exp024.pt
+checkpoint_sha256: b1a937546b14b693d35196d3dab23fcbae48b1e7657fe30743307a4a8b125bde
+model:
+  backbone: clip
+  name: ViT-L-14
+  pretrained: laion2b_s32b_b82k
+  weights: clip/exp020.safetensors
+  sha256: 7d129ed747e0ed53e82dfcc140382b51be66b56e6a9bdc3258afd2846e3bb019
+  input_hw: [224, 224]
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: 7.056535263061524  # EXP-024 fp16_check, dev fold 0
+benchmark:
+  precision: fp16
+inference:
+  precision: fp16

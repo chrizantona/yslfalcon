@@ -17,11 +17,26 @@ def _worker_init(_):
     cv2.setNumThreads(1)
 
 
+class FlipTTA(torch.nn.Module):
+    """Mean of normalised embeddings of one frame and its reflection; queries remain independent."""
+
+    def __init__(self, encoder):
+        super().__init__()
+        self.encoder = encoder
+
+    def forward(self, x):
+        original = F.normalize(self.encoder(x).float(), dim=-1)
+        reflected = F.normalize(self.encoder(x.flip(-1)).float(), dim=-1)
+        return F.normalize((original + reflected) * 0.5, dim=-1)
+
+
 @torch.no_grad()
-def embed_boxes(encoder, df, images_dir, input_hw, mean, std, max_side, batch_size, num_workers, device):
+def embed_boxes(encoder, df, images_dir, input_hw, mean, std, max_side, batch_size, num_workers, device, flip_tta=False):
     """float32 L2-normalised encoder embeddings aligned with the rows of df."""
     dataset = BoxDataset(df, images_dir, input_hw, mean, std, max_side)
     loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, worker_init_fn=_worker_init)
+    if flip_tta:
+        encoder = FlipTTA(encoder).eval()
     chunks = [F.normalize(encoder(x.to(device)).float(), dim=-1).cpu().numpy() for x in loader]
     return np.concatenate(chunks).astype(np.float32)
 

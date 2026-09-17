@@ -22,7 +22,8 @@ import torch
 import torch.nn.functional as F
 
 from reid.data import crop_box, load_csv, load_yaml, to_model_input
-from reid.embed import pick_device
+from reid.embed import FlipTTA, pick_device
+from reid.inference import load_trained_encoder
 from reid.models import build_backbone
 
 
@@ -130,16 +131,15 @@ def main():
         torch.cuda.reset_peak_memory_stats()
     load_start = time.perf_counter()
     model_cfg = cfg["model"] if "backbone" in cfg["model"] else {"backbone": "clip", **cfg["model"]}
-    encoder, feat_dim, mean, std = build_backbone(model_cfg, data_cfg.get("external_weights_dir"),
-                                                load_pretrained=not bool(args.checkpoint))
-    if args.checkpoint:  # the timing does not depend on the weights; loaded for the real file size and load time
-        state = torch.load(args.checkpoint, map_location="cpu")["state_dict"]
-        encoder.load_state_dict({k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")})
-        neck = torch.nn.BatchNorm1d(feat_dim)
-        neck.load_state_dict({k[len("bnneck."):]: v for k, v in state.items() if k.startswith("bnneck.")})
-        encoder = torch.nn.Sequential(encoder, neck)
+    if args.checkpoint:
+        encoder, feat_dim, mean, std = load_trained_encoder(
+            model_cfg, args.checkpoint, data_cfg.get("external_weights_dir"), cfg.get("checkpoint_sha256"))
+    else:
+        encoder, feat_dim, mean, std = build_backbone(model_cfg, data_cfg.get("external_weights_dir"))
     precision = cfg.get("benchmark", {}).get("precision", "fp32")
     encoder = InferencePrecision(encoder, precision, device).eval().to(device)
+    if cfg.get("embed", {}).get("flip_tta"):
+        encoder = FlipTTA(encoder).eval()
     sync(device)
     load_seconds = time.perf_counter() - load_start
 
@@ -157,6 +157,7 @@ def main():
         "device": torch.cuda.get_device_name(0) if device == "cuda" else "cpu",
         "precision": precision,
         "bnneck": bool(args.checkpoint),
+        "flip_tta": bool(cfg.get("embed", {}).get("flip_tta")),
         "weights_storage": "fp32",
         "latency_bs1_ms": round(latency_ms, 2),
         "forward_bs1_ms": round(forward_ms, 2),
