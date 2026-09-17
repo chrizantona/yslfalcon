@@ -6,15 +6,15 @@ services:
     build:
       context: .
       args:
-        WEIGHTS_URL: ${WEIGHTS_URL:-https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/569756756}
-        WEIGHTS_SHA256: ${WEIGHTS_SHA256:-b1a937546b14b693d35196d3dab23fcbae48b1e7657fe30743307a4a8b125bde}
-        CHECKPOINT_NAME: ${CHECKPOINT_NAME:-exp024.pt}
+        WEIGHTS_URL: ${WEIGHTS_URL:-https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/570071465}
+        WEIGHTS_SHA256: ${WEIGHTS_SHA256:-ed735cad60ba42f79e2e2b933fd5565256da9327de7018155a0be22642ce3a29}
+        CHECKPOINT_NAME: ${CHECKPOINT_NAME:-exp037.pt}
       secrets:
         - github_token
     volumes:
       - ${DATASET_DIR:-./BIG_DATA/dataset}:/data:ro
       - ./artifacts:/app/artifacts
-    command: ["${SUBMIT_CONFIG:-configs/submit_exp024.yaml}"]
+    command: ["${SUBMIT_CONFIG:-configs/submit_exp037.yaml}"]
     deploy:
       resources:
         reservations:
