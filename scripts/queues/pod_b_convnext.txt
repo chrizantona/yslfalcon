@@ -1,3 +1,3 @@
 # Third pod: ConvNeXt-L-D screen against EXP-020. Seeds one after another on one GPU with >= 55 GB free (peak 52 GB).
 # Can run next to pod_b_dfn2b.txt on a GPU that queue does not use.
-EXP-048 configs/exp048_convnext_large_d_320.yaml 3 3 0
+EXP-048 configs/exp048_convnext_large_d_320.yaml 2 2 0
