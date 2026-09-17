@@ -1,4 +1,4 @@
-# docker compose up --build  ->  artifacts/<exp_id>/submission/. Not verified yet: the development pod has no Docker.
+# docker compose up --build  ->  artifacts/<exp_id>/submission/. Image build and offline CPU forward checked; GPU container runtime pending.
 services:
   inference:
     platform: linux/amd64

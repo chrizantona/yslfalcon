@@ -92,6 +92,14 @@ def main():
         print(f"verified {name}", flush=True)
     if release["draft"]:
         release = request("PATCH", f"/repos/{REPO}/releases/{release['id']}", json.dumps({"draft": False}).encode())
+    # Publishing replaces draft download URLs; record the final URLs after checking every asset again.
+    published = request("GET", f"/repos/{REPO}/releases/{release['id']}/assets?per_page=100")
+    published_by_name = {asset["name"]: asset for asset in published}
+    for item in uploaded:
+        asset = published_by_name[item["name"]]
+        if asset.get("digest") != f"sha256:{item['sha256']}" or asset["size"] != item["bytes"]:
+            raise ValueError(f"published Release asset differs: {item['name']}")
+        item["download_url"] = asset["browser_download_url"]
     receipt = {"release_url": release["html_url"], "release_id": release["id"], "tag": args.tag, "assets": uploaded}
     (args.directory / "upload_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(release["html_url"], flush=True)
