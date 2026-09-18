@@ -1,10 +1,10 @@
-"""Two published vehicle ReID architectures, reproduced at a colleague's request (EXP-055…058).
+"""Two published vehicle ReID architectures, reproduced at a colleague's request (EXP-055 and later).
 
 clip_senet (CLIP-SENet): ResNeXt101-IBN-a appearance branch (T^a, 2048) and the TinyCLIP ViT-B/32 image encoder
 (semantics T^s, 512) side by side; T^u = FC([T^s, T^a]) (2048), AFEM refines T^s, T = T^u + T^s'. One classifier on T.
 convnext_glpe (ConvNeXt-L + OT-GFAM + GLPE): ConvNeXt-L (ImageNet-22k) up to stage 3 (768 x H/16 x W/16) -> windowed
 and shifted-window gated attention with ONN projections -> GeM over the whole map and over 2 and 3 horizontal stripes:
-six embeddings with their own classifiers; the retrieval embedding is the normalised mean of the six normalised ones.
+six embeddings with their own classifiers; the retrieval embedding concatenates the six normalised ones (6 x 768).
 
 Training mode returns (embeddings, logits), one entry per supervised embedding; eval mode returns the retrieval
 embedding. Inputs arrive with the ImageNet mean/std; the TinyCLIP branch renormalises to CLIP's."""
@@ -136,8 +136,9 @@ def shifted_window_mask(h, w, window, shift, device):
 
 
 class GFAM(nn.Module):
-    """Gated window attention: a global gate (GAP of the unit input -> MLP -> sigmoid) scales every window's tokens,
-    Q/K/V come from ONN layers, attention runs inside 7x7 windows, cyclically shifted by window // 2 in the SW unit."""
+    """Gated window attention: a global gate (GAP of the OT-GFAM input -> MLP -> sigmoid) scales every window's
+    tokens, Q/K/V come from ONN layers, attention runs inside 7x7 windows, cyclically shifted by (-3, -3) before and
+    (+3, +3) after in the SW unit."""
 
     def __init__(self, dim, heads, window, shift, onn_order):
         super().__init__()
@@ -145,10 +146,10 @@ class GFAM(nn.Module):
         self.gate = nn.Sequential(nn.Linear(dim, dim), nn.GELU(), nn.Linear(dim, dim), nn.Sigmoid())
         self.q, self.k, self.v = (ONN(dim, onn_order) for _ in range(3))
 
-    def forward(self, x_norm, x_in):  # B x H x W x C
+    def forward(self, x_norm, block_input):  # B x H x W x C
         b, h, w, c = x_norm.shape
         ws, n_windows = self.window, (h // self.window) * (w // self.window)
-        gate = self.gate(x_in.mean((1, 2)))
+        gate = self.gate(block_input.mean((1, 2)))
         x = torch.roll(x_norm, (-self.shift, -self.shift), (1, 2)) if self.shift else x_norm
         x = x.view(b, h // ws, ws, w // ws, ws, c).permute(0, 1, 3, 2, 4, 5).reshape(b, n_windows, ws * ws, c)
         x = x * gate[:, None, None, :]
@@ -163,7 +164,8 @@ class GFAM(nn.Module):
 
 
 class GFAMUnit(nn.Module):
-    """Pre-norm residual unit: x + GFAM(LN(x)) + MLP(LN(x)), then LayerNorm."""
+    """Pre-norm residual unit: x + GFAM(LN(x)) + MLP(LN(x)), then LayerNorm; the gate of both units comes from the
+    input of the OT-GFAM block."""
 
     def __init__(self, dim, heads, window, shift, onn_order):
         super().__init__()
@@ -171,9 +173,9 @@ class GFAMUnit(nn.Module):
         self.attn = GFAM(dim, heads, window, shift, onn_order)
         self.mlp = nn.Sequential(nn.Linear(dim, 4 * dim), nn.GELU(), nn.Linear(4 * dim, dim))
 
-    def forward(self, x):
+    def forward(self, x, block_input):
         n = self.norm_in(x)
-        return self.norm_out(x + self.attn(n, x) + self.mlp(n))
+        return self.norm_out(x + self.attn(n, block_input) + self.mlp(n))
 
 
 class GeM(nn.Module):
@@ -200,18 +202,23 @@ class ConvNeXtGLPE(nn.Module):
         # the same (cos 0.996 at the start, 1.000 in training) and the loss stays at chance (EXP-057)
         self.stage_norm = nn.BatchNorm2d(768) if cfg.get("stage3_bn") else nn.Identity()
         dim, g = 768, cfg["gfam"]
-        self.units = nn.Sequential(*(GFAMUnit(dim, g["heads"], g["window"], shift, g["onn_order"])
-                                     for shift in (0, g["window"] // 2)))
+        # one OT-GFAM block: W-GFAM, then SW-GFAM (shift window // 2 = 3)
+        self.units = nn.ModuleList([GFAMUnit(dim, g["heads"], g["window"], shift, g["onn_order"])
+                                    for shift in (0, g["window"] // 2)])
         self.pools = nn.ModuleList([GeM() for _ in range(6)])
         self.classifiers = nn.ModuleList([nn.Linear(dim, n_classes, bias=False) for _ in range(6)])
 
     def forward(self, x):
-        f = self.units(self.stage_norm(self.features(x)).permute(0, 2, 3, 1)).permute(0, 3, 1, 2)  # B x C x 14 x 14
+        block_input = self.stage_norm(self.features(x)).permute(0, 2, 3, 1)  # B x 14 x 14 x 768
+        f = block_input
+        for unit in self.units:
+            f = unit(f, block_input)
+        f = f.permute(0, 3, 1, 2)  # F_ot, B x 768 x 14 x 14
         parts = [f, *torch.split(f, self.STRIPES[0], 2), *torch.split(f, self.STRIPES[1], 2)]
         vectors = [pool(part) for pool, part in zip(self.pools, parts)]
-        embeddings = [F.normalize(v, dim=1) for v in vectors]
-        if not self.training:
-            return F.normalize(torch.stack(embeddings).mean(0), dim=1)
+        embeddings = [F.normalize(v, dim=1) for v in vectors]  # global, 2 parts, 3 parts
+        if not self.training:  # the six normalised embeddings concatenated, 6 x 768
+            return torch.cat(embeddings, 1)
         return embeddings, [head(v) for head, v in zip(self.classifiers, vectors)]
 
 
@@ -221,4 +228,4 @@ ARCHS = {"clip_senet": CLIPSENet, "convnext_glpe": ConvNeXtGLPE}
 def build_paper_model(cfg, n_classes, weights_dir=None, load_pretrained=True):
     """(model, embedding dim, mean, std) for a config with model.arch."""
     model = ARCHS[cfg["arch"]](cfg, n_classes, weights_dir, load_pretrained)
-    return model, cfg.get("embedding_dim", 768), IMAGENET_MEAN, IMAGENET_STD
+    return model, cfg.get("embedding_dim", 6 * 768), IMAGENET_MEAN, IMAGENET_STD

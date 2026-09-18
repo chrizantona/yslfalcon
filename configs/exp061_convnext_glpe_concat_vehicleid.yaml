@@ -1,0 +1,40 @@
+exp_id: EXP-061
+parent: EXP-059
+description: EXP-059 with the colleague's corrections - descriptor = the six normalised embeddings concatenated, the gate of both GFAM units from the OT-GFAM input; VehicleID pretraining
+seeds: [0]
+checkpoint_name: 3ab3cc8a991544a1869120b578468976.pt  # random name fixed in advance: EXP-062 starts from it
+model:
+  arch: convnext_glpe       # reid.paper_models, trained by reid.train_paper
+  backbone: paper
+  name: convnext_glpe
+  input_hw: [224, 224]      # stage 3 map 14 x 14: GLPE stripes 7+7 and 5+5+4 rows
+  backbone_weights: {file: paper/convnext_large_fb_in22k.safetensors, sha256: 7e02ea57d6024d94f5523e9b58cdddd81a1fb4f2e5128b4a879b76f9847058bf}
+  gfam: {heads: 8, window: 7, onn_order: 3}
+  stage3_bn: true           # BatchNorm2d over the 768 stage-3 channels before OT-GFAM (EXP-059); without it the model collapses
+train:
+  source: vehicleid         # 221,567 images of 26,267 vehicles; the official split lists are not unpacked
+  vehicles_per_batch: 8     # P
+  images_per_vehicle: 4     # K: batch 32 as in the paper
+  epochs: 120               # one epoch = every vehicle once = 105k images ~ one epoch of the 110k-image train split
+  warmup_epochs: 10
+  milestones: [40, 70]      # x0.1; the paper names only the warm-up, the steps follow CLIP-SENet
+  lr: 3.5e-4
+  weight_decay: 5.0e-4
+  label_smoothing: 0.1
+  loss: {ce: 1.0, triplet: 0.5, margin: 0.3}   # on each of the six embeddings
+  flip_p: 0.5
+  pad: 0                    # the paper lists resize, flip, colour jitter and erasing only
+  erasing_p: 0.5
+  color_jitter: {p: 0.5, brightness: 0.2, contrast: 0.2, saturation: 0.2, hue: 0.05}
+  num_workers: 12
+  eval_every: 40
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
+benchmark:
+  precision: fp32

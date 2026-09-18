@@ -2,7 +2,8 @@
 
 Data, PK sampler, dev-fold evaluation and outputs are those of reid.train; the model (model.arch), the losses and the
 optimiser differ. For every supervised embedding i the loss is ce * CE(logits_i) with label smoothing plus a metric
-loss on embedding i: train.loss = {ce, supcon: weight, temperature} or {ce, triplet: weight, margin}. Adam with L2
+loss on embedding i: train.loss = {ce, supcon: weight, temperature} or {ce, triplet: weight, margin}; the losses are
+summed over the embeddings and logged per branch (loss_branches; for GLPE: global, 2 parts, 3 parts). Adam with L2
 weight decay; the lr rises linearly from 10% over warmup_epochs and drops x0.1 at every milestone epoch.
 model.init_checkpoint copies everything but the classifiers from a pretraining run.
 
@@ -37,15 +38,17 @@ def warmup_multistep(warmup_epochs, milestones):
 
 
 def paper_loss(embeddings, logits, labels, loss_cfg, cross_entropy):
-    total = 0.0
+    """(sum over the supervised embeddings, the loss of every branch)."""
+    branches = []
     for embedding, logit in zip(embeddings, logits):
-        total = total + loss_cfg["ce"] * cross_entropy(logit.float(), labels)
+        loss = loss_cfg["ce"] * cross_entropy(logit.float(), labels)
         if "supcon" in loss_cfg:
-            total = total + loss_cfg["supcon"] * supervised_contrastive(embedding.float(), labels,
-                                                                        loss_cfg["temperature"])
+            loss = loss + loss_cfg["supcon"] * supervised_contrastive(embedding.float(), labels,
+                                                                      loss_cfg["temperature"])
         if "triplet" in loss_cfg:
-            total = total + loss_cfg["triplet"] * batch_hard_triplet(embedding.float(), labels, loss_cfg["margin"])
-    return total
+            loss = loss + loss_cfg["triplet"] * batch_hard_triplet(embedding.float(), labels, loss_cfg["margin"])
+        branches.append(loss)
+    return sum(branches), branches
 
 
 def main():
@@ -101,18 +104,20 @@ def main():
     for epoch in range(1, tcfg["epochs"] + 1):
         sampler.set_epoch(epoch)
         model.train()
-        totals, steps, epoch_start = np.zeros(2), 0, time.time()
+        totals, branch_totals, steps, epoch_start = np.zeros(2), 0.0, 0, time.time()
         for x, y in loader:
             x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 embeddings, logits = model(x)
-            loss = paper_loss(embeddings, logits, y, tcfg["loss"], cross_entropy)
+            loss, branches = paper_loss(embeddings, logits, y, tcfg["loss"], cross_entropy)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
             totals += [loss.item(), (logits[0].argmax(1) == y).float().mean().item()]
+            branch_totals = branch_totals + torch.stack(branches).detach()
             steps += 1
         record = {"epoch": epoch, "loss": totals[0] / steps, "train_acc": totals[1] / steps,
+                  "loss_branches": [round(v / steps, 4) for v in branch_totals.tolist()],
                   "lr": optimizer.param_groups[0]["lr"], "img_per_s": steps * P * K / (time.time() - epoch_start),
                   "elapsed_min": (time.time() - start) / 60}
         scheduler.step()

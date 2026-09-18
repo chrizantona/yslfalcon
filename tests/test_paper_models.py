@@ -7,7 +7,7 @@ import pytest
 import torch
 from timm.models.vision_transformer import VisionTransformer
 
-from reid.paper_models import AFEM, GFAMUnit, shifted_window_mask, tinyclip_state_for_timm
+from reid.paper_models import AFEM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
 from reid.train import CropDataset
 from reid.train_paper import paper_loss, warmup_multistep
 
@@ -19,7 +19,8 @@ def test_tinyclip_weights_map_onto_timm_vit_with_resampled_positions():
              p + "embeddings.patch_embedding.weight": torch.randn(width, 3, patch, patch),
              p + "embeddings.position_embedding.weight": torch.randn(1 + 2 * 2, width),  # trained at 16 px
              p + "embeddings.position_ids": torch.arange(5)[None],
-             "visual_projection.weight": torch.randn(4, width), "text_model.embeddings.token_embedding.weight": torch.randn(3, 2)}
+             "visual_projection.weight": torch.randn(4, width),
+             "text_model.embeddings.token_embedding.weight": torch.randn(3, 2)}
     for name in ("pre_layrnorm", "post_layernorm"):
         state[f"{p}{name}.weight"], state[f"{p}{name}.bias"] = torch.randn(width), torch.randn(width)
     for i in range(depth):
@@ -31,7 +32,8 @@ def test_tinyclip_weights_map_onto_timm_vit_with_resampled_positions():
             state[f"{src}{name}.weight"] = torch.randn(shape)
             state[f"{src}{name}.bias"] = torch.randn(shape[0])
     vit = VisionTransformer(img_size=24, patch_size=patch, embed_dim=width, depth=depth, num_heads=2, mlp_ratio=4,
-                            pre_norm=True, num_classes=0, global_pool="token", norm_layer=partial(torch.nn.LayerNorm, eps=1e-5))
+                            pre_norm=True, num_classes=0, global_pool="token",
+                            norm_layer=partial(torch.nn.LayerNorm, eps=1e-5))
     vit.load_state_dict(tinyclip_state_for_timm(state, (3, 3)))  # strict: every timm parameter is mapped
     qkv = vit.blocks[1].attn.qkv.weight
     assert torch.equal(qkv[:width], state[p + "encoder.layers.1.self_attn.q_proj.weight"])
@@ -61,8 +63,31 @@ def test_shifted_window_mask_separates_regions_wrapped_by_the_shift():
 def test_gfam_units_keep_the_map_shape():
     x = torch.randn(2, 14, 14, 16)
     for shift in (0, 3):
-        y = GFAMUnit(16, heads=2, window=7, shift=shift, onn_order=3)(x)
+        y = GFAMUnit(16, heads=2, window=7, shift=shift, onn_order=3)(x, x)
         assert y.shape == x.shape and torch.isfinite(y).all()
+
+
+def test_convnext_glpe_follows_the_described_layout():
+    cfg = {"arch": "convnext_glpe", "gfam": {"heads": 8, "window": 7, "onn_order": 3}, "stage3_bn": True}
+    model, dim, _, _ = build_paper_model(cfg, n_classes=5, load_pretrained=False)
+    assert len(model.units) == 2 and [u.attn.shift for u in model.units] == [0, 3]  # one block: W-GFAM, SW-GFAM
+    assert all(u.attn.window == 7 for u in model.units) and all(len(u.attn.q.powers) == 3 for u in model.units)
+    gates = []
+    for unit in model.units:
+        unit.attn.gate.register_forward_hook(lambda module, args, out: gates.append(args[0]))
+    x = torch.randn(2, 3, 224, 224)
+    with torch.no_grad():
+        block_input = model.stage_norm.eval()(model.features(x)).permute(0, 2, 3, 1)
+        model.stage_norm.train()
+        embeddings, logits = model.train()(x)
+    assert block_input.shape == (2, 14, 14, 768)
+    assert len(embeddings) == len(logits) == 6 and logits[0].shape == (2, 5)
+    assert all(torch.allclose(e.norm(dim=1), torch.ones(2)) for e in embeddings)
+    assert torch.equal(gates[0], gates[1])  # both gates see the OT-GFAM input, not the W-GFAM output
+    with torch.no_grad():
+        descriptor = model.eval()(x)
+    assert descriptor.shape == (2, 6 * 768) == (2, dim)
+    assert torch.allclose(descriptor.view(2, 6, 768).norm(dim=2), torch.ones(2, 6))  # six normalised parts
 
 
 def test_warmup_then_step_decay():
@@ -75,9 +100,10 @@ def test_paper_loss_sums_ce_and_metric_loss_over_embeddings():
     embeddings = [torch.randn(4, 8), torch.randn(4, 8)]
     logits = [torch.randn(4, 2), torch.randn(4, 2)]
     ce = torch.nn.CrossEntropyLoss()
-    one = paper_loss(embeddings[:1], logits[:1], labels, {"ce": 1.0, "triplet": 0.5, "margin": 0.3}, ce)
-    two = paper_loss(embeddings, logits, labels, {"ce": 1.0, "triplet": 0.5, "margin": 0.3}, ce)
-    assert two > one > 0
+    one, _ = paper_loss(embeddings[:1], logits[:1], labels, {"ce": 1.0, "triplet": 0.5, "margin": 0.3}, ce)
+    two, branches = paper_loss(embeddings, logits, labels, {"ce": 1.0, "triplet": 0.5, "margin": 0.3}, ce)
+    assert two > one > 0 and len(branches) == 2
+    assert torch.isclose(two, branches[0] + branches[1]) and torch.isclose(one, branches[0])  # summed, not averaged
     with pytest.raises(KeyError):
         paper_loss(embeddings, logits, labels, {"ce": 1.0, "supcon": 1.0}, ce)  # SupCon needs its temperature
 
