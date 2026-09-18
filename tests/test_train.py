@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 
 from reid.models import MarginClassifier, ReIDModel, load_backbone
-from reid.train import PKSampler, batch_hard_triplet
+from reid.train import PKSampler, batch_hard_triplet, supervised_contrastive
 
 
 def margin_logits(kind, emb, labels, margin=0.5, scale=30.0):
@@ -57,6 +57,20 @@ def test_triplet_loss_is_zero_for_well_separated_vehicles():
 def test_triplet_loss_penalises_a_negative_closer_than_the_positive():
     feat = torch.tensor([[0.0], [2.0], [0.5], [3.0]])
     assert batch_hard_triplet(feat, torch.tensor([0, 0, 1, 1]), margin=0.3).item() > 0
+
+
+def test_supcon_matches_the_per_anchor_definition_and_skips_anchors_without_positives():
+    torch.manual_seed(0)
+    feat, labels, t = torch.randn(8, 5), torch.tensor([0, 0, 1, 1, 2, 2, 2, 3]), 0.1
+    z = F.normalize(feat, dim=1)
+    losses = []
+    for i in range(8):
+        others = [j for j in range(8) if j != i]
+        positives = [j for j in others if labels[j] == labels[i]]
+        if positives:  # vehicle 3 has a single image
+            denominator = torch.logsumexp(torch.stack([z[i] @ z[j] / t for j in others]), 0)
+            losses.append(-torch.stack([z[i] @ z[p] / t - denominator for p in positives]).mean())
+    assert torch.allclose(supervised_contrastive(feat, labels, t), torch.stack(losses).mean(), atol=1e-5)
 
 
 def test_load_backbone_copies_the_backbone_and_keeps_the_new_head(tmp_path):

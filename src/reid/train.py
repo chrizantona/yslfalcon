@@ -1,5 +1,7 @@
 """Train a ReID model (ID + batch-hard triplet loss, BNNeck, PK sampler) on protocol folds, evaluate on the dev fold.
 
+train.metric_loss: {type: supcon, temperature: t} replaces the triplet loss with supervised contrastive loss.
+
 train.source switches training to an external set or a list of them (pretraining); model.init_checkpoint starts from a pretrained backbone.
 
 One seed per call. Writes to artifacts/<exp_id>/seed<k>/: train_log.jsonl (losses, lr, speed, periodic dev metrics),
@@ -104,6 +106,19 @@ def batch_hard_triplet(feat, labels, margin):
     return F.relu(hardest_pos - hardest_neg + margin).mean()
 
 
+def supervised_contrastive(feat, labels, temperature):
+    """SupCon (Khosla et al., 2020): minus the mean over anchors of the mean log-probability of their positives among
+    all other images of the batch, cosine similarity / temperature on L2-normalised features. Anchors without a
+    positive are skipped (the PK sampler never produces them)."""
+    z = F.normalize(feat, dim=1)
+    eye = torch.eye(len(z), dtype=torch.bool, device=z.device)
+    logits = (z @ z.T / temperature).masked_fill(eye, float("-inf"))
+    log_prob = logits - logits.logsumexp(1, keepdim=True)
+    positives = (labels[:, None] == labels[None, :]) & ~eye
+    per_anchor = log_prob.masked_fill(~positives, 0).sum(1) / positives.sum(1).clamp(min=1)
+    return -per_anchor[positives.any(1)].mean()
+
+
 def warmup_cosine(total_steps, warmup_steps):
     def factor(step):
         if step < warmup_steps:
@@ -187,6 +202,9 @@ def main():
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer, warmup_cosine(tcfg["epochs"] * len(sampler), tcfg["warmup_epochs"] * len(sampler)))
     id_loss = torch.nn.CrossEntropyLoss(label_smoothing=tcfg["label_smoothing"])
+    metric_loss = tcfg.get("metric_loss", {"type": "triplet"})
+    if metric_loss["type"] not in ("triplet", "supcon"):
+        raise ValueError(f"unknown metric loss {metric_loss['type']}")
 
     images_dir = Path(data_cfg["dataset_dir"]) / "images"
 
@@ -222,18 +240,21 @@ def main():
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 feat, logits = model(x, y)
             loss_id = id_loss(logits.float(), y)
-            loss_triplet = batch_hard_triplet(feat.float(), y, tcfg["triplet_margin"])
+            if metric_loss["type"] == "supcon":
+                loss_metric = supervised_contrastive(feat.float(), y, metric_loss["temperature"])
+            else:
+                loss_metric = batch_hard_triplet(feat.float(), y, tcfg["triplet_margin"])
             optimizer.zero_grad(set_to_none=True)
-            (loss_id + loss_triplet).backward()
+            (loss_id + loss_metric).backward()
             optimizer.step()
             scheduler.step()
-            totals += [loss_id.item(), loss_triplet.item(), (logits.argmax(1) == y).float().mean().item()]
+            totals += [loss_id.item(), loss_metric.item(), (logits.argmax(1) == y).float().mean().item()]
             steps += 1
 
         record = {
             "epoch": epoch,
             "loss_id": totals[0] / steps,
-            "loss_triplet": totals[1] / steps,
+            f"loss_{metric_loss['type']}": totals[1] / steps,
             "train_acc": totals[2] / steps,
             "lr_backbone": max(g["lr"] for g in optimizer.param_groups[:-1]),
             "img_per_s": steps * P * K / (time.time() - epoch_start),

@@ -1,0 +1,3 @@
+# Second pod, 18.09.2026: SupCon instead of the batch-hard triplet loss on the accepted SigLIP 2 recipe (EXP-042).
+# Three seeds in parallel on GPUs 1/2/3 (~42 GB each; 70/88/53 GB free at launch).
+EXP-053 configs/exp053_siglip2_supcon.yaml 2 1,2,3 1
