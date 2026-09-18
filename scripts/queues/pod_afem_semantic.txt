@@ -1,5 +1,5 @@
 # Run only after EXP-054 checkpoint SHA256 has passed; shared GPUs with OSNet queue.
-EXP-065 configs/exp065_siglip_projection.yaml 3 3,2,0 1 train
-EXP-066 configs/exp066_siglip_afem.yaml 3 3,2,0 1 train
-EXP-068 configs/exp068_siglip_osnet.yaml 3 3,2,0 1 train
-EXP-069 configs/exp069_siglip_afem_osnet.yaml 3 3,2,0 1 train
+EXP-065 configs/exp065_siglip_projection.yaml 3 3,2,3 1 train
+EXP-066 configs/exp066_siglip_afem.yaml 3 3,2,3 1 train
+EXP-068 configs/exp068_siglip_osnet.yaml 3 3,2,3 1 train
+EXP-069 configs/exp069_siglip_afem_osnet.yaml 3 3,2,3 1 train

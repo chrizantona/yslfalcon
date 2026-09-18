@@ -29,15 +29,15 @@
 
 | EXP | Родитель | Изменение | Статус | mAP@10 |
 |---|---|---|---|---|
-| [065](experiments/EXP-065.md) | 054 | SigLIP visual tower → проекция 512; контроль дообучения | planned | — |
-| [066](experiments/EXP-066.md) | 065 | 32 глобальных AFEM-преобразования с малым residual | planned | — |
+| [065](experiments/EXP-065.md) | 054 | SigLIP visual tower → проекция 512; контроль дообучения | running | — |
+| [066](experiments/EXP-066.md) | 065 | 32 глобальных AFEM-преобразования с малым residual | running | — |
 | [067](experiments/EXP-067.md) | 054 | OSNet-AIN ImageNet → GeM → проекция 512, отдельно | rejected | 0,100862 ± 0,064929 |
-| [068](experiments/EXP-068.md) | 065 | Независимая OSNet, L2 каждой ветви, concat и auxiliary loss | planned | — |
-| [069](experiments/EXP-069.md) | 068 | AFEM на семантической ветви объединения | planned | — |
+| [068](experiments/EXP-068.md) | 065 | Независимая OSNet, L2 каждой ветви, concat и auxiliary loss | running | — |
+| [069](experiments/EXP-069.md) | 068 | AFEM на семантической ветви объединения | running | — |
 
 EXP-067 завершён: R1/R5 0,0965/0,1856, отказ 0,3217; FP16 mAP@10 0,100848. H200 FP16 11,76 мс / 608,5 FPS, веса 10,9 МБ. Этот вариант самостоятельной CNN отклонён; объединение ещё не проверено. [Все эмбеддинги, AP и три чекпоинта](https://github.com/chrizantona/yslfalcon/releases/tag/exp-067).
 
-Семантические EXP-065/066/068/069 ждут передачи checkpoint EXP-054 (`95aa27ed552c43a1ad9c3d853390fa18.pt`); на нашем поде и в опубликованных Releases его нет. Для paired bootstrap с 054 нужен также его AP-архив.
+Исходный checkpoint и AP/эмбеддинги EXP-054 опубликованы в [Release exp-054](https://github.com/chrizantona/yslfalcon/releases/tag/exp-054). Серия EXP-065/066/068/069 запускается с проверкой SHA256 и реального batch 128. Сиды распределены на GPU 3/2/3; GPU 0 занят чужим вычислением и в этой серии не используется.
 Исходные веса, URL и SHA256 — [DATA.md](DATA.md). Результаты и эмбеддинги публикуются
 в приватный Release этой репы после завершения и проверки контрольных сумм.
 

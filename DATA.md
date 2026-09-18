@@ -56,6 +56,7 @@ Kaggle-копии сверены с официальной статистико�
 - Семантический старт EXP-065/066/068/069: наш обученный суп EXP-054
   `95aa27ed552c43a1ad9c3d853390fa18.pt`, sha256
   `9be056d0c85cd8a69019d25f29abdf45f93528043ec35963f063b510c85c1f12` (карточка EXP-054).
+  Проверенный источник: [приватный Release exp-054](https://github.com/chrizantona/yslfalcon/releases/tag/exp-054), asset API `https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573190938`, 1 715 118 617 байт. AP/эмбеддинги — `EXP-054_results.tar.gz`, SHA256 `2eb8d0d1b5837571e5165a8a8e5e7c65ce016f3127ee9944768658e1802b0693`.
   Нужны именно эти веса и конфиг внутри checkpoint; публичный SigLIP не заменяет этот старт.
   Новые внешние тренировочные данные в этой серии не добавляются.
 
