@@ -2,7 +2,11 @@
   "repo": "chrizantona/yslfalcon",
   "git_commit": "d88e4dabb9ed0a4b50b769073c95e3e82f82233e",
   "completed": [
-    "EXP-067"
+    "EXP-065",
+    "EXP-066",
+    "EXP-067",
+    "EXP-068",
+    "EXP-069"
   ],
   "planned_waiting_checkpoint": [],
   "required_checkpoint": {
@@ -511,5 +515,1803 @@
     "bootstrap_unit": "vehicle_id",
     "n_boot": 2000,
     "bootstrap_seed": 0
-  }
+  },
+  "running_semantic_queue": [],
+  "best_candidate": "EXP-054",
+  "semantic_results": {
+    "EXP-065": {
+      "summary": {
+        "exp_id": "EXP-065",
+        "protocol": "val_v2",
+        "fold": 0,
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "train_minutes": {
+          "mean": 7.897872420152029,
+          "std": 2.713277097103083
+        },
+        "checkpoint_mb": {
+          "mean": 1715.2,
+          "std": 0.0
+        },
+        "retrieval": {
+          "mAP10": {
+            "mean": 0.8685132833549719,
+            "std": 0.003615184980277882
+          },
+          "R1": {
+            "mean": 0.8405159777191439,
+            "std": 0.006717349303658502
+          },
+          "R5": {
+            "mean": 0.9554382878921137,
+            "std": 0.006177457492144707
+          },
+          "n_queries": {
+            "mean": 1137.0,
+            "std": 0.0
+          },
+          "mAP": {
+            "mean": 0.8710588012268078,
+            "std": 0.003555814238708573
+          },
+          "mINP": {
+            "mean": 0.8498367618983229,
+            "std": 0.0033617374060778684
+          },
+          "junk_in_top10": {
+            "mean": 0.9850483729111698,
+            "std": 0.0008795074758135568
+          }
+        },
+        "refusal": {
+          "threshold": {
+            "mean": 6.505140272776285,
+            "std": 0.32032146295134284
+          },
+          "score": {
+            "mean": 0.8893334079548224,
+            "std": 0.004084815366872861
+          },
+          "F1": {
+            "mean": 0.8899398030047058,
+            "std": 0.010921799729169696
+          },
+          "TNR": {
+            "mean": 0.8879184861717612,
+            "std": 0.012605901074009261
+          },
+          "precision": {
+            "mean": 0.8514956786495659,
+            "std": 0.009136904669800555
+          },
+          "recall": {
+            "mean": 0.9324734671451468,
+            "std": 0.028175344739576013
+          },
+          "answered": {
+            "mean": 0.7733802403987101,
+            "std": 0.022463339495151582
+          },
+          "F1_strict": {
+            "mean": 0.10032582105390903,
+            "std": 0.010958508130613264
+          },
+          "score_strict": {
+            "mean": 0.33660362058926463,
+            "std": 0.007732308184980574
+          },
+          "no_pair_share": {
+            "mean": 0.20140721196130165,
+            "std": 3.3993498887762956e-17
+          }
+        },
+        "checkpoints": [
+          "262bf9d0f9bb4b77a2239fcd50a13082.pt",
+          "0ef326f4f8b64b41af11c91f2ad84273.pt",
+          "f8292201f4ac428784a8d9cea486dd94.pt"
+        ]
+      },
+      "fp16_summary": {
+        "exp_id": "EXP-065/fp16_check",
+        "protocol": "val_v2",
+        "fold": 0,
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "retrieval": {
+          "mAP10": {
+            "mean": 0.8684818723736929,
+            "std": 0.003650306114821729
+          },
+          "R1": {
+            "mean": 0.8405159777191439,
+            "std": 0.006717349303658502
+          },
+          "R5": {
+            "mean": 0.9554382878921137,
+            "std": 0.006177457492144707
+          },
+          "n_queries": {
+            "mean": 1137.0,
+            "std": 0.0
+          },
+          "mAP": {
+            "mean": 0.8710254189549652,
+            "std": 0.0035880704509150614
+          },
+          "mINP": {
+            "mean": 0.8497870131825342,
+            "std": 0.0034106790369697036
+          },
+          "junk_in_top10": {
+            "mean": 0.9850483729111698,
+            "std": 0.0008795074758135568
+          }
+        },
+        "refusal": {
+          "threshold": {
+            "mean": 6.5032532691955565,
+            "std": 0.3211603433519078
+          },
+          "score": {
+            "mean": 0.8893334079548224,
+            "std": 0.004084815366872861
+          },
+          "F1": {
+            "mean": 0.8899398030047058,
+            "std": 0.010921799729169696
+          },
+          "TNR": {
+            "mean": 0.8879184861717612,
+            "std": 0.012605901074009261
+          },
+          "precision": {
+            "mean": 0.8514956786495659,
+            "std": 0.009136904669800555
+          },
+          "recall": {
+            "mean": 0.9324734671451468,
+            "std": 0.028175344739576013
+          },
+          "answered": {
+            "mean": 0.7733802403987101,
+            "std": 0.022463339495151582
+          },
+          "F1_strict": {
+            "mean": 0.09968606926661962,
+            "std": 0.010180614944628397
+          },
+          "score_strict": {
+            "mean": 0.33615579433816206,
+            "std": 0.00698553362622744
+          },
+          "no_pair_share": {
+            "mean": 0.20140721196130165,
+            "std": 3.3993498887762956e-17
+          }
+        },
+        "checkpoints": [
+          "262bf9d0f9bb4b77a2239fcd50a13082.pt",
+          "0ef326f4f8b64b41af11c91f2ad84273.pt",
+          "f8292201f4ac428784a8d9cea486dd94.pt"
+        ]
+      },
+      "benchmark_h200_fp16": {
+        "exp_id": "EXP-065",
+        "backbone": "siglip_projection",
+        "input_hw": [
+          224,
+          224
+        ],
+        "device": "NVIDIA H200",
+        "precision": "fp16",
+        "bnneck": true,
+        "flip_tta": false,
+        "weights_storage": "fp32",
+        "latency_bs1_ms": 12.86,
+        "forward_bs1_ms": 2.34,
+        "embedding_dim": 512,
+        "params_m": 428.7,
+        "weights_mb_fp32": 1715.0,
+        "load_seconds": 9.36,
+        "fps_bs1": 87.7,
+        "fps_bs8": 533.2,
+        "fps_bs16": 536.7,
+        "fps_bs32": 616.1,
+        "fps_best": 616.1,
+        "peak_vram_mb": 1289,
+        "determinism_max_abs_diff": 0.00011552125215530396,
+        "performance_points": 20,
+        "checkpoint": "262bf9d0f9bb4b77a2239fcd50a13082.pt",
+        "checkpoint_mb": 1715.2
+      },
+      "comparisons": {
+        "EXP-054": {
+          "base": "EXP-054",
+          "new": "EXP-065",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.893896974308144,
+          "new_mean": 0.8685132833549719,
+          "gain": -0.025383690953172045,
+          "ci95": [
+            -0.035283567600108506,
+            -0.01623770766274058
+          ],
+          "seed_noise": 0.003615184980277882,
+          "decision": "rejected",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        }
+      },
+      "archive_receipt": {
+        "exp_id": "EXP-065",
+        "archive": "/workspace/handoff_afem/EXP-065_results.tar.gz",
+        "bytes": 13154888,
+        "sha256": "86c928e803a2d2c928e9eb0ddbc68b9fd8ae79089f65434a4a2ff79c5831e2f3",
+        "source_commit": "1db18aa9eea6b01c1341ea064531904345db651e",
+        "files_checked": 423,
+        "arrays_checked": 12,
+        "embedding_dim": 512,
+        "created_utc": "2026-09-18T21:27:15.148772+00:00",
+        "checkpoints": [
+          {
+            "seed": 0,
+            "name": "262bf9d0f9bb4b77a2239fcd50a13082.pt",
+            "path": "/workspace/checkpoints/262bf9d0f9bb4b77a2239fcd50a13082.pt",
+            "bytes": 1715153159,
+            "sha256": "9488a080ac2e627434c54f0046fac1bc1660e50086b3b443beb1ec1674341dce"
+          },
+          {
+            "seed": 1,
+            "name": "0ef326f4f8b64b41af11c91f2ad84273.pt",
+            "path": "/workspace/checkpoints/0ef326f4f8b64b41af11c91f2ad84273.pt",
+            "bytes": 1715153159,
+            "sha256": "68e58f49d04c0b08bbbcd6c5499a2b8f1f7128acd5e7ee0970f57732a4536e38"
+          },
+          {
+            "seed": 2,
+            "name": "f8292201f4ac428784a8d9cea486dd94.pt",
+            "path": "/workspace/checkpoints/f8292201f4ac428784a8d9cea486dd94.pt",
+            "bytes": 1715153159,
+            "sha256": "798f0ef849a83a03c9f80e8042b0b2dcfcb51b28d014629da4c6d28edaf7348f"
+          }
+        ]
+      },
+      "local_verification": {
+        "exp_id": "EXP-065",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 423,
+        "arrays_sha256_and_header_verified": 12,
+        "embedding_dim": 512,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-18T22:13:21.402083+00:00"
+      },
+      "embeddings": [
+        {
+          "path": "artifacts/EXP-065/seed0/query_emb.npy",
+          "sha256": "0933d6c75c88f5cea3855f9e7b135e66f45b46e0d8ddbdb3d5c08cad56a64610",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/seed0/gallery_emb.npy",
+          "sha256": "a420e0fd3317ea76ffc94a58d18d206f4a3e845a054042f7242104c866935ac4",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/fp16_check/seed0/val_fold0/query_emb.npy",
+          "sha256": "12c7c890f6312aa470934a2d2122843d769ce60454a95a394fcb8be5ef58d01b",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/fp16_check/seed0/val_fold0/gallery_emb.npy",
+          "sha256": "adf3a996c472a6cbf698fc745e21bbec6c54cee88d517dad29213142ac880e47",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/seed1/query_emb.npy",
+          "sha256": "09cdc35770d2cc84bf5d6079f88837403b47471d13196ec9cb85f79f9b233314",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/seed1/gallery_emb.npy",
+          "sha256": "8a80470bd50b52b52225c02bce1f445d003b30b039f2f40932f3a14a99b9b06d",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/fp16_check/seed1/val_fold0/query_emb.npy",
+          "sha256": "651fd9aff6178a4059a495510977bffb24ab59baf3deb043e31bf117df61d627",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/fp16_check/seed1/val_fold0/gallery_emb.npy",
+          "sha256": "281a4ae98c4462d3b28f3bddfb4fd8c63d32edaa99e42c50d2287906dfc31953",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/seed2/query_emb.npy",
+          "sha256": "889d8f0ff01946dcd81bdfb2f395735b7e8e3340a26a2049496df993271abf13",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/seed2/gallery_emb.npy",
+          "sha256": "03609ad57c7db589ba4f54359464852339da65b944f77a60b619cc110d43d96f",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/fp16_check/seed2/val_fold0/query_emb.npy",
+          "sha256": "0b25ab650b969d0725e99f4de2d7f0f6626b9af6250e0318b206fadd11333345",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-065/fp16_check/seed2/val_fold0/gallery_emb.npy",
+          "sha256": "ad8e8c7da433e9b51394d09b53b80b223677bc7892de739a7fa475dece89be3f",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        }
+      ]
+    },
+    "EXP-066": {
+      "summary": {
+        "exp_id": "EXP-066",
+        "protocol": "val_v2",
+        "fold": 0,
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "train_minutes": {
+          "mean": 7.850118907292685,
+          "std": 2.550436105858299
+        },
+        "checkpoint_mb": {
+          "mean": 1790.9000000000003,
+          "std": 2.7847474288855413e-13
+        },
+        "retrieval": {
+          "mAP10": {
+            "mean": 0.8636853166459586,
+            "std": 0.004509441042990956
+          },
+          "R1": {
+            "mean": 0.8352389328642627,
+            "std": 0.004513281828889036
+          },
+          "R5": {
+            "mean": 0.9510407505130459,
+            "std": 0.005722433683946945
+          },
+          "n_queries": {
+            "mean": 1137.0,
+            "std": 0.0
+          },
+          "mAP": {
+            "mean": 0.8661522013499937,
+            "std": 0.004527436439070061
+          },
+          "mINP": {
+            "mean": 0.8446839054355567,
+            "std": 0.005311061856967928
+          },
+          "junk_in_top10": {
+            "mean": 0.9847552037525652,
+            "std": 0.0013434698607317221
+          }
+        },
+        "refusal": {
+          "threshold": {
+            "mean": 7.00165854771932,
+            "std": 0.12206348226539822
+          },
+          "score": {
+            "mean": 0.8880438528617777,
+            "std": 0.006911195467525603
+          },
+          "F1": {
+            "mean": 0.8793639569890647,
+            "std": 0.00182695364354418
+          },
+          "TNR": {
+            "mean": 0.9082969432314411,
+            "std": 0.02656228179169528
+          },
+          "precision": {
+            "mean": 0.8513573274027099,
+            "std": 0.005653177841737136
+          },
+          "recall": {
+            "mean": 0.9093584050881582,
+            "std": 0.008975595051833447
+          },
+          "answered": {
+            "mean": 0.7531515684549985,
+            "std": 0.011679029192050449
+          },
+          "F1_strict": {
+            "mean": 0.09044232552368055,
+            "std": 0.001992166758493206
+          },
+          "score_strict": {
+            "mean": 0.3357987108360087,
+            "std": 0.008366604164526767
+          },
+          "no_pair_share": {
+            "mean": 0.20140721196130165,
+            "std": 3.3993498887762956e-17
+          }
+        },
+        "checkpoints": [
+          "30ea8caa7fbd4ee28e03ca4216ad4080.pt",
+          "6d94854d7de74ed1af5862ab94d3b61d.pt",
+          "e428a83cfcd0468fb5bd748a992ba30a.pt"
+        ]
+      },
+      "fp16_summary": {
+        "exp_id": "EXP-066/fp16_check",
+        "protocol": "val_v2",
+        "fold": 0,
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "retrieval": {
+          "mAP10": {
+            "mean": 0.8635957371808294,
+            "std": 0.004347258504796813
+          },
+          "R1": {
+            "mean": 0.8352389328642627,
+            "std": 0.004513281828889036
+          },
+          "R5": {
+            "mean": 0.9513339196716505,
+            "std": 0.005722433683946946
+          },
+          "n_queries": {
+            "mean": 1137.0,
+            "std": 0.0
+          },
+          "mAP": {
+            "mean": 0.866036540116854,
+            "std": 0.004420566881864952
+          },
+          "mINP": {
+            "mean": 0.8445663809964811,
+            "std": 0.005232728576218317
+          },
+          "junk_in_top10": {
+            "mean": 0.9847552037525652,
+            "std": 0.0013434698607317221
+          }
+        },
+        "refusal": {
+          "threshold": {
+            "mean": 7.000584983825685,
+            "std": 0.12294020529666852
+          },
+          "score": {
+            "mean": 0.8880438528617777,
+            "std": 0.006911195467525603
+          },
+          "F1": {
+            "mean": 0.8793639569890647,
+            "std": 0.00182695364354418
+          },
+          "TNR": {
+            "mean": 0.9082969432314411,
+            "std": 0.02656228179169528
+          },
+          "precision": {
+            "mean": 0.8513573274027099,
+            "std": 0.005653177841737136
+          },
+          "recall": {
+            "mean": 0.9093584050881582,
+            "std": 0.008975595051833447
+          },
+          "answered": {
+            "mean": 0.7531515684549985,
+            "std": 0.011679029192050449
+          },
+          "F1_strict": {
+            "mean": 0.09044232552368055,
+            "std": 0.001992166758493206
+          },
+          "score_strict": {
+            "mean": 0.3357987108360087,
+            "std": 0.008366604164526767
+          },
+          "no_pair_share": {
+            "mean": 0.20140721196130165,
+            "std": 3.3993498887762956e-17
+          }
+        },
+        "checkpoints": [
+          "30ea8caa7fbd4ee28e03ca4216ad4080.pt",
+          "6d94854d7de74ed1af5862ab94d3b61d.pt",
+          "e428a83cfcd0468fb5bd748a992ba30a.pt"
+        ]
+      },
+      "benchmark_h200_fp16": {
+        "exp_id": "EXP-066",
+        "backbone": "siglip_afem",
+        "input_hw": [
+          224,
+          224
+        ],
+        "device": "NVIDIA H200",
+        "precision": "fp16",
+        "bnneck": true,
+        "flip_tta": false,
+        "weights_storage": "fp32",
+        "latency_bs1_ms": 14.08,
+        "forward_bs1_ms": 2.81,
+        "embedding_dim": 512,
+        "params_m": 447.7,
+        "weights_mb_fp32": 1790.7,
+        "load_seconds": 9.29,
+        "fps_bs1": 87.5,
+        "fps_bs8": 541.7,
+        "fps_bs16": 598.1,
+        "fps_bs32": 625.5,
+        "fps_best": 625.5,
+        "peak_vram_mb": 1328,
+        "determinism_max_abs_diff": 0.000172540545463562,
+        "performance_points": 20,
+        "checkpoint": "30ea8caa7fbd4ee28e03ca4216ad4080.pt",
+        "checkpoint_mb": 1790.9
+      },
+      "comparisons": {
+        "EXP-065": {
+          "base": "EXP-065",
+          "new": "EXP-066",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.8685132833549719,
+          "new_mean": 0.8636853166459586,
+          "gain": -0.004827966709013324,
+          "ci95": [
+            -0.008784790224088538,
+            -0.0013336447886554065
+          ],
+          "seed_noise": 0.004509441042990956,
+          "decision": "rejected",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        },
+        "EXP-054": {
+          "base": "EXP-054",
+          "new": "EXP-066",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.893896974308144,
+          "new_mean": 0.8636853166459586,
+          "gain": -0.03021165766218537,
+          "ci95": [
+            -0.04043147921110678,
+            -0.02070490782417571
+          ],
+          "seed_noise": 0.004509441042990956,
+          "decision": "rejected",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        }
+      },
+      "archive_receipt": {
+        "exp_id": "EXP-066",
+        "archive": "/workspace/handoff_afem/EXP-066_results.tar.gz",
+        "bytes": 13211354,
+        "sha256": "fb3c165b8860e95634cc71092bd77da77ac4c7bae3af1c50148f20085f30dab0",
+        "source_commit": "1db18aa9eea6b01c1341ea064531904345db651e",
+        "files_checked": 424,
+        "arrays_checked": 12,
+        "embedding_dim": 512,
+        "created_utc": "2026-09-18T21:41:31.759617+00:00",
+        "checkpoints": [
+          {
+            "seed": 0,
+            "name": "30ea8caa7fbd4ee28e03ca4216ad4080.pt",
+            "path": "/workspace/checkpoints/30ea8caa7fbd4ee28e03ca4216ad4080.pt",
+            "bytes": 1790900661,
+            "sha256": "b08233c3d629dd45d0aeb1ca29c7c37ed76849552abbb3b03adc6fb78f5db7cb"
+          },
+          {
+            "seed": 1,
+            "name": "6d94854d7de74ed1af5862ab94d3b61d.pt",
+            "path": "/workspace/checkpoints/6d94854d7de74ed1af5862ab94d3b61d.pt",
+            "bytes": 1790900661,
+            "sha256": "1878e6bda7841cb8d0c150dae0b63a1abd9368992df339d819738c67f6dcba7e"
+          },
+          {
+            "seed": 2,
+            "name": "e428a83cfcd0468fb5bd748a992ba30a.pt",
+            "path": "/workspace/checkpoints/e428a83cfcd0468fb5bd748a992ba30a.pt",
+            "bytes": 1790900661,
+            "sha256": "aa963d16a33c6fab28e28cb0e1c20963d54875767b613c43d8b9138f751ff171"
+          }
+        ]
+      },
+      "local_verification": {
+        "exp_id": "EXP-066",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 424,
+        "arrays_sha256_and_header_verified": 12,
+        "embedding_dim": 512,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-18T22:13:21.728252+00:00"
+      },
+      "embeddings": [
+        {
+          "path": "artifacts/EXP-066/seed0/query_emb.npy",
+          "sha256": "0c9648d0d9b2b2041392f0c36c2efd82e625c4f08ce3ac0ddfc561429402f430",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/seed0/gallery_emb.npy",
+          "sha256": "2ed76ff41d4e7cc811ac46f9036b0117adbca4a0282bc0951935e691975a503d",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/fp16_check/seed0/val_fold0/query_emb.npy",
+          "sha256": "97ffeb444c67bcc38b5ee3be635549f09f49f1eb943fe492ebadc5aff9b382d6",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/fp16_check/seed0/val_fold0/gallery_emb.npy",
+          "sha256": "36f62e003f040e4398cfd121ec0ce04a81e95ffaf008aa80a335f984c0e84193",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/seed1/query_emb.npy",
+          "sha256": "d42d5158ae2b6e0d6755deaa664a386d5feaa5c53f9b69f451c3a0604f1504cf",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/seed1/gallery_emb.npy",
+          "sha256": "f2e7d56998ad67d7c96d3440611f2cb3a3a1606e0ddd1df4c7cdc44e8c295452",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/fp16_check/seed1/val_fold0/query_emb.npy",
+          "sha256": "e9307cd2a4dd8d866a88366e727168028bf15a095629972b98f2a90bd050b8d8",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/fp16_check/seed1/val_fold0/gallery_emb.npy",
+          "sha256": "87400357e3a43e074bd2007df499a14adb3a284b6f203f79672c90bae25c01a7",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/seed2/query_emb.npy",
+          "sha256": "6e06055bcf01436f07480d41c881d27b9960bc11f6eece5a81a581bb25c61e5c",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/seed2/gallery_emb.npy",
+          "sha256": "f472f51bbffb5b8411dc92ffb591fb86c44efcd462e02a331af8d390ef5e5c7e",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/fp16_check/seed2/val_fold0/query_emb.npy",
+          "sha256": "9b1691cedea5c4bed9a9682c86a6f5dd43ae0ec5d0fcf89f9bd24fc579b15bd7",
+          "bytes": 1164416,
+          "shape": [
+            1137,
+            512
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-066/fp16_check/seed2/val_fold0/gallery_emb.npy",
+          "sha256": "17d4625499185d9946ea9d2be70e8792c7136b9dfb66c2a05e8b41544177a40f",
+          "bytes": 808064,
+          "shape": [
+            789,
+            512
+          ],
+          "dtype": "float16"
+        }
+      ]
+    },
+    "EXP-068": {
+      "summary": {
+        "exp_id": "EXP-068",
+        "protocol": "val_v2",
+        "fold": 0,
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "train_minutes": {
+          "mean": 10.453331134054395,
+          "std": 3.5890868491374004
+        },
+        "checkpoint_mb": {
+          "mean": 1727.9000000000003,
+          "std": 2.7847474288855413e-13
+        },
+        "retrieval": {
+          "mAP10": {
+            "mean": 0.8680081133401273,
+            "std": 0.0056010611414016595
+          },
+          "R1": {
+            "mean": 0.8402228085605395,
+            "std": 0.005373879442926841
+          },
+          "R5": {
+            "mean": 0.9545587804163002,
+            "std": 0.0045132818288890824
+          },
+          "n_queries": {
+            "mean": 1137.0,
+            "std": 0.0
+          },
+          "mAP": {
+            "mean": 0.8708100648280853,
+            "std": 0.005272810490096315
+          },
+          "mINP": {
+            "mean": 0.8492174356349639,
+            "std": 0.005319545545992865
+          },
+          "junk_in_top10": {
+            "mean": 0.9844620345939608,
+            "std": 0.0013434698607317221
+          }
+        },
+        "refusal": {
+          "threshold": {
+            "mean": 7.952087415059407,
+            "std": 0.1012545754583942
+          },
+          "score": {
+            "mean": 0.8966479938230666,
+            "std": 0.0041692901535885915
+          },
+          "F1": {
+            "mean": 0.8798028108888473,
+            "std": 0.0029473757311536133
+          },
+          "TNR": {
+            "mean": 0.9359534206695779,
+            "std": 0.009090244539153377
+          },
+          "precision": {
+            "mean": 0.8634748014036219,
+            "std": 0.013354771156425202
+          },
+          "recall": {
+            "mean": 0.8969624970874351,
+            "std": 0.009590170165793064
+          },
+          "answered": {
+            "mean": 0.7381999413661683,
+            "std": 0.007582830346747322
+          },
+          "F1_strict": {
+            "mean": 0.08442371187249788,
+            "std": 0.0029367310187683416
+          },
+          "score_strict": {
+            "mean": 0.3398826245116218,
+            "std": 0.0023853718932263204
+          },
+          "no_pair_share": {
+            "mean": 0.20140721196130165,
+            "std": 3.3993498887762956e-17
+          }
+        },
+        "checkpoints": [
+          "766c5452ee2943c49bcb4e57703342ad.pt",
+          "7fb35e6c70864f94b35bf8a2a47987a6.pt",
+          "d0b709f57698408f855bfa7114a783f3.pt"
+        ]
+      },
+      "fp16_summary": {
+        "exp_id": "EXP-068/fp16_check",
+        "protocol": "val_v2",
+        "fold": 0,
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "retrieval": {
+          "mAP10": {
+            "mean": 0.86827405964829,
+            "std": 0.005374486336347277
+          },
+          "R1": {
+            "mean": 0.8408091468777484,
+            "std": 0.004653916114449611
+          },
+          "R5": {
+            "mean": 0.9545587804163002,
+            "std": 0.0045132818288890824
+          },
+          "n_queries": {
+            "mean": 1137.0,
+            "std": 0.0
+          },
+          "mAP": {
+            "mean": 0.8710530970482045,
+            "std": 0.005054459453666585
+          },
+          "mINP": {
+            "mean": 0.8494517060304426,
+            "std": 0.005121925887167183
+          },
+          "junk_in_top10": {
+            "mean": 0.9844620345939608,
+            "std": 0.0013434698607317221
+          }
+        },
+        "refusal": {
+          "threshold": {
+            "mean": 7.812545178731283,
+            "std": 0.1382705143472694
+          },
+          "score": {
+            "mean": 0.897440986437276,
+            "std": 0.004775311549382755
+          },
+          "F1": {
+            "mean": 0.8840548090713427,
+            "std": 0.008135565927427597
+          },
+          "TNR": {
+            "mean": 0.9286754002911208,
+            "std": 0.01334083171748422
+          },
+          "precision": {
+            "mean": 0.8588484337564082,
+            "std": 0.007349809697490076
+          },
+          "recall": {
+            "mean": 0.9108621963531487,
+            "std": 0.013546246233071461
+          },
+          "answered": {
+            "mean": 0.7499267077103489,
+            "std": 0.01011752209131478
+          },
+          "F1_strict": {
+            "mean": 0.08692710618556283,
+            "std": 0.00027509102494352266
+          },
+          "score_strict": {
+            "mean": 0.3394515944172302,
+            "std": 0.004194813016307659
+          },
+          "no_pair_share": {
+            "mean": 0.20140721196130165,
+            "std": 3.3993498887762956e-17
+          }
+        },
+        "checkpoints": [
+          "766c5452ee2943c49bcb4e57703342ad.pt",
+          "7fb35e6c70864f94b35bf8a2a47987a6.pt",
+          "d0b709f57698408f855bfa7114a783f3.pt"
+        ]
+      },
+      "benchmark_h200_fp16": {
+        "exp_id": "EXP-068",
+        "backbone": "siglip_osnet",
+        "input_hw": [
+          224,
+          224
+        ],
+        "device": "NVIDIA H200",
+        "precision": "fp16",
+        "bnneck": true,
+        "flip_tta": false,
+        "weights_storage": "fp32",
+        "latency_bs1_ms": 14.02,
+        "forward_bs1_ms": 3.68,
+        "embedding_dim": 1024,
+        "params_m": 431.9,
+        "weights_mb_fp32": 1727.4,
+        "load_seconds": 9.32,
+        "fps_bs1": 88.1,
+        "fps_bs8": 448.9,
+        "fps_bs16": 573.7,
+        "fps_bs32": 605.1,
+        "fps_best": 605.1,
+        "peak_vram_mb": 1298,
+        "determinism_max_abs_diff": 9.056925773620605e-05,
+        "performance_points": 20,
+        "checkpoint": "766c5452ee2943c49bcb4e57703342ad.pt",
+        "checkpoint_mb": 1727.9
+      },
+      "comparisons": {
+        "EXP-065": {
+          "base": "EXP-065",
+          "new": "EXP-068",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.8685132833549719,
+          "new_mean": 0.8680081133401273,
+          "gain": -0.000505170014844597,
+          "ci95": [
+            -0.00584051706229064,
+            0.004800296642138533
+          ],
+          "seed_noise": 0.0056010611414016595,
+          "decision": "inconclusive",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        },
+        "EXP-054": {
+          "base": "EXP-054",
+          "new": "EXP-068",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.893896974308144,
+          "new_mean": 0.8680081133401273,
+          "gain": -0.025888860968016646,
+          "ci95": [
+            -0.035527771872861144,
+            -0.016944076989468895
+          ],
+          "seed_noise": 0.0056010611414016595,
+          "decision": "rejected",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        },
+        "EXP-067": {
+          "base": "EXP-067",
+          "new": "EXP-068",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.10086229929934122,
+          "new_mean": 0.8680081133401273,
+          "gain": 0.7671458140407861,
+          "ci95": [
+            0.7387343267081236,
+            0.7945271186630104
+          ],
+          "seed_noise": 0.06492909755103529,
+          "decision": "accepted",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        }
+      },
+      "archive_receipt": {
+        "exp_id": "EXP-068",
+        "archive": "/workspace/handoff_afem/EXP-068_results.tar.gz",
+        "bytes": 24579536,
+        "sha256": "1e12d6b408b2e857e17666b391691082f2767de47a177afdd73f55028a301328",
+        "source_commit": "1db18aa9eea6b01c1341ea064531904345db651e",
+        "files_checked": 425,
+        "arrays_checked": 12,
+        "embedding_dim": 1024,
+        "created_utc": "2026-09-18T21:58:44.310334+00:00",
+        "checkpoints": [
+          {
+            "seed": 0,
+            "name": "766c5452ee2943c49bcb4e57703342ad.pt",
+            "path": "/workspace/checkpoints/766c5452ee2943c49bcb4e57703342ad.pt",
+            "bytes": 1727948447,
+            "sha256": "7717541ae75c8191ae515e877ff511a622bde1c9b573a1fee2b99b79a8ffc454"
+          },
+          {
+            "seed": 1,
+            "name": "7fb35e6c70864f94b35bf8a2a47987a6.pt",
+            "path": "/workspace/checkpoints/7fb35e6c70864f94b35bf8a2a47987a6.pt",
+            "bytes": 1727948447,
+            "sha256": "b56f895d34b2e7dd60e6fb8d4fb87b76bdef4b794677bd9be5c009dd592b3bba"
+          },
+          {
+            "seed": 2,
+            "name": "d0b709f57698408f855bfa7114a783f3.pt",
+            "path": "/workspace/checkpoints/d0b709f57698408f855bfa7114a783f3.pt",
+            "bytes": 1727948447,
+            "sha256": "6495561ca0163bf5fe4829f7a6abab74252860423cce96add3a43c047db5ee8c"
+          }
+        ]
+      },
+      "local_verification": {
+        "exp_id": "EXP-068",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 425,
+        "arrays_sha256_and_header_verified": 12,
+        "embedding_dim": 1024,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-18T22:13:22.106233+00:00"
+      },
+      "embeddings": [
+        {
+          "path": "artifacts/EXP-068/seed0/query_emb.npy",
+          "sha256": "f0e7f4e19540f1369271948743ac9da307d54dc972f9305a97b89c2e6e88d42a",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/seed0/gallery_emb.npy",
+          "sha256": "7078ed5c9fd825ec62a7b800e0c824d8af4c01b3774f5e17ef50d4a05415f0ab",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/fp16_check/seed0/val_fold0/query_emb.npy",
+          "sha256": "fd40cc41e7e13ca6408194050b1c1f4cdedde467c1bbbb8210715edc1e2912f6",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/fp16_check/seed0/val_fold0/gallery_emb.npy",
+          "sha256": "1b6c4661c62f2b3edb3d6ab35fef73c46df3528394837304e30fbe74ab18e876",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/seed1/query_emb.npy",
+          "sha256": "1dbe583d886138892b1132e0b149564fc4bc3becb087c1cd51559de3fc08db65",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/seed1/gallery_emb.npy",
+          "sha256": "bf86429ae906fecdbaf74fc9055232aa925f9329e0e3d97ad3fba6d416ab23f2",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/fp16_check/seed1/val_fold0/query_emb.npy",
+          "sha256": "8a2f6a73f9ca1cd348fdfd46277b5d32b9549bc3bdd7eb78a1347ee9949a15d7",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/fp16_check/seed1/val_fold0/gallery_emb.npy",
+          "sha256": "fbb99df48af0c464392894ca86b7ac4f7d9a5f464b887677a55ea154ad9f5f76",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/seed2/query_emb.npy",
+          "sha256": "247f49fdfa904f07544343104a9dac408c718578bce825cb6283c81199ed4f8a",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/seed2/gallery_emb.npy",
+          "sha256": "f1a3386768c198941fac9e88e0407e5f24c2b87ab0064d2bbebbfbe630b3908f",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/fp16_check/seed2/val_fold0/query_emb.npy",
+          "sha256": "20933db527d974e244ff2d4d581e67a4a7bd7a08eab8821ee3de133415c766ec",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-068/fp16_check/seed2/val_fold0/gallery_emb.npy",
+          "sha256": "47b9aa902176dc38eca2e46c2a83e48a71351b2e9fbe69f7eab151b093d434e2",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        }
+      ]
+    },
+    "EXP-069": {
+      "summary": {
+        "exp_id": "EXP-069",
+        "protocol": "val_v2",
+        "fold": 0,
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "train_minutes": {
+          "mean": 10.522422814369202,
+          "std": 3.6089330370918393
+        },
+        "checkpoint_mb": {
+          "mean": 1803.7,
+          "std": 0.0
+        },
+        "retrieval": {
+          "mAP10": {
+            "mean": 0.8613249888704301,
+            "std": 0.002005465196537963
+          },
+          "R1": {
+            "mean": 0.8299618880093814,
+            "std": 0.0036616816173546643
+          },
+          "R5": {
+            "mean": 0.950454412195837,
+            "std": 0.004338507354719652
+          },
+          "n_queries": {
+            "mean": 1137.0,
+            "std": 0.0
+          },
+          "mAP": {
+            "mean": 0.8638019842796822,
+            "std": 0.001632506785009648
+          },
+          "mINP": {
+            "mean": 0.8427647506185574,
+            "std": 0.0013835672179577645
+          },
+          "junk_in_top10": {
+            "mean": 0.9844620345939606,
+            "std": 0.0018308408086773634
+          }
+        },
+        "refusal": {
+          "threshold": {
+            "mean": 7.997607962290446,
+            "std": 0.019810613320820396
+          },
+          "score": {
+            "mean": 0.8955996656169631,
+            "std": 0.006951637049683745
+          },
+          "F1": {
+            "mean": 0.8801766901203031,
+            "std": 0.002532721365165082
+          },
+          "TNR": {
+            "mean": 0.9315866084425036,
+            "std": 0.020636749459618364
+          },
+          "precision": {
+            "mean": 0.8497916225188953,
+            "std": 0.0013828333651516626
+          },
+          "recall": {
+            "mean": 0.912831065996079,
+            "std": 0.005804708934039067
+          },
+          "answered": {
+            "mean": 0.7513925535033715,
+            "std": 0.005585622657067634
+          },
+          "F1_strict": {
+            "mean": 0.08824458592504897,
+            "std": 0.009809451036396643
+          },
+          "score_strict": {
+            "mean": 0.34124719268028536,
+            "std": 0.003697144071799535
+          },
+          "no_pair_share": {
+            "mean": 0.20140721196130165,
+            "std": 3.3993498887762956e-17
+          }
+        },
+        "checkpoints": [
+          "7ce63bdeeb464293b296e35ff9eefb13.pt",
+          "3f6a89681a994da39d6aecfa1a619122.pt",
+          "39a2ddf6f3a5486494794ab1b9e5a903.pt"
+        ]
+      },
+      "fp16_summary": {
+        "exp_id": "EXP-069/fp16_check",
+        "protocol": "val_v2",
+        "fold": 0,
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "retrieval": {
+          "mAP10": {
+            "mean": 0.861152344810363,
+            "std": 0.002121585672392762
+          },
+          "R1": {
+            "mean": 0.8296687188507769,
+            "std": 0.004156390172605632
+          },
+          "R5": {
+            "mean": 0.9501612430372325,
+            "std": 0.004156390172605632
+          },
+          "n_queries": {
+            "mean": 1137.0,
+            "std": 0.0
+          },
+          "mAP": {
+            "mean": 0.8636281710426289,
+            "std": 0.0017432693184265045
+          },
+          "mINP": {
+            "mean": 0.8425571705852651,
+            "std": 0.0012632011638465219
+          },
+          "junk_in_top10": {
+            "mean": 0.9844620345939606,
+            "std": 0.0018308408086773634
+          }
+        },
+        "refusal": {
+          "threshold": {
+            "mean": 7.996622854868572,
+            "std": 0.019696629501059642
+          },
+          "score": {
+            "mean": 0.8954401356852836,
+            "std": 0.006825432807869408
+          },
+          "F1": {
+            "mean": 0.8799487902179036,
+            "std": 0.0027491632387264503
+          },
+          "TNR": {
+            "mean": 0.9315866084425036,
+            "std": 0.020636749459618364
+          },
+          "precision": {
+            "mean": 0.8493980766708039,
+            "std": 0.0008168504026786203
+          },
+          "recall": {
+            "mean": 0.9127924196965416,
+            "std": 0.005852540131289457
+          },
+          "answered": {
+            "mean": 0.7513925535033715,
+            "std": 0.005585622657067634
+          },
+          "F1_strict": {
+            "mean": 0.08824458592504897,
+            "std": 0.009809451036396643
+          },
+          "score_strict": {
+            "mean": 0.34124719268028536,
+            "std": 0.003697144071799535
+          },
+          "no_pair_share": {
+            "mean": 0.20140721196130165,
+            "std": 3.3993498887762956e-17
+          }
+        },
+        "checkpoints": [
+          "7ce63bdeeb464293b296e35ff9eefb13.pt",
+          "3f6a89681a994da39d6aecfa1a619122.pt",
+          "39a2ddf6f3a5486494794ab1b9e5a903.pt"
+        ]
+      },
+      "benchmark_h200_fp16": {
+        "exp_id": "EXP-069",
+        "backbone": "siglip_afem_osnet",
+        "input_hw": [
+          224,
+          224
+        ],
+        "device": "NVIDIA H200",
+        "precision": "fp16",
+        "bnneck": true,
+        "flip_tta": false,
+        "weights_storage": "fp32",
+        "latency_bs1_ms": 14.65,
+        "forward_bs1_ms": 4.14,
+        "embedding_dim": 1024,
+        "params_m": 450.8,
+        "weights_mb_fp32": 1803.1,
+        "load_seconds": 9.95,
+        "fps_bs1": 87.6,
+        "fps_bs8": 423.3,
+        "fps_bs16": 586.1,
+        "fps_bs32": 623.1,
+        "fps_best": 623.1,
+        "peak_vram_mb": 1337,
+        "determinism_max_abs_diff": 9.518861770629883e-05,
+        "performance_points": 20,
+        "checkpoint": "7ce63bdeeb464293b296e35ff9eefb13.pt",
+        "checkpoint_mb": 1803.7
+      },
+      "comparisons": {
+        "EXP-068": {
+          "base": "EXP-068",
+          "new": "EXP-069",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.8680081133401273,
+          "new_mean": 0.8613249888704301,
+          "gain": -0.006683124469697325,
+          "ci95": [
+            -0.01209474827274004,
+            -0.0010467527583272534
+          ],
+          "seed_noise": 0.0056010611414016595,
+          "decision": "rejected",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        },
+        "EXP-054": {
+          "base": "EXP-054",
+          "new": "EXP-069",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.893896974308144,
+          "new_mean": 0.8613249888704301,
+          "gain": -0.03257198543771397,
+          "ci95": [
+            -0.04290550647321959,
+            -0.023023974465214973
+          ],
+          "seed_noise": 0.002005465196537963,
+          "decision": "rejected",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        },
+        "EXP-066": {
+          "base": "EXP-066",
+          "new": "EXP-069",
+          "protocol": "val_v2",
+          "fold": 0,
+          "metric": "mAP@10",
+          "base_mean": 0.8636853166459586,
+          "new_mean": 0.8613249888704301,
+          "gain": -0.0023603277755285985,
+          "ci95": [
+            -0.007503593758197493,
+            0.003433300621789626
+          ],
+          "seed_noise": 0.004509441042990956,
+          "decision": "inconclusive",
+          "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+          "bootstrap_unit": "vehicle_id",
+          "n_boot": 2000,
+          "bootstrap_seed": 0
+        }
+      },
+      "archive_receipt": {
+        "exp_id": "EXP-069",
+        "archive": "/workspace/handoff_afem/EXP-069_results.tar.gz",
+        "bytes": 24632060,
+        "sha256": "06ed231f0c6ed904a0619d72f63fa855fcb33d547a8f35b5e453e2250af982ff",
+        "source_commit": "1db18aa9eea6b01c1341ea064531904345db651e",
+        "files_checked": 425,
+        "arrays_checked": 12,
+        "embedding_dim": 1024,
+        "created_utc": "2026-09-18T22:16:36.550726+00:00",
+        "checkpoints": [
+          {
+            "seed": 0,
+            "name": "7ce63bdeeb464293b296e35ff9eefb13.pt",
+            "path": "/workspace/checkpoints/7ce63bdeeb464293b296e35ff9eefb13.pt",
+            "bytes": 1803695981,
+            "sha256": "f3cb4aceac77a7d08f97ce714cd97933ece03ef8b5efcda89c06cf6a2a05e70f"
+          },
+          {
+            "seed": 1,
+            "name": "3f6a89681a994da39d6aecfa1a619122.pt",
+            "path": "/workspace/checkpoints/3f6a89681a994da39d6aecfa1a619122.pt",
+            "bytes": 1803695981,
+            "sha256": "e7f42c8d94a4e2b5e0a69e8723d7676076496ee80c55b5289c11fc1942cb24b7"
+          },
+          {
+            "seed": 2,
+            "name": "39a2ddf6f3a5486494794ab1b9e5a903.pt",
+            "path": "/workspace/checkpoints/39a2ddf6f3a5486494794ab1b9e5a903.pt",
+            "bytes": 1803695981,
+            "sha256": "da260b84e3178e5a258556fa104c3d10c5bbdd8f906e2e72dd8f7df8d7b6fdbf"
+          }
+        ]
+      },
+      "local_verification": {
+        "exp_id": "EXP-069",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 425,
+        "arrays_sha256_and_header_verified": 12,
+        "embedding_dim": 1024,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-18T22:18:29.556757+00:00"
+      },
+      "embeddings": [
+        {
+          "path": "artifacts/EXP-069/seed0/query_emb.npy",
+          "sha256": "47b97e323829f86c115153f656e5caba2395c760b9a63ee617d7fab3fd3e9a1b",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/seed0/gallery_emb.npy",
+          "sha256": "b5764d777d6574a4f72570ca6edea02b724f5eb1d8f6f54f420ad715d39cde61",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/fp16_check/seed0/val_fold0/query_emb.npy",
+          "sha256": "15c075d550611c4150feb22e55bc48e60d7316011d27e31c39f987133319cc72",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/fp16_check/seed0/val_fold0/gallery_emb.npy",
+          "sha256": "9d2de89b362eab9d8e9d40b7f4c331638fc47dadd5f243cfd3f5e0e0a7b72c17",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/seed1/query_emb.npy",
+          "sha256": "f81f9cb5777b68cb517bc090589df6706ba1a43cd610c582b1cdd372be0038b3",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/seed1/gallery_emb.npy",
+          "sha256": "daf4f6b4c4389cd6bc2a82249a4785df691d60feea91448824dca758b7a04f1a",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/fp16_check/seed1/val_fold0/query_emb.npy",
+          "sha256": "b066708e3dcaa14de13a157b9cc270792a976924be22a0eb60489cab22c32bad",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/fp16_check/seed1/val_fold0/gallery_emb.npy",
+          "sha256": "3bfc4a6f00f585b22c900a43e493ded932aa7a231fd85a73bc661b092237e600",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/seed2/query_emb.npy",
+          "sha256": "cec88e1b1f40e4df12109d8dc90f49f19c9c97bf88617ee757cb515bf2a14c2a",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/seed2/gallery_emb.npy",
+          "sha256": "a192a72a67ae191dd3378a68f3576d5d755dbf1d89125947499bee014e4f880e",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/fp16_check/seed2/val_fold0/query_emb.npy",
+          "sha256": "0358f101c9010dc1c2934163d1c966cc74617747802145c984842dce0cb96434",
+          "bytes": 2328704,
+          "shape": [
+            1137,
+            1024
+          ],
+          "dtype": "float16"
+        },
+        {
+          "path": "artifacts/EXP-069/fp16_check/seed2/val_fold0/gallery_emb.npy",
+          "sha256": "a3569164e77d8c554bb9e67a7ba473b30c7cf45fd014cdf7db4108ae96acf83b",
+          "bytes": 1616000,
+          "shape": [
+            789,
+            1024
+          ],
+          "dtype": "float16"
+        }
+      ]
+    }
+  },
+  "semantic_verification": {
+    "archive_files_sha256_verified": 1697,
+    "all_query_gallery_arrays_verified": 48,
+    "seeds_per_experiment": [
+      0,
+      1,
+      2
+    ],
+    "precision_checks_per_experiment": [
+      "fp32",
+      "fp16"
+    ],
+    "protocol": "val_v2",
+    "fold": 0,
+    "holdout_fold4_used": false,
+    "scientific_code_and_configs_match_immutable_tags": true,
+    "weights_state_original": "fp32",
+    "native_checkpoints_preserved": true
+  },
+  "night_diagnostic": {
+    "protocol": "val_v2",
+    "fold": 0,
+    "criterion": "Same fixed EDA definition: resize complete original BGR frame to 480x270 with INTER_AREA, convert to HSV, mean V < 60/255",
+    "source": "eda/extract_features.py:80-88 and eda/KEY_FINDINGS.md",
+    "posthoc_diagnostic_only": true,
+    "used_for_model_or_threshold_selection": false,
+    "holdout_fold4_used": false,
+    "queries_measured": 1137,
+    "night_queries": 10,
+    "experiments": {
+      "EXP-054": {
+        "night_valid_queries": 10,
+        "night_vehicles": 7,
+        "night_mAP10": 0.695,
+        "day_mAP10": 0.8956618099275596,
+        "all_mAP10": 0.893896974308144
+      },
+      "EXP-065": {
+        "night_valid_queries": 10,
+        "night_vehicles": 7,
+        "night_mAP10": 0.7592592592592593,
+        "day_mAP10": 0.8694827068163359,
+        "all_mAP10": 0.868513283354972
+      },
+      "EXP-066": {
+        "night_valid_queries": 10,
+        "night_vehicles": 7,
+        "night_mAP10": 0.7177777777777777,
+        "day_mAP10": 0.8649799709393765,
+        "all_mAP10": 0.8636853166459586
+      },
+      "EXP-067": {
+        "night_valid_queries": 10,
+        "night_vehicles": 7,
+        "night_mAP10": 0.10833333333333331,
+        "day_mAP10": 0.1007960079591993,
+        "all_mAP10": 0.10086229929934121
+      },
+      "EXP-068": {
+        "night_valid_queries": 10,
+        "night_vehicles": 7,
+        "night_mAP10": 0.726984126984127,
+        "day_mAP10": 0.8692594353131176,
+        "all_mAP10": 0.8680081133401274
+      },
+      "EXP-069": {
+        "night_valid_queries": 10,
+        "night_vehicles": 7,
+        "night_mAP10": 0.7472222222222222,
+        "day_mAP10": 0.8623374357794648,
+        "all_mAP10": 0.8613249888704301
+      }
+    },
+    "attributes_sha256": "c3c646c4c7f337facf3dd6d655858755d5a1c86f4b6ab45ab6beb45e9e9e0c52",
+    "metadata_path": "protocol/diagnostics/night_fold0.csv",
+    "reproduction_script": "scripts/analyze_night.py",
+    "reproduction_script_sha256": "bf1fb974795104e3a318fff683fddc10b08fceaec7d509e6bce8eae8bca1b7f0"
+  },
+  "semantic_release_upload": {
+    "state": "uploading 12 original checkpoints; draft until all digests verified",
+    "tag": "exp-069",
+    "expected_checkpoint_count": 12,
+    "expected_checkpoint_bytes": 21113094744,
+    "local_evidence_assets_uploaded": 16
+  },
+  "semantic_metrics_recorded_utc": "2026-09-18T22:27:36.059710+00:00"
 }
