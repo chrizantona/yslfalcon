@@ -55,6 +55,6 @@ EXP-053,EXP-042,accepted,SupCon вместо batch-hard triplet (SigLIP 2 с Arc
 EXP-054,EXP-053,accepted,суп трёх сидов EXP-053 (SigLIP 2 с ArcFace и SupCon); лучший кандидат по качеству,0 1 2,0.893897,,0.870712,0.972735,0.911910,,0.905973,0.925764,7.331743,0.092784,0.896263,0.878122,18.44,412.5,20,1715.1,95aa27ed552c43a1ad9c3d853390fa18.pt
 EXP-065,EXP-054,planned,SigLIP EXP-054 visual tower + fresh 512D projection; continuation control,0 1 2,,,,,,,,,,,,,,,,,
 EXP-066,EXP-065,planned,32 full-vector AFEM transformations and small learned residual; otherwise EXP-065,0 1 2,,,,,,,,,,,,,,,,,
-EXP-067,EXP-054,running,ImageNet OSNet-AIN x1.0 + GeM + 512D projection; EXP-054 training recipe,0 1 2,,,,,,,,,,,,,,,,,
+EXP-067,EXP-054,rejected,ImageNet OSNet-AIN x1.0 + GeM + 512D projection; EXP-054 training recipe,0 1 2,0.100862,0.064929,0.096453,0.185576,0.321689,0.035865,0.069662,0.909753,4.909131,0.005569,0.114804,0.087390,11.760000,608.500000,20,10.900000,2cf02a90afdd45baaa3b13a6ef1a2703.pt 963ea084e0d3404a81db7bd9f71708da.pt 50e442721c57475bb26cf19619dc54f6.pt
 EXP-068,EXP-065,planned,"Independent OSNet-AIN branch, per-branch L2, late concat and auxiliary OSNet ArcFace/SupCon",0 1 2,,,,,,,,,,,,,,,,,
 EXP-069,EXP-068,planned,AFEM on the semantic branch of EXP-068; full architecture from the user proposal,0 1 2,,,,,,,,,,,,,,,,,

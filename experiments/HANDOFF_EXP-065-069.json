@@ -1,0 +1,285 @@
+{
+  "repo": "chrizantona/yslfalcon",
+  "git_commit": "d88e4dabb9ed0a4b50b769073c95e3e82f82233e",
+  "completed": [
+    "EXP-067"
+  ],
+  "planned_waiting_checkpoint": [
+    "EXP-065",
+    "EXP-066",
+    "EXP-068",
+    "EXP-069"
+  ],
+  "required_checkpoint": {
+    "name": "95aa27ed552c43a1ad9c3d853390fa18.pt",
+    "sha256": "9be056d0c85cd8a69019d25f29abdf45f93528043ec35963f063b510c85c1f12"
+  },
+  "release": {
+    "release_url": "https://github.com/chrizantona/yslfalcon/releases/tag/exp-067",
+    "release_id": 391648588,
+    "tag": "exp-067",
+    "assets": [
+      {
+        "name": "2cf02a90afdd45baaa3b13a6ef1a2703.pt",
+        "sha256": "3076cb1c02cc5521f6dccac4cd08d6b3273d3b56571c4af9c7b88f7bf520b154",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078242",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/2cf02a90afdd45baaa3b13a6ef1a2703.pt",
+        "bytes": 10885101
+      },
+      {
+        "name": "50e442721c57475bb26cf19619dc54f6.pt",
+        "sha256": "bc9ee7e1d9c7f33309c6ab684f9bba826e59c6009f196a3414b38a2279b503aa",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078277",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/50e442721c57475bb26cf19619dc54f6.pt",
+        "bytes": 10885101
+      },
+      {
+        "name": "963ea084e0d3404a81db7bd9f71708da.pt",
+        "sha256": "4f16a73cdaf35085092ea025a93408254dd2da8689484b97a8604f7f0d00afb7",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078348",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/963ea084e0d3404a81db7bd9f71708da.pt",
+        "bytes": 10885101
+      },
+      {
+        "name": "EXP-067_archive_receipt.json",
+        "sha256": "b082f4fe252bfd206c054db18e48e8d206625fbb08d779f8c0d21e5f321661c6",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078435",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/EXP-067_archive_receipt.json",
+        "bytes": 1177
+      },
+      {
+        "name": "EXP-067_results.tar.gz",
+        "sha256": "127b60dc4e5ccccb4e9ef7f912bd7d39d5fbe1de820e29c223705df22ccaa1bd",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078451",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/EXP-067_results.tar.gz",
+        "bytes": 12422556
+      },
+      {
+        "name": "embeddings_index.json",
+        "sha256": "f42ba1b65681367f19474b2239ab0529f55c06e360eae69374ba5529891270b0",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078492",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/embeddings_index.json",
+        "bytes": 3373
+      },
+      {
+        "name": "launch_EXP-067.json",
+        "sha256": "7ff5d80073483b1b8e176b7a47ee0e75b5434834786b80671dd529ccfc2e5e37",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078503",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/launch_EXP-067.json",
+        "bytes": 906
+      },
+      {
+        "name": "preflight_EXP-067.json",
+        "sha256": "3550fd3c7c223afa58c96c944678acfc4ec48f34a38fd90c897676f4d0cdf787",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078512",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/preflight_EXP-067.json",
+        "bytes": 721
+      },
+      {
+        "name": "preflight_EXP-069_structural.json",
+        "sha256": "fbb10257e7ef5ba35c2bced46b055a794680b2ea8a80c05aa6ddc378315f606b",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078545",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/preflight_EXP-069_structural.json",
+        "bytes": 721
+      },
+      {
+        "name": "SHA256SUMS",
+        "sha256": "7b331438ec0f0b4971fead37b0ac10ed00a5323e9c5d824bd0d04431d0a3ac45",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078564",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/SHA256SUMS",
+        "bytes": 853
+      },
+      {
+        "name": "manifest.json",
+        "sha256": "b1da239f6137464a99f56960310d4cd1be5b88eeeba16cd70bfe12fbfcf6a659",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573078573",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-067/manifest.json",
+        "bytes": 1282
+      }
+    ]
+  },
+  "verification": {
+    "files_sha256_verified_locally": 421,
+    "arrays_verified": [
+      {
+        "path": "artifacts/EXP-067/seed0/query_emb.npy",
+        "sha256": "c0778bced3d51f808efa05923224bb6c10e071a464f65b42e6ecde0dc13047b2",
+        "bytes": 1164416,
+        "shape": [
+          1137,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/seed0/gallery_emb.npy",
+        "sha256": "e17bf396091927ff5582b8a6dcc1624e91a837f7eb5aa053ea78b3bc27108ce6",
+        "bytes": 808064,
+        "shape": [
+          789,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/fp16_check/seed0/val_fold0/query_emb.npy",
+        "sha256": "5a0313843f0638a059e59ca24db6cb89307e8b8ca8c26b3479f4ac519d6a1c0a",
+        "bytes": 1164416,
+        "shape": [
+          1137,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/fp16_check/seed0/val_fold0/gallery_emb.npy",
+        "sha256": "39114277d3896f43af7c647758fb9dcf97d3114f2c632211f28e9c39c99e9340",
+        "bytes": 808064,
+        "shape": [
+          789,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/seed1/query_emb.npy",
+        "sha256": "272c9a7a6b1a1a64fe5a8b7e5d41974573187992fb59710972485becd23a5415",
+        "bytes": 1164416,
+        "shape": [
+          1137,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/seed1/gallery_emb.npy",
+        "sha256": "b578ec3d56c0608954677b95373995694ade58116e6f597554edd17395273bca",
+        "bytes": 808064,
+        "shape": [
+          789,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/fp16_check/seed1/val_fold0/query_emb.npy",
+        "sha256": "f2de6a676defd78dc17c44201c9ef6e4d244aaf94d5bdc3899e552d399e16988",
+        "bytes": 1164416,
+        "shape": [
+          1137,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/fp16_check/seed1/val_fold0/gallery_emb.npy",
+        "sha256": "95140ca71354cc0a5d3c9aec3e2e868acc37b176e89ce3480b807eed87da96f7",
+        "bytes": 808064,
+        "shape": [
+          789,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/seed2/query_emb.npy",
+        "sha256": "ab4bf04e1ef75565dee132e581c528e837509aecb9af4febc57b4a69dd3b7c2b",
+        "bytes": 1164416,
+        "shape": [
+          1137,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/seed2/gallery_emb.npy",
+        "sha256": "acb95ceef3dba91740061c99458e6193ac758851a89847b7144c04f165d6b5e2",
+        "bytes": 808064,
+        "shape": [
+          789,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/fp16_check/seed2/val_fold0/query_emb.npy",
+        "sha256": "12b8a1ca78118aefddaa9f5085c0883534e7432695f7ee231e56535387f303ff",
+        "bytes": 1164416,
+        "shape": [
+          1137,
+          512
+        ],
+        "dtype": "float16"
+      },
+      {
+        "path": "artifacts/EXP-067/fp16_check/seed2/val_fold0/gallery_emb.npy",
+        "sha256": "b2ec849e46f201d44569ae94aa2b74f9cc3957893eb48069f6b2f940e9cda78e",
+        "bytes": 808064,
+        "shape": [
+          789,
+          512
+        ],
+        "dtype": "float16"
+      }
+    ],
+    "ap_reproduces_map10": true,
+    "query_order": "protocol/val_v2/fold0_query.csv",
+    "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+    "github_asset_digest_and_size_verified": true
+  },
+  "checkpoints": [
+    {
+      "seed": 0,
+      "name": "2cf02a90afdd45baaa3b13a6ef1a2703.pt",
+      "path": "/workspace/checkpoints/2cf02a90afdd45baaa3b13a6ef1a2703.pt",
+      "bytes": 10885101,
+      "sha256": "3076cb1c02cc5521f6dccac4cd08d6b3273d3b56571c4af9c7b88f7bf520b154"
+    },
+    {
+      "seed": 1,
+      "name": "963ea084e0d3404a81db7bd9f71708da.pt",
+      "path": "/workspace/checkpoints/963ea084e0d3404a81db7bd9f71708da.pt",
+      "bytes": 10885101,
+      "sha256": "4f16a73cdaf35085092ea025a93408254dd2da8689484b97a8604f7f0d00afb7"
+    },
+    {
+      "seed": 2,
+      "name": "50e442721c57475bb26cf19619dc54f6.pt",
+      "path": "/workspace/checkpoints/50e442721c57475bb26cf19619dc54f6.pt",
+      "bytes": 10885101,
+      "sha256": "bc9ee7e1d9c7f33309c6ab684f9bba826e59c6009f196a3414b38a2279b503aa"
+    }
+  ],
+  "full_model_structural_check": {
+    "exp_id": "EXP-069",
+    "config": "configs/exp069_siglip_afem_osnet.yaml",
+    "scientific_initialisation_verified": false,
+    "batch": 128,
+    "train_losses": [
+      50.047157287597656,
+      45.95766830444336,
+      42.50455093383789
+    ],
+    "all_trainable_gradients_finite": true,
+    "train_peak_reserved_bytes": 51757711360,
+    "infer_peak_reserved_bytes": 5001707520,
+    "full_state_bytes": 1803230840,
+    "embedding_dim": 1024,
+    "source_dim": 1152,
+    "mean": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "std": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "fp16_query_batch_rounding_max_abs": 0.00013024359941482544,
+    "fp16_repeated_query_bit_identical": true,
+    "fp16_batch256_finite": true,
+    "torch": "2.10.0+cu130",
+    "gpu": "NVIDIA H200"
+  }
+}
