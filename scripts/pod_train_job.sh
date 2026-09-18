@@ -64,6 +64,12 @@ stage slices
 $PY -m reid.slices --exp-dir "artifacts/$EXP" --val-config "$VAL_CFG" --attributes protocol/attributes.csv \
   > logs/slices.log 2>&1
 
+if grep -Eq '^  backbone: (siglip_afem|osnet_ain|siglip_osnet)' "$CONFIG"; then
+  stage precision
+  $PY -m reid.precision_seeds --data-config "$DATA_CFG" --val-config "$VAL_CFG" --config "$CONFIG" \
+    > logs/precision.log 2>&1
+fi
+
 stage benchmark  # after training, so the seeds don't share the GPU with the measurement
 CHECKPOINT_DIR=$(sed -n 's/^checkpoint_dir: *\([^ #]*\).*/\1/p' "$DATA_CFG")
 CHECKPOINT=$($PY -c "import json, sys; print(json.load(open(sys.argv[1]))['checkpoint'])" "artifacts/$EXP/seed0/metrics.json")

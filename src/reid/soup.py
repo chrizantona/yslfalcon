@@ -17,6 +17,7 @@ from reid.data import load_yaml
 from reid.embed import embed_boxes, pick_device
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
 from reid.models import ReIDModel, build_backbone, checkpoint_name
+from reid.afem_models import KINDS as AFEM_KINDS, build_extended_model
 
 
 def average_state_dicts(states):
@@ -38,8 +39,12 @@ def main():
     checkpoints = Path(data_cfg["checkpoint_dir"])
     soup = average_state_dicts([torch.load(checkpoints / name, map_location="cpu")["state_dict"]
                                 for name in cfg["checkpoints"]])
-    backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"), load_pretrained=False)
-    model = ReIDModel(backbone, feat_dim, soup["classifier.weight"].shape[0])
+    if cfg["model"]["backbone"] in AFEM_KINDS:
+        model, feat_dim, mean, std = build_extended_model(cfg["model"], soup["classifier.weight"].shape[0],
+                                                        load_pretrained=False, head=cfg["train"]["id_head"])
+    else:
+        backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"), load_pretrained=False)
+        model = ReIDModel(backbone, feat_dim, soup["classifier.weight"].shape[0])
     model.load_state_dict(soup)
     name = checkpoint_name(cfg)
     if (checkpoints / name).exists():

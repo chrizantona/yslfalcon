@@ -4,9 +4,17 @@ import re
 
 def optimizer_groups(model, cfg):
     head = [p for p in [*model.bnneck.parameters(), *model.classifier.parameters()] if p.requires_grad]
+    for name in ("auxiliary_neck", "auxiliary_classifier"):
+        module = getattr(model, name, None)
+        if module is not None:
+            head.extend(p for p in module.parameters() if p.requires_grad)
     decay = float(cfg.get("layer_decay", 1.0))
     if not 0 < decay <= 1:
         raise ValueError("layer_decay must be in (0, 1]")
+    if hasattr(model.backbone, "optimizer_groups"):
+        if decay != 1:
+            raise ValueError("Layer decay is not configured for AFEM/OSNet backbones")
+        return model.backbone.optimizer_groups(cfg) + [{"params": head, "lr": cfg["lr_head"], "branch": "reid_heads"}]
     if decay == 1:
         return [
             {"params": [p for p in model.backbone.parameters() if p.requires_grad], "lr": cfg["lr_backbone"]},

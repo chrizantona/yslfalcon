@@ -39,6 +39,26 @@ Kaggle-копии сверены с официальной статистико�
 | TinyCLIP ViT-61M/32 (LAION-400M), `weights/paper/tinyclip_vit61m_32_laion400m.safetensors` и `…_config.json` | [HF `wkcn/TinyCLIP-ViT-61M-32-Text-29M-LAION400M`](https://huggingface.co/wkcn/TinyCLIP-ViT-61M-32-Text-29M-LAION400M), `model.safetensors`, ревизия `94cbbea5c7949cfe7bdafde64bcea5e403f59852`, Microsoft (TinyCLIP); берётся только визуальная часть | MIT | `0c0670dfa6fbf32c3158ef57b10772d5c9668093bda676d78e1452268585d230`; config `40a59f3db33a1df844687e94f25b186bf187bec1d8d1389f0f88b1ab013e233b` | EXP-055, EXP-056 |
 | ConvNeXt-L ImageNet-22k (`convnext_large.fb_in22k`), `weights/paper/convnext_large_fb_in22k.safetensors` | [HF `timm/convnext_large.fb_in22k`](https://huggingface.co/timm/convnext_large.fb_in22k), `model.safetensors`, ревизия `be6de86d9928c6cc2a8986963243142f403f382d`, Meta / timm | Apache-2.0 | `7e02ea57d6024d94f5523e9b58cdddd81a1fb4f2e5128b4a879b76f9847058bf` | EXP-057, EXP-058 |
 
+## OSNet-AIN для EXP-065…069
+
+- Автор: **Kaiyang Zhou**, OSNet-AIN x1.0, лицензия MIT.
+- Код: [deep-person-reid/osnet_ain.py](https://github.com/KaiyangZhou/deep-person-reid/blob/f6ba78eceb38712266318e8c7eefde174af15606/torchreid/models/osnet_ain.py),
+  ревизия `f6ba78eceb38712266318e8c7eefde174af15606`. Неизменённая архитектура и лицензия
+  сохранены в `src/reid/vendor/`; используется feature map до авторских FC/classifier.
+- Веса: **ImageNet**, [HF kaiyangzhou/osnet](https://huggingface.co/kaiyangzhou/osnet),
+  ревизия `a5c5cc037c24235cda3b21085b93ad77c9616224`,
+  [закреплённый URL osnet_ain_x1_0_imagenet.pth](https://huggingface.co/kaiyangzhou/osnet/resolve/a5c5cc037c24235cda3b21085b93ad77c9616224/osnet_ain_x1_0_imagenet.pth),
+  10 929 757 байт, sha256 `b8a578eacc122c16496c8835c96a0157db62963b3de05b5a5a4b1ff5bad7546a`.
+- Загрузка: `bash scripts/fetch_external.sh osnet`, SHA256 проверяется до загрузки модели.
+  Локальный путь `/workspace/ext_data/weights/osnet/osnet_ain_x1_0_imagenet.pth`.
+- Использование: CNN-ветвь EXP-067/068/069; отдельная ImageNet-нормализация.
+  Специализированные на людях MSMT17/Market1501-веса не используются.
+- Семантический старт EXP-065/066/068/069: наш обученный суп EXP-054
+  `95aa27ed552c43a1ad9c3d853390fa18.pt`, sha256
+  `9be056d0c85cd8a69019d25f29abdf45f93528043ec35963f063b510c85c1f12` (карточка EXP-054).
+  Нужны именно эти веса и конфиг внутри checkpoint; публичный SigLIP не заменяет этот старт.
+  Новые внешние тренировочные данные в этой серии не добавляются.
+
 ## Наши веса
 Чекпоинты лежат на поде в `/workspace/checkpoints/`, имена записаны в карточках и реестрах; в git их нет. Ранние эксперименты используют случайные имена, EXP-020…029, 036, 037 — имена по номеру EXP по просьбе пользователя, EXP-030…034 (второй под) — снова случайные; имя претрейна EXP-033 задано заранее в его конфиге, потому что с него стартует EXP-034. Старые эксперименты воспроизводятся обучением с тега (`git checkout exp-NNN`, команда из карточки); для ночной цепочки фактические код и конфиги с новыми именами сохранены в `artifacts/EXP-NNN/pod/`, переименование закоммичено в `75f0c12`. Цепочка LAION-ветки — EXP-022 → EXP-023 → EXP-027 → EXP-028 → EXP-037; EXP-027 отдельно отклонён, но дочерний imprinting EXP-028 также принят против исходного EXP-023. Предыдущий суп — EXP-024; историческая — EXP-009 → EXP-010 → EXP-016. Числа совпадут с точностью до недетерминизма обучения на GPU; инференс детерминирован (`reid.benchmark`).
 

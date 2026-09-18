@@ -11,20 +11,20 @@ from reid.data import load_yaml
 from reid.embed import embed_boxes, pick_device
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
 from reid.models import ReIDModel, build_backbone
+from reid.afem_models import KINDS as AFEM_KINDS
+from reid.inference import load_trained_encoder
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data-config", required=True)
-    parser.add_argument("--val-config", required=True)
-    parser.add_argument("--config", required=True)
-    args = parser.parse_args()
-    data, val, cfg = load_yaml(args.data_config), load_yaml(args.val_config), load_yaml(args.config)
-    checkpoint = Path(data["checkpoint_dir"]) / cfg["checkpoint"]
-    state = torch.load(checkpoint, map_location="cpu")["state_dict"]
-    backbone, dim, mean, std = build_backbone(cfg["model"], data.get("external_weights_dir"), load_pretrained=False)
-    model = ReIDModel(backbone, dim, state["classifier.weight"].shape[0])
-    model.load_state_dict(state)
+def score_checkpoint(data, val, cfg, checkpoint_name=None, exp_id=None):
+    """Score a checkpoint with the precision in the frozen config, through evaluate_fold."""
+    checkpoint = Path(data["checkpoint_dir"]) / (checkpoint_name or cfg["checkpoint"])
+    if cfg["model"]["backbone"] in AFEM_KINDS:
+        model, dim, mean, std = load_trained_encoder(cfg["model"], checkpoint, data.get("external_weights_dir"))
+    else:
+        state = torch.load(checkpoint, map_location="cpu")["state_dict"]
+        backbone, dim, mean, std = build_backbone(cfg["model"], data.get("external_weights_dir"), load_pretrained=False)
+        model = ReIDModel(backbone, dim, state["classifier.weight"].shape[0])
+        model.load_state_dict(state)
     device = pick_device()
     precision = cfg["benchmark"]["precision"]
     encoder = InferencePrecision(model, precision, device).eval().to(device)
@@ -35,10 +35,21 @@ def main():
                            mean, std, data["crop_max_side"], device=device, **cfg["embed"])
 
     result = evaluate_fold(embed, query, gallery, no_match)
-    header = {"exp_id": cfg["exp_id"], "protocol": val["version"], "fold": cfg["eval_fold"],
+    header = {"exp_id": exp_id or cfg["exp_id"], "protocol": val["version"], "fold": cfg["eval_fold"],
               "checkpoint": checkpoint.name, "precision": precision, "n_query": len(query), "n_gallery": len(gallery)}
-    metrics = save_fold_results(Path("artifacts") / cfg["exp_id"] / "val_fold0", result, query, header,
+    metrics = save_fold_results(Path("artifacts") / header["exp_id"] / "val_fold0", result, query, header,
                                 emb_dtype=np.float16)
+    return metrics
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-config", required=True)
+    parser.add_argument("--val-config", required=True)
+    parser.add_argument("--config", required=True)
+    args = parser.parse_args()
+    data, val, cfg = load_yaml(args.data_config), load_yaml(args.val_config), load_yaml(args.config)
+    metrics = score_checkpoint(data, val, cfg)
     print(json.dumps(metrics, indent=2), flush=True)
 
 

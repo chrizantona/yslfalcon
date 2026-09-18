@@ -4,8 +4,8 @@
 # Files that already exist with the right checksum are skipped. The competition dataset is not public: see DATA.md.
 set -Eeuo pipefail
 EXT_DIR=${EXT_DIR:-/workspace/ext_data}
-TARGET=${1:-all}  # all | clip_l | backbones | paper | veriwild
-case "$TARGET" in all|clip_l|backbones|paper|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
+TARGET=${1:-all}  # all | clip_l | backbones | paper | osnet | veriwild
+case "$TARGET" in all|clip_l|backbones|paper|osnet|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
 GDRIVE="https://drive.usercontent.google.com/download?export=download&confirm=t&id="
 FASTREID="https://github.com/JDAI-CV/fast-reid/releases/download/v0.1.1"
 KAGGLE="https://www.kaggle.com/api/v1/datasets/download"
@@ -61,6 +61,13 @@ if [ "$TARGET" = all ] || [ "$TARGET" = paper ]; then  # reproduced architecture
     7e02ea57d6024d94f5523e9b58cdddd81a1fb4f2e5128b4a879b76f9847058bf
 fi
 [ "$TARGET" != paper ] || exit 0
+
+if [ "$TARGET" = all ] || [ "$TARGET" = osnet ]; then
+  fetch weights/osnet/osnet_ain_x1_0_imagenet.pth \
+    https://huggingface.co/kaiyangzhou/osnet/resolve/a5c5cc037c24235cda3b21085b93ad77c9616224/osnet_ain_x1_0_imagenet.pth \
+    b8a578eacc122c16496c8835c96a0157db62963b3de05b5a5a4b1ff5bad7546a
+fi
+[ "$TARGET" != osnet ] || exit 0
 
 # VERI-Wild large test split (10,000 vehicles), used for the EXP-009 pretraining
 fetch kaggle/veriwild_test.zip "$KAGGLE/mrkdagods/veriwild-test?datasetVersionNumber=1" \

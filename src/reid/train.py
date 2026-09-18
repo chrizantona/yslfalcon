@@ -31,6 +31,7 @@ from reid.evaluate import evaluate_fold, load_fold, save_fold_results
 from reid.external import load_table, source_names
 from reid.models import ReIDModel, MarginClassifier, build_backbone, load_backbone, checkpoint_name
 from reid.optim import optimizer_groups
+from reid.afem_models import KINDS as AFEM_KINDS, build_extended_model
 
 
 class CropDataset(Dataset):
@@ -165,17 +166,23 @@ def imprint_classifier(model, loader, device):
         raise ValueError("imprinting requires an ArcFace head")
     was_training = model.training
     model.eval()
-    sums = torch.zeros_like(model.classifier.weight, device=device)
-    counts = torch.zeros(sums.shape[0], device=device, dtype=torch.long)
+    classifiers = [model.classifier]
+    if hasattr(model, "auxiliary_classifier"):
+        classifiers.append(model.auxiliary_classifier)
+    sums = [torch.zeros_like(head.weight, device=device) for head in classifiers]
+    counts = torch.zeros(sums[0].shape[0], device=device, dtype=torch.long)
     try:
         for x, labels in loader:
             labels = labels.to(device)
-            embeddings = F.normalize(model(x.to(device)).float(), dim=1)
-            sums.index_add_(0, labels, embeddings)
+            x = x.to(device)
+            features = model.imprinting_features(x) if hasattr(model, "imprinting_features") else [model(x)]
+            for total, embeddings in zip(sums, features):
+                total.index_add_(0, labels, F.normalize(embeddings.float(), dim=1))
             counts += torch.bincount(labels, minlength=len(counts))
-        if (counts == 0).any() or (sums.norm(dim=1) == 0).any():
+        if (counts == 0).any() or any((total.norm(dim=1) == 0).any() for total in sums):
             raise ValueError("every training class must have a nonzero imprinting centre")
-        model.classifier.weight.copy_(F.normalize(sums / counts[:, None], dim=1))
+        for head, total in zip(classifiers, sums):
+            head.weight.copy_(F.normalize(total / counts[:, None], dim=1))
         return {"classes": len(counts), "images": int(counts.sum()),
                 "min_images_per_class": int(counts.min()), "max_images_per_class": int(counts.max())}
     finally:
@@ -199,9 +206,13 @@ def main():
     train_df, crops_dir, classes = training_table(cfg, data_cfg, val_cfg)
     query, gallery, no_match = load_fold(protocol_dir, cfg["eval_fold"])
 
-    backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"),
-                                                load_pretrained=not bool(cfg["model"].get("init_checkpoint")))
-    model = ReIDModel(backbone, feat_dim, len(classes), tcfg.get("id_head"))
+    if cfg["model"]["backbone"] in AFEM_KINDS:
+        model, feat_dim, mean, std = build_extended_model(cfg["model"], len(classes),
+                                                        data_cfg.get("external_weights_dir"), head=tcfg.get("id_head"))
+    else:
+        backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"),
+                                                    load_pretrained=not bool(cfg["model"].get("init_checkpoint")))
+        model = ReIDModel(backbone, feat_dim, len(classes), tcfg.get("id_head"))
     if cfg["model"].get("init_checkpoint"):  # backbone from a pretraining run; BNNeck and classifier start fresh
         load_backbone(model, Path(data_cfg["checkpoint_dir"]) / cfg["model"]["init_checkpoint"],
                       interpolate_position=cfg["model"].get("interpolate_positional_embedding", False))
@@ -251,17 +262,29 @@ def main():
         sampler.set_epoch(epoch)
         model.train()
         totals, steps, epoch_start = np.zeros(3), 0, time.time()
+        auxiliary_total = 0.0
         for x, y in loader:
             x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
             with torch.autocast("cuda", dtype=torch.bfloat16):
-                feat, logits = model(x, y)
+                outputs = model(x, y)
+                feat, logits = outputs[:2]
             loss_id = id_loss(logits.float(), y)
             if metric_loss["type"] == "supcon":
                 loss_metric = supervised_contrastive(feat.float(), y, metric_loss["temperature"])
             else:
                 loss_metric = batch_hard_triplet(feat.float(), y, tcfg["triplet_margin"])
             optimizer.zero_grad(set_to_none=True)
-            (loss_id + loss_metric).backward()
+            loss = loss_id + loss_metric
+            if len(outputs) == 4:
+                app_feat, app_logits = outputs[2:]
+                if metric_loss["type"] != "supcon":
+                    raise ValueError("AFEM/OSNet auxiliary recipe requires EXP-054 SupCon")
+                auxiliary = id_loss(app_logits.float(), y) + supervised_contrastive(app_feat.float(), y, metric_loss["temperature"])
+                auxiliary_total += auxiliary.item()
+                loss = loss + tcfg["auxiliary_weight"] * auxiliary
+            if not torch.isfinite(loss):
+                raise FloatingPointError(f"Non-finite loss at epoch {epoch}, step {steps}")
+            loss.backward()
             optimizer.step()
             scheduler.step()
             totals += [loss_id.item(), loss_metric.item(), (logits.argmax(1) == y).float().mean().item()]
@@ -276,6 +299,22 @@ def main():
             "img_per_s": steps * P * K / (time.time() - epoch_start),
             "elapsed_min": (time.time() - start) / 60,
         }
+        if hasattr(model.backbone, "optimizer_groups"):
+            record["lr_groups"] = {g["branch"]: g["lr"] for g in optimizer.param_groups}
+            record["lr_backbone"] = max(g["lr"] for g in optimizer.param_groups if g["branch"] in {"siglip", "osnet"})
+        if hasattr(model, "auxiliary_classifier"):
+            record["loss_auxiliary"] = auxiliary_total / max(steps, 1)
+        afem = getattr(model.backbone, "refinement", None)
+        if hasattr(afem, "group_logits"):
+            record["afem_residual_scale"] = float(afem.residual_scale.detach())
+            record["afem_group_weights"] = afem.group_logits.detach().softmax(0).tolist()
+            record["afem_residual_ratio"] = float(afem.last_residual_ratio)
+        if hasattr(model.backbone, "last_branch_norms"):
+            record["branch_norms_before_l2"] = {k: float(v) for k, v in model.backbone.last_branch_norms.items()}
+        appearance = getattr(model.backbone, "appearance", model.backbone)
+        pool = getattr(appearance, "pool", None)
+        if hasattr(pool, "p"):
+            record["gem_p"] = float(pool.p.detach())
         if tcfg.get("layer_decay"):
             record["lr_backbone_min"] = min(g["lr"] for g in optimizer.param_groups[:-1])
         if epoch % tcfg["eval_every"] == 0 or epoch == tcfg["epochs"]:

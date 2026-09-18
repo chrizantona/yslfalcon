@@ -1,0 +1,44 @@
+exp_id: EXP-066
+parent: EXP-065
+description: 32 full-vector AFEM transformations and small learned residual; otherwise EXP-065
+seeds: [0, 1, 2]
+model:
+  backbone: siglip_afem
+  name: siglip_afem
+  input_hw: [224, 224]
+  embedding_dim: 512
+  semantic:
+    checkpoint: /workspace/checkpoints/95aa27ed552c43a1ad9c3d853390fa18.pt
+    checkpoint_sha256: 9be056d0c85cd8a69019d25f29abdf45f93528043ec35963f063b510c85c1f12
+    model:
+      name: ViT-SO400M-14-SigLIP2
+      pretrained: webli
+      input_hw: [224, 224]
+  afem: {groups: 32, residual_init: 0.001}
+train:
+  id_head: {type: arcface, scale: 30.0, margin: 0.5, imprinting: true, imprint_batch_size: 128}
+  folds: [1, 2, 3]          # fold 0 = dev evaluation, fold 4 = untouched holdout
+  vehicles_per_batch: 32    # P
+  images_per_vehicle: 4     # K
+  epochs: 30                # one epoch = every training vehicle once
+  warmup_epochs: 10
+  lr_backbone: 1.0e-5
+  lr_head: 5.0e-4
+  weight_decay: 1.0e-4
+  label_smoothing: 0.1
+  metric_loss: {type: supcon, temperature: 0.07}  # changed: batch-hard triplet (margin 0.3) -> SupCon
+  flip_p: 0.5
+  pad: 10
+  erasing_p: 0.5
+  num_workers: 12
+  eval_every: 20
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
+benchmark:
+  precision: fp16
