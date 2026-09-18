@@ -179,12 +179,17 @@ class GFAMUnit(nn.Module):
 
 
 class GeM(nn.Module):
-    def __init__(self, p=3.0, eps=1e-6):
+    """Generalised mean pooling with a learnable exponent p >= min_p. Training pushes p down steadily (from 3 to ~2.8
+    in 2,000 steps at lr 3.5e-4, slower without weight decay); unbounded, it reaches 0, where the gradient of
+    pow(1 / p) is NaN (EXP-061, epoch 15). p = 1 is average pooling; model.gem_min_p: 1 keeps GeM defined (EXP-063)."""
+
+    def __init__(self, p=3.0, eps=1e-6, min_p=None):
         super().__init__()
-        self.p, self.eps = nn.Parameter(torch.tensor(p)), eps
+        self.p, self.eps, self.min_p = nn.Parameter(torch.tensor(p)), eps, min_p
 
     def forward(self, x):  # B x C x h x w -> B x C
-        return x.clamp(min=self.eps).pow(self.p).mean((2, 3)).pow(1 / self.p)
+        p = self.p if self.min_p is None else self.p.clamp(min=self.min_p)
+        return x.clamp(min=self.eps).pow(p).mean((2, 3)).pow(1 / p)
 
 
 class ConvNeXtGLPE(nn.Module):
@@ -205,7 +210,7 @@ class ConvNeXtGLPE(nn.Module):
         # one OT-GFAM block: W-GFAM, then SW-GFAM (shift window // 2 = 3)
         self.units = nn.ModuleList([GFAMUnit(dim, g["heads"], g["window"], shift, g["onn_order"])
                                     for shift in (0, g["window"] // 2)])
-        self.pools = nn.ModuleList([GeM() for _ in range(6)])
+        self.pools = nn.ModuleList([GeM(min_p=cfg.get("gem_min_p")) for _ in range(6)])
         self.classifiers = nn.ModuleList([nn.Linear(dim, n_classes, bias=False) for _ in range(6)])
 
     def forward(self, x):

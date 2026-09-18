@@ -7,7 +7,7 @@ import pytest
 import torch
 from timm.models.vision_transformer import VisionTransformer
 
-from reid.paper_models import AFEM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
+from reid.paper_models import AFEM, GeM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
 from reid.train import CropDataset
 from reid.train_paper import paper_loss, warmup_multistep
 
@@ -88,6 +88,18 @@ def test_convnext_glpe_follows_the_described_layout():
         descriptor = model.eval()(x)
     assert descriptor.shape == (2, 6 * 768) == (2, dim)
     assert torch.allclose(descriptor.view(2, 6, 768).norm(dim=2), torch.ones(2, 6))  # six normalised parts
+
+
+def test_gem_exponent_is_kept_at_or_above_its_floor():
+    x = torch.rand(2, 4, 3, 3)
+    gem = GeM(min_p=1.0)
+    gem.p.data.fill_(-0.5)  # where unbounded training can push it
+    assert torch.allclose(gem(x), x.mean((2, 3)), atol=1e-5)  # clamped to 1 = average pooling
+    gem.p.data.fill_(3.0)
+    assert torch.allclose(gem(x), x.pow(3).mean((2, 3)).pow(1 / 3), atol=1e-5)
+    unbounded = GeM(p=0.0)
+    unbounded(x).sum().backward()
+    assert not torch.isfinite(unbounded.p.grad)  # the unbounded version breaks at p = 0 (EXP-061)
 
 
 def test_warmup_then_step_decay():

@@ -12,6 +12,7 @@ Usage: PYTHONPATH=src python -m reid.train_paper --data-config configs/data.yaml
 """
 import argparse
 import json
+import math
 import random
 import time
 from pathlib import Path
@@ -110,16 +111,21 @@ def main():
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 embeddings, logits = model(x)
             loss, branches = paper_loss(embeddings, logits, y, tcfg["loss"], cross_entropy)
+            loss_value = loss.item()
+            if not math.isfinite(loss_value):  # stop at once rather than train on NaN for hours (EXP-061)
+                raise FloatingPointError(f"loss {loss_value} at epoch {epoch}, step {steps}")
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
-            totals += [loss.item(), (logits[0].argmax(1) == y).float().mean().item()]
+            totals += [loss_value, (logits[0].argmax(1) == y).float().mean().item()]
             branch_totals = branch_totals + torch.stack(branches).detach()
             steps += 1
         record = {"epoch": epoch, "loss": totals[0] / steps, "train_acc": totals[1] / steps,
                   "loss_branches": [round(v / steps, 4) for v in branch_totals.tolist()],
                   "lr": optimizer.param_groups[0]["lr"], "img_per_s": steps * P * K / (time.time() - epoch_start),
                   "elapsed_min": (time.time() - start) / 60}
+        if hasattr(model, "pools"):
+            record["gem_p"] = [round(pool.p.item(), 3) for pool in model.pools]
         scheduler.step()
         if epoch % tcfg["eval_every"] == 0 or epoch == tcfg["epochs"]:
             result = evaluate_fold(embed, query, gallery, no_match)
