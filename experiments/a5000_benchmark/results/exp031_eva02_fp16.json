@@ -1,0 +1,29 @@
+{
+  "exp_id": "EXP-031",
+  "backbone": "EVA02-L-14",
+  "input_hw": [
+    224,
+    224
+  ],
+  "device": "NVIDIA RTX A5000",
+  "precision": "fp16",
+  "bnneck": true,
+  "flip_tta": false,
+  "weights_storage": "fp32",
+  "latency_bs1_ms": 36.74,
+  "forward_bs1_ms": 21.21,
+  "embedding_dim": 768,
+  "params_m": 304.1,
+  "weights_mb_fp32": 1216.4,
+  "load_seconds": 5.1,
+  "fps_bs1": 15.5,
+  "fps_bs8": 69.6,
+  "fps_bs16": 88.7,
+  "fps_bs32": 106.2,
+  "fps_best": 106.2,
+  "peak_vram_mb": 2222,
+  "determinism_max_abs_diff": 0.0,
+  "performance_points": 20,
+  "checkpoint": "eva02.pt",
+  "checkpoint_mb": 1219.4
+}

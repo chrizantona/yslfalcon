@@ -1,0 +1,29 @@
+{
+  "exp_id": "EXP-048",
+  "backbone": "convnext_large_d_320",
+  "input_hw": [
+    320,
+    320
+  ],
+  "device": "NVIDIA RTX A5000",
+  "precision": "fp32",
+  "bnneck": true,
+  "flip_tta": false,
+  "weights_storage": "fp32",
+  "latency_bs1_ms": 32.39,
+  "forward_bs1_ms": 14.71,
+  "embedding_dim": 768,
+  "params_m": 199.8,
+  "weights_mb_fp32": 799.1,
+  "load_seconds": 4.24,
+  "fps_bs1": 18.6,
+  "fps_bs8": 47.4,
+  "fps_bs16": 54.1,
+  "fps_bs32": 57.3,
+  "fps_best": 57.3,
+  "peak_vram_mb": 2580,
+  "determinism_max_abs_diff": 0.0,
+  "performance_points": 11.46,
+  "checkpoint": "convnext.pt",
+  "checkpoint_mb": 802.1
+}

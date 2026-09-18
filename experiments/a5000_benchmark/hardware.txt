@@ -1,0 +1,4 @@
+NVIDIA RTX A5000, 580.159.04
+CPU(s):                                  96
+Model name:                              Intel(R) Xeon(R) Gold 6342 CPU @ 2.80GHz
+2.10.0+cu126 12.6 True NVIDIA RTX A5000 3.3.0 1.0.29

@@ -1,0 +1,4 @@
+dataset_dir: /dev/shm/lct2026/dataset
+crop_max_side: 512
+external_weights_dir: /root/ext_data/weights
+checkpoint_dir: /root/speed_ckpt

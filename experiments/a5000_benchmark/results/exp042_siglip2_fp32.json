@@ -1,0 +1,29 @@
+{
+  "exp_id": "EXP-042",
+  "backbone": "ViT-SO400M-14-SigLIP2",
+  "input_hw": [
+    224,
+    224
+  ],
+  "device": "NVIDIA RTX A5000",
+  "precision": "fp32",
+  "bnneck": true,
+  "flip_tta": false,
+  "weights_storage": "fp32",
+  "latency_bs1_ms": 35.17,
+  "forward_bs1_ms": 19.38,
+  "embedding_dim": 1152,
+  "params_m": 427.7,
+  "weights_mb_fp32": 1710.7,
+  "load_seconds": 11.69,
+  "fps_bs1": 17.4,
+  "fps_bs8": 37.5,
+  "fps_bs16": 40.9,
+  "fps_bs32": 45.7,
+  "fps_best": 45.7,
+  "peak_vram_mb": 2195,
+  "determinism_max_abs_diff": 0.0,
+  "performance_points": 10,
+  "checkpoint": "siglip2.pt",
+  "checkpoint_mb": 1715.1
+}

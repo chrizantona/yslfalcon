@@ -1,0 +1,29 @@
+{
+  "exp_id": "EXP-016",
+  "backbone": "ViT-B-16",
+  "input_hw": [
+    224,
+    224
+  ],
+  "device": "NVIDIA RTX A5000",
+  "precision": "fp32",
+  "bnneck": true,
+  "flip_tta": false,
+  "weights_storage": "fp32",
+  "latency_bs1_ms": 20.49,
+  "forward_bs1_ms": 4.81,
+  "embedding_dim": 512,
+  "params_m": 86.2,
+  "weights_mb_fp32": 344.8,
+  "load_seconds": 1.41,
+  "fps_bs1": 24.5,
+  "fps_bs8": 101.9,
+  "fps_bs16": 132.8,
+  "fps_bs32": 156.8,
+  "fps_best": 156.8,
+  "peak_vram_mb": 607,
+  "determinism_max_abs_diff": 0.0,
+  "performance_points": 20,
+  "checkpoint": "vitb.pt",
+  "checkpoint_mb": 346.7
+}
