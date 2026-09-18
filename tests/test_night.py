@@ -1,3 +1,4 @@
+import copy
 import hashlib
 from types import SimpleNamespace
 
@@ -52,3 +53,20 @@ def test_precision_wrapper_preserves_full_encoder_and_rejects_cpu_fp16():
     assert torch.equal(encoder(x), wrapped(x))
     with pytest.raises(ValueError, match="requires CUDA"):
         InferencePrecision(encoder, "fp16", "cpu")
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="fp16 weights and CUDA graphs need a GPU")
+def test_precision_wrapper_speedups_keep_autocast_embeddings_bit_identical():
+    torch.manual_seed(0)
+    encoder = torch.nn.Sequential(
+        torch.nn.Conv2d(3, 16, 4, stride=4), torch.nn.GELU(), torch.nn.Flatten(), torch.nn.LayerNorm(16 * 8 * 8),
+        torch.nn.Linear(16 * 8 * 8, 32), torch.nn.BatchNorm1d(32)).eval().cuda()
+    reference = copy.deepcopy(encoder)
+    wrapped = InferencePrecision(encoder, "fp16", "cuda").eval()
+    assert encoder[0].weight.dtype == torch.float16 and encoder[3].weight.dtype == torch.float32
+    for batch in (1, 5, 1):  # the second batch-1 call replays the captured graph
+        x = torch.randn(batch, 3, 32, 32, device="cuda")
+        with torch.no_grad(), torch.autocast("cuda", dtype=torch.float16):
+            expected = reference(x)
+        assert torch.equal(wrapped(x), expected)
+    assert list(wrapped.graphs) == [((1, 3, 32, 32), torch.float32)]

@@ -1,0 +1,89 @@
+WARNING:root:No pretrained weights loaded for model 'ViT-SO400M-14-SigLIP2'. Model initialized randomly.
+{"threads": {"cv2": 15, "torch": 64}, "A_stage_ms": {"read": 0.194, "decode": 8.218, "crop": 1.977, "to_input": 1.901, "h2d": 0.109, "forward": 13.369, "post": 0.093, "total": 25.64}, "A_crops_downsized_by_max_side": "236/300"}
+autocast_current 1 {'wall_ms': 13.781, 'gpu_ms': 13.762, 'max_abs_diff_vs_current': 0.0}
+fp16_weights 1 {'wall_ms': 11.654, 'gpu_ms': 11.628, 'max_abs_diff_vs_current': 0.0}
+fp16_weights_cudagraph 1 {'wall_ms': 8.944, 'gpu_ms': 8.925, 'max_abs_diff_vs_current': 0.0}
+autocast_current 32 {'wall_ms': 257.964, 'gpu_ms': 257.932, 'max_abs_diff_vs_current': 0.0}
+fp16_weights 32 {'wall_ms': 259.369, 'gpu_ms': 259.343, 'max_abs_diff_vs_current': 0.0}
+fp16_weights_cudagraph 32 {'wall_ms': 263.744, 'gpu_ms': 263.721, 'max_abs_diff_vs_current': 0.0}
+8 False {'fps': 92.9, 'wait_load_ms': 92.404, 'gpu_part_ms': 246.717}
+8 True {'fps': 120.0, 'wait_load_ms': 1.888, 'gpu_part_ms': 262.191}
+16 False {'fps': 103.9, 'wait_load_ms': 55.12, 'gpu_part_ms': 245.773}
+16 True {'fps': 119.9, 'wait_load_ms': 2.052, 'gpu_part_ms': 260.039}
+{
+ "threads": {
+  "cv2": 15,
+  "torch": 64
+ },
+ "A_stage_ms": {
+  "read": 0.194,
+  "decode": 8.218,
+  "crop": 1.977,
+  "to_input": 1.901,
+  "h2d": 0.109,
+  "forward": 13.369,
+  "post": 0.093,
+  "total": 25.64
+ },
+ "A_crops_downsized_by_max_side": "236/300",
+ "B_forward": {
+  "bs1_autocast_current": {
+   "wall_ms": 13.781,
+   "gpu_ms": 13.762,
+   "max_abs_diff_vs_current": 0.0
+  },
+  "bs1_fp16_weights": {
+   "wall_ms": 11.654,
+   "gpu_ms": 11.628,
+   "max_abs_diff_vs_current": 0.0
+  },
+  "bs1_fp16_weights_cudagraph": {
+   "wall_ms": 8.944,
+   "gpu_ms": 8.925,
+   "max_abs_diff_vs_current": 0.0
+  },
+  "bs32_autocast_current": {
+   "wall_ms": 257.964,
+   "gpu_ms": 257.932,
+   "max_abs_diff_vs_current": 0.0
+  },
+  "bs32_fp16_weights": {
+   "wall_ms": 259.369,
+   "gpu_ms": 259.343,
+   "max_abs_diff_vs_current": 0.0
+  },
+  "bs32_fp16_weights_cudagraph": {
+   "wall_ms": 263.744,
+   "gpu_ms": 263.721,
+   "max_abs_diff_vs_current": 0.0
+  }
+ },
+ "C_throughput_bs32": {
+  "threads8_prefetch0": {
+   "fps": 92.9,
+   "wait_load_ms": 92.404,
+   "gpu_part_ms": 246.717
+  },
+  "threads8_prefetch1": {
+   "fps": 120.0,
+   "wait_load_ms": 1.888,
+   "gpu_part_ms": 262.191
+  },
+  "threads16_prefetch0": {
+   "fps": 103.9,
+   "wait_load_ms": 55.12,
+   "gpu_part_ms": 245.773
+  },
+  "threads16_prefetch1": {
+   "fps": 119.9,
+   "wait_load_ms": 2.052,
+   "gpu_part_ms": 260.039
+  }
+ },
+ "D_decode_ms": {
+  "cv2_full": 6.809,
+  "cv2_reduced2": 5.456,
+  "cv2_reduced4": 4.908,
+  "nvjpeg_gpu": 5.862
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "rows": 1110,
+ "old_submit_path_img_per_s": 86.5,
+ "new_submit_path_img_per_s": 88.2,
+ "new_again_submit_path_img_per_s": 87.7,
+ "max_abs_diff_submit_path": 0.0,
+ "max_abs_diff_submit_path_rerun": 0.0,
+ "max_abs_diff_batch1": 0.0,
+ "graphs": [
+  [
+   1,
+   3,
+   224,
+   224
+  ]
+ ]
+}

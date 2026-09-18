@@ -1,0 +1,4 @@
+WARNING:root:No pretrained weights loaded for model 'ViT-SO400M-14-SigLIP2'. Model initialized randomly.
+{'max_abs_diff_optimised_vs_current_bs32': 0.0, 'max_abs_diff_optimised_bs1_vs_current_bs32': 0.0012297332286834717}
+current_prefetch {'latency_bs1_ms': 26.59, 'forward_bs1_ms': 13.46, 'fps_bs1': 25.7, 'fps_bs8': 111.8, 'fps_bs16': 121.2, 'fps_bs32': 116.1, 'fps_best': 121.2, 'performance_points': 20, 'peak_vram_mb': 3474}
+optimised {'latency_bs1_ms': 19.31, 'forward_bs1_ms': 6.78, 'fps_bs1': 23.9, 'fps_bs8': 116.4, 'fps_bs16': 121.5, 'fps_bs32': 124.1, 'fps_best': 124.1, 'performance_points': 20, 'peak_vram_mb': 3474}
