@@ -4,12 +4,7 @@
   "completed": [
     "EXP-067"
   ],
-  "planned_waiting_checkpoint": [
-    "EXP-065",
-    "EXP-066",
-    "EXP-068",
-    "EXP-069"
-  ],
+  "planned_waiting_checkpoint": [],
   "required_checkpoint": {
     "name": "95aa27ed552c43a1ad9c3d853390fa18.pt",
     "sha256": "9be056d0c85cd8a69019d25f29abdf45f93528043ec35963f063b510c85c1f12"
@@ -296,5 +291,225 @@
     "preserved_queue_master": "/workspace/yslfalcon_runs/queue_afem",
     "reason": "verified local archive and 11 SHA256-matching private Release assets; remaining four EXPs await original EXP-054 checkpoint"
   },
-  "owned_training_processes_after_completion": []
+  "owned_training_processes_after_completion": [],
+  "running_queue": [
+    "EXP-065",
+    "EXP-066",
+    "EXP-068",
+    "EXP-069"
+  ],
+  "source_baseline_verified": {
+    "exp_id": "EXP-054",
+    "checkpoint": "/workspace/checkpoints/95aa27ed552c43a1ad9c3d853390fa18.pt",
+    "sha256": "9be056d0c85cd8a69019d25f29abdf45f93528043ec35963f063b510c85c1f12",
+    "bytes": 1715118617,
+    "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573190938",
+    "method": "file-scoped GitHub signed CDN URL passed only over SSH stdin; personal GitHub credential never leaves local API request"
+  },
+  "semantic_launch": {
+    "experiments": [
+      "EXP-065",
+      "EXP-066",
+      "EXP-068",
+      "EXP-069"
+    ],
+    "source_commit": "1db18aa9eea6b01c1341ea064531904345db651e",
+    "experiment_tag_commits": {
+      "exp-065": "d88e4dabb9ed0a4b50b769073c95e3e82f82233e",
+      "exp-066": "d88e4dabb9ed0a4b50b769073c95e3e82f82233e",
+      "exp-068": "d88e4dabb9ed0a4b50b769073c95e3e82f82233e",
+      "exp-069": "d88e4dabb9ed0a4b50b769073c95e3e82f82233e"
+    },
+    "source_archive_sha256": "1f5a6900c2382a0adbb94cce0f161bb261ba4e4c3bc726f0a233547e0a20b0ef",
+    "baseline": {
+      "exp_id": "EXP-054",
+      "checkpoint": "/workspace/checkpoints/95aa27ed552c43a1ad9c3d853390fa18.pt",
+      "sha256": "9be056d0c85cd8a69019d25f29abdf45f93528043ec35963f063b510c85c1f12",
+      "bytes": 1715118617,
+      "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573190938",
+      "method": "file-scoped GitHub signed CDN URL passed only over SSH stdin; personal GitHub credential never leaves local API request"
+    },
+    "seed_gpus": [
+      3,
+      2,
+      3
+    ],
+    "benchmark_gpu": 3,
+    "max_measured_train_reserved_bytes": 51757711360,
+    "gpu_snapshot": {
+      "0": {
+        "uuid": "GPU-0843bce8-1937-7b6b-4daa-2a1b08dd56e8",
+        "free_mib": 93700,
+        "utilization_percent": 0
+      },
+      "1": {
+        "uuid": "GPU-28048445-7cea-d8cf-455c-67ead6c8c65d",
+        "free_mib": 42696,
+        "utilization_percent": 0
+      },
+      "2": {
+        "uuid": "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a",
+        "free_mib": 125559,
+        "utilization_percent": 0
+      },
+      "3": {
+        "uuid": "GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c",
+        "free_mib": 135229,
+        "utilization_percent": 0
+      }
+    },
+    "memory_guard": "sum of measured peaks per GPU plus 8 GiB",
+    "started_utc": "2026-09-18T21:12:20.124106+00:00",
+    "runtime": "/tmp/EXP-065/.venv",
+    "preflights": {
+      "EXP-065": {
+        "exp_id": "EXP-065",
+        "config": "configs/exp065_siglip_projection.yaml",
+        "scientific_initialisation_verified": true,
+        "batch": 128,
+        "train_losses": [
+          21.9017333984375,
+          15.940445899963379,
+          10.416936874389648
+        ],
+        "all_trainable_gradients_finite": true,
+        "train_peak_reserved_bytes": 43098570752,
+        "infer_peak_reserved_bytes": 4966055936,
+        "full_state_bytes": 1714984712,
+        "embedding_dim": 512,
+        "source_dim": 1152,
+        "mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "fp16_query_batch_rounding_max_abs": 0.0003004297614097595,
+        "fp16_repeated_query_bit_identical": true,
+        "fp16_batch256_finite": true,
+        "torch": "2.10.0+cu130",
+        "gpu": "NVIDIA H200"
+      },
+      "EXP-066": {
+        "exp_id": "EXP-066",
+        "config": "configs/exp066_siglip_afem.yaml",
+        "scientific_initialisation_verified": true,
+        "batch": 128,
+        "train_losses": [
+          21.541217803955078,
+          15.577281951904297,
+          10.028413772583008
+        ],
+        "all_trainable_gradients_finite": true,
+        "train_peak_reserved_bytes": 44033900544,
+        "infer_peak_reserved_bytes": 5064622080,
+        "full_state_bytes": 1790678924,
+        "embedding_dim": 512,
+        "source_dim": 1152,
+        "mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "fp16_query_batch_rounding_max_abs": 0.00022533908486366272,
+        "fp16_repeated_query_bit_identical": true,
+        "fp16_batch256_finite": true,
+        "torch": "2.10.0+cu130",
+        "gpu": "NVIDIA H200"
+      },
+      "EXP-068": {
+        "exp_id": "EXP-068",
+        "config": "configs/exp068_siglip_osnet.yaml",
+        "scientific_initialisation_verified": true,
+        "batch": 128,
+        "train_losses": [
+          46.99250030517578,
+          41.83740234375,
+          37.14140319824219
+        ],
+        "all_trainable_gradients_finite": true,
+        "train_peak_reserved_bytes": 51489275904,
+        "infer_peak_reserved_bytes": 4903141376,
+        "full_state_bytes": 1727536628,
+        "embedding_dim": 1024,
+        "source_dim": 1152,
+        "mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "fp16_query_batch_rounding_max_abs": 0.0002047307789325714,
+        "fp16_repeated_query_bit_identical": true,
+        "fp16_batch256_finite": true,
+        "torch": "2.10.0+cu130",
+        "gpu": "NVIDIA H200"
+      },
+      "EXP-069": {
+        "exp_id": "EXP-069",
+        "config": "configs/exp069_siglip_afem_osnet.yaml",
+        "scientific_initialisation_verified": true,
+        "batch": 128,
+        "train_losses": [
+          47.086639404296875,
+          41.97486114501953,
+          37.33429718017578
+        ],
+        "all_trainable_gradients_finite": true,
+        "train_peak_reserved_bytes": 51757711360,
+        "infer_peak_reserved_bytes": 5001707520,
+        "full_state_bytes": 1803230840,
+        "embedding_dim": 1024,
+        "source_dim": 1152,
+        "mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "fp16_query_batch_rounding_max_abs": 0.00012588314712047577,
+        "fp16_repeated_query_bit_identical": true,
+        "fp16_batch256_finite": true,
+        "torch": "2.10.0+cu130",
+        "gpu": "NVIDIA H200"
+      }
+    }
+  },
+  "comparison_osnet067_vs_baseline054": {
+    "base": "EXP-054",
+    "new": "EXP-067",
+    "protocol": "val_v2",
+    "fold": 0,
+    "metric": "mAP@10",
+    "base_mean": 0.893896974308144,
+    "new_mean": 0.10086229929934122,
+    "gain": -0.7930346750088028,
+    "ci95": [
+      -0.820067640894262,
+      -0.766689672538152
+    ],
+    "seed_noise": 0.06492909755103529,
+    "decision": "rejected",
+    "decision_scope": "quality vs parent; H200 does not establish A5000 performance",
+    "bootstrap_unit": "vehicle_id",
+    "n_boot": 2000,
+    "bootstrap_seed": 0
+  }
 }
