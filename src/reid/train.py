@@ -34,7 +34,9 @@ from reid.optim import optimizer_groups
 
 
 class CropDataset(Dataset):
-    """Training crops with flip, pad-and-crop and random erasing; returns (image, class index)."""
+    """Training crops with flip, pad-and-crop, random erasing and optional colour jitter; returns (image, class index).
+
+    cfg.color_jitter: {p, brightness, contrast, saturation, hue} - torchvision ColorJitter with probability p."""
 
     def __init__(self, df, crops_dir, input_hw, mean, std, cfg):
         dirs = df.crops_dir if "crops_dir" in df else [crops_dir] * len(df)  # external sets carry a dir per row
@@ -44,12 +46,19 @@ class CropDataset(Dataset):
         self.mean, self.std = np.asarray(mean, np.float32), np.asarray(std, np.float32)
         self.flip_p, self.pad = cfg["flip_p"], cfg["pad"]
         self.erase = v2.RandomErasing(p=cfg["erasing_p"], value=0)  # 0 = mean colour after normalisation
+        jitter = dict(cfg.get("color_jitter") or {})
+        p = jitter.pop("p", 0.0)
+        self.jitter = v2.RandomApply([v2.ColorJitter(**jitter)], p=p) if jitter else None
 
     def __len__(self):
         return len(self.paths)
 
     def __getitem__(self, i):
-        x = to_model_input(cv2.imread(self.paths[i]), self.input_hw, self.mean, self.std)
+        image = cv2.imread(self.paths[i])
+        if self.jitter is not None:  # on the RGB uint8 image, before normalisation
+            rgb = torch.from_numpy(np.ascontiguousarray(image[:, :, ::-1])).permute(2, 0, 1)
+            image = np.ascontiguousarray(self.jitter(rgb).permute(1, 2, 0).numpy()[:, :, ::-1])
+        x = to_model_input(image, self.input_hw, self.mean, self.std)
         if random.random() < self.flip_p:
             x = x.flip(-1)
         if self.pad:
@@ -132,6 +141,23 @@ def _worker_init(_):
     cv2.setNumThreads(1)
 
 
+def training_table(cfg, data_cfg, val_cfg):
+    """(training rows with class labels and a 0..n-1 index, crops dir or None when rows carry their own, classes)."""
+    tcfg = cfg["train"]
+    if tcfg.get("source"):  # pretraining on external sets prepared by reid.external; our folds are not used
+        tables = [load_table(data_cfg["external"][name]["dir"])
+                  .assign(crops_dir=str(Path(data_cfg["external"][name]["dir"]) / "images"))
+                  for name in source_names(tcfg)]
+        train_df, crops_dir = pd.concat(tables, ignore_index=True), None
+    else:
+        assert cfg["eval_fold"] not in tcfg["folds"] and val_cfg["holdout_fold"] not in tcfg["folds"]
+        folds = pd.read_csv(Path(val_cfg["out_dir"]) / "folds.csv")
+        train_df, crops_dir = folds[folds.fold.isin(tcfg["folds"])].reset_index(drop=True), data_cfg["crops_dir"]
+    classes = {vehicle: k for k, vehicle in enumerate(sorted(train_df.vehicle_id.unique()))}
+    train_df["label"] = train_df.vehicle_id.map(classes)
+    return train_df, crops_dir, classes
+
+
 @torch.no_grad()
 def imprint_classifier(model, loader, device):
     """Initialise ArcFace directions from train-only mean normalised embeddings; leave BN buffers unchanged."""
@@ -170,17 +196,7 @@ def main():
     torch.manual_seed(seed)
 
     protocol_dir = Path(val_cfg["out_dir"])
-    if tcfg.get("source"):  # pretraining on external sets prepared by reid.external; our folds are not used
-        tables = [load_table(data_cfg["external"][name]["dir"])
-                  .assign(crops_dir=str(Path(data_cfg["external"][name]["dir"]) / "images"))
-                  for name in source_names(tcfg)]
-        train_df, crops_dir = pd.concat(tables, ignore_index=True), None
-    else:
-        assert cfg["eval_fold"] not in tcfg["folds"] and val_cfg["holdout_fold"] not in tcfg["folds"]
-        folds = pd.read_csv(protocol_dir / "folds.csv")
-        train_df, crops_dir = folds[folds.fold.isin(tcfg["folds"])].reset_index(drop=True), data_cfg["crops_dir"]
-    classes = {vehicle: k for k, vehicle in enumerate(sorted(train_df.vehicle_id.unique()))}
-    train_df["label"] = train_df.vehicle_id.map(classes)
+    train_df, crops_dir, classes = training_table(cfg, data_cfg, val_cfg)
     query, gallery, no_match = load_fold(protocol_dir, cfg["eval_fold"])
 
     backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"),

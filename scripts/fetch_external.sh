@@ -4,8 +4,8 @@
 # Files that already exist with the right checksum are skipped. The competition dataset is not public: see DATA.md.
 set -Eeuo pipefail
 EXT_DIR=${EXT_DIR:-/workspace/ext_data}
-TARGET=${1:-all}  # all | clip_l | backbones | veriwild
-case "$TARGET" in all|clip_l|backbones|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
+TARGET=${1:-all}  # all | clip_l | backbones | paper | veriwild
+case "$TARGET" in all|clip_l|backbones|paper|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
 GDRIVE="https://drive.usercontent.google.com/download?export=download&confirm=t&id="
 FASTREID="https://github.com/JDAI-CV/fast-reid/releases/download/v0.1.1"
 KAGGLE="https://www.kaggle.com/api/v1/datasets/download"
@@ -45,6 +45,22 @@ if [ "$TARGET" = all ] || [ "$TARGET" = backbones ]; then  # backbone screens EX
     1a8e47bdefd6d36202ec66a8975edda9e3c89560bcd1ecefe6f676311637a671
 fi
 [ "$TARGET" != backbones ] || exit 0
+
+if [ "$TARGET" = all ] || [ "$TARGET" = paper ]; then  # reproduced architectures EXP-055…058 (reid.paper_models)
+  fetch weights/paper/resnext101_ibn_a-6ace051d.pth \
+    https://github.com/XingangPan/IBN-Net/releases/download/v1.0/resnext101_ibn_a-6ace051d.pth \
+    6ace051dc2d2de2aace20cc327d9f2f64892696eaf13d8b1bbf0accf45684ac8
+  fetch weights/paper/tinyclip_vit61m_32_laion400m.safetensors \
+    https://huggingface.co/wkcn/TinyCLIP-ViT-61M-32-Text-29M-LAION400M/resolve/94cbbea5c7949cfe7bdafde64bcea5e403f59852/model.safetensors \
+    0c0670dfa6fbf32c3158ef57b10772d5c9668093bda676d78e1452268585d230
+  fetch weights/paper/tinyclip_vit61m_32_laion400m_config.json \
+    https://huggingface.co/wkcn/TinyCLIP-ViT-61M-32-Text-29M-LAION400M/resolve/94cbbea5c7949cfe7bdafde64bcea5e403f59852/config.json \
+    40a59f3db33a1df844687e94f25b186bf187bec1d8d1389f0f88b1ab013e233b
+  fetch weights/paper/convnext_large_fb_in22k.safetensors \
+    https://huggingface.co/timm/convnext_large.fb_in22k/resolve/be6de86d9928c6cc2a8986963243142f403f382d/model.safetensors \
+    7e02ea57d6024d94f5523e9b58cdddd81a1fb4f2e5128b4a879b76f9847058bf
+fi
+[ "$TARGET" != paper ] || exit 0
 
 # VERI-Wild large test split (10,000 vehicles), used for the EXP-009 pretraining
 fetch kaggle/veriwild_test.zip "$KAGGLE/mrkdagods/veriwild-test?datasetVersionNumber=1" \

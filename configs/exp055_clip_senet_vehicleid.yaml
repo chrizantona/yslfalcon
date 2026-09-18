@@ -1,0 +1,42 @@
+exp_id: EXP-055
+parent: null
+description: reference pretraining - CLIP-SENet (ResNeXt101-IBN-a + TinyCLIP ViT-B/32, AFEM) on all of VehicleID with the paper's recipe; none of our images are used
+seeds: [0]
+checkpoint_name: 136a8ea131cb4019a68605cbae11ae5f.pt  # random name fixed in advance: EXP-056 starts from it
+model:
+  arch: clip_senet          # reid.paper_models, trained by reid.train_paper
+  backbone: paper
+  name: clip_senet
+  input_hw: [320, 320]
+  embedding_dim: 2048       # T = T^u + T^s'
+  afem_groups: 32
+  appearance: {file: paper/resnext101_ibn_a-6ace051d.pth, sha256: 6ace051dc2d2de2aace20cc327d9f2f64892696eaf13d8b1bbf0accf45684ac8}
+  semantic: {file: paper/tinyclip_vit61m_32_laion400m.safetensors, sha256: 0c0670dfa6fbf32c3158ef57b10772d5c9668093bda676d78e1452268585d230,
+             patch: 32, width: 640, depth: 12, heads: 10, mlp: 2560, dim: 512}
+train:
+  source: vehicleid         # 221,567 images of 26,267 vehicles; the official split lists are not unpacked
+  vehicles_per_batch: 16    # P
+  images_per_vehicle: 8     # K: batch 128 as in the paper
+  epochs: 60                # one epoch = every vehicle once = 210k images; 60 epochs ~ 120 epochs of the 110k-image train split
+  warmup_epochs: 5
+  milestones: [20, 35]      # x0.1; the paper's 40/70 of 120 scaled to 60
+  lr: 3.5e-4
+  weight_decay: 5.0e-4
+  label_smoothing: 0.1
+  loss: {ce: 1.0, supcon: 1.0, temperature: 0.07}
+  flip_p: 0.5
+  pad: 10                   # random crop
+  erasing_p: 0.5
+  color_jitter: {p: 0.5, brightness: 0.2, contrast: 0.2, saturation: 0.2, hue: 0.05}
+  num_workers: 12
+  eval_every: 20
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
+benchmark:
+  precision: fp32

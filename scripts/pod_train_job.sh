@@ -24,6 +24,8 @@ fi
 
 stage train
 SEEDS=$(sed -n 's/^seeds: *\[\(.*\)\].*/\1/p' "$CONFIG" | tr ',' ' ')
+TRAIN_MODULE=reid.train
+if grep -q '^  arch:' "$CONFIG"; then TRAIN_MODULE=reid.train_paper; fi  # reproduced architectures, reid.paper_models
 PIDS=()
 cleanup_seeds() {
   local rc=$?
@@ -46,7 +48,7 @@ for seed in $SEEDS; do
     stage train
   fi
   seed_uuid=$(nvidia-smi -i "$seed_gpu" --query-gpu=uuid --format=csv,noheader)
-  CUDA_VISIBLE_DEVICES=$seed_uuid $PY -m reid.train --data-config "$DATA_CFG" --val-config "$VAL_CFG" --config "$CONFIG" --seed "$seed" \
+  CUDA_VISIBLE_DEVICES=$seed_uuid $PY -m "$TRAIN_MODULE" --data-config "$DATA_CFG" --val-config "$VAL_CFG" --config "$CONFIG" --seed "$seed" \
     > "logs/train_seed$seed.log" 2>&1 &
   PIDS+=($!)
   if [ "$PARALLEL_SEEDS" = 0 ]; then wait "$!"; fi
