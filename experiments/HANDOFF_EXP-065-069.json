@@ -281,5 +281,20 @@
     "fp16_batch256_finite": true,
     "torch": "2.10.0+cu130",
     "gpu": "NVIDIA H200"
-  }
+  },
+  "cleanup": {
+    "cleaned_utc": "2026-09-18T17:16:39.958325+00:00",
+    "removed_paths": [
+      "/workspace/yslfalcon_runs/EXP-067"
+    ],
+    "preserved_checkpoints": {
+      "/workspace/checkpoints/2cf02a90afdd45baaa3b13a6ef1a2703.pt": 10885101,
+      "/workspace/checkpoints/963ea084e0d3404a81db7bd9f71708da.pt": 10885101,
+      "/workspace/checkpoints/50e442721c57475bb26cf19619dc54f6.pt": 10885101
+    },
+    "preserved_runtime": "/tmp/EXP-065/.venv",
+    "preserved_queue_master": "/workspace/yslfalcon_runs/queue_afem",
+    "reason": "verified local archive and 11 SHA256-matching private Release assets; remaining four EXPs await original EXP-054 checkpoint"
+  },
+  "owned_training_processes_after_completion": []
 }
