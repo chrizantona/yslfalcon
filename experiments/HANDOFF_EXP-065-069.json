@@ -293,15 +293,12 @@
     },
     "preserved_runtime": "/tmp/EXP-065/.venv",
     "preserved_queue_master": "/workspace/yslfalcon_runs/queue_afem",
-    "reason": "verified local archive and 11 SHA256-matching private Release assets; remaining four EXPs await original EXP-054 checkpoint"
+    "reason": "verified local archive and 11 SHA256-matching private Release assets; remaining four EXPs await original EXP-054 checkpoint",
+    "historical_receipt": true,
+    "current_shared_runtime_state": "removed after final semantic results were published; see semantic_cleanup"
   },
   "owned_training_processes_after_completion": [],
-  "running_queue": [
-    "EXP-065",
-    "EXP-066",
-    "EXP-068",
-    "EXP-069"
-  ],
+  "running_queue": [],
   "source_baseline_verified": {
     "exp_id": "EXP-054",
     "checkpoint": "/workspace/checkpoints/95aa27ed552c43a1ad9c3d853390fa18.pt",
@@ -2250,7 +2247,7 @@
   "night_diagnostic": {
     "protocol": "val_v2",
     "fold": 0,
-    "criterion": "Same fixed EDA definition: resize complete original BGR frame to 480x270 with INTER_AREA, convert to HSV, mean V < 60/255",
+    "criterion": "Complete frame resized to 480x270 with INTER_AREA; mean HSV V < 60/255",
     "source": "eda/extract_features.py:80-88 and eda/KEY_FINDINGS.md",
     "posthoc_diagnostic_only": true,
     "used_for_model_or_threshold_selection": false,
@@ -2307,11 +2304,393 @@
     "reproduction_script_sha256": "bf1fb974795104e3a318fff683fddc10b08fceaec7d509e6bce8eae8bca1b7f0"
   },
   "semantic_release_upload": {
-    "state": "uploading 12 original checkpoints; draft until all digests verified",
+    "release_url": "https://github.com/chrizantona/yslfalcon/releases/tag/exp-069",
+    "release_id": 391816370,
     "tag": "exp-069",
+    "assets": [
+      {
+        "name": "CHECKPOINT_SHA256SUMS",
+        "sha256": "c1b604f1932e45be85fed177a319f2f15d3550768014c061191537b6109612a8",
+        "bytes": 1224,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569406",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/CHECKPOINT_SHA256SUMS"
+      },
+      {
+        "name": "EXP-065_archive_receipt.json",
+        "sha256": "80126be8a552088f72a00e9be9c203d807508cf9a7b269d3c4259e018a1cffe7",
+        "bytes": 1207,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569434",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-065_archive_receipt.json"
+      },
+      {
+        "name": "EXP-065_results.tar.gz",
+        "sha256": "86c928e803a2d2c928e9eb0ddbc68b9fd8ae79089f65434a4a2ff79c5831e2f3",
+        "bytes": 13154888,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569459",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-065_results.tar.gz"
+      },
+      {
+        "name": "EXP-066_archive_receipt.json",
+        "sha256": "9870845a6c76d29b0788154a8ec5e6385bba5e7d106dd79dde9d19a1a8839c65",
+        "bytes": 1207,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569565",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-066_archive_receipt.json"
+      },
+      {
+        "name": "EXP-066_results.tar.gz",
+        "sha256": "fb3c165b8860e95634cc71092bd77da77ac4c7bae3af1c50148f20085f30dab0",
+        "bytes": 13211354,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569586",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-066_results.tar.gz"
+      },
+      {
+        "name": "EXP-067_comparison_exp054.json",
+        "sha256": "dacead5a114f70fb94faba3908d378de7e90d8e84337abd8a8d53fd0cd0e5c4a",
+        "bytes": 489,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569648",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-067_comparison_exp054.json"
+      },
+      {
+        "name": "EXP-068_archive_receipt.json",
+        "sha256": "1372446132fc54b36e5d087b37efafd9674d37dec20079af87515a71e0ee7182",
+        "bytes": 1208,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569669",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-068_archive_receipt.json"
+      },
+      {
+        "name": "EXP-068_results.tar.gz",
+        "sha256": "1e12d6b408b2e857e17666b391691082f2767de47a177afdd73f55028a301328",
+        "bytes": 24579536,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569676",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-068_results.tar.gz"
+      },
+      {
+        "name": "EXP-069_archive_receipt.json",
+        "sha256": "77421c0e726d9606d952ae560946c2a4d18c02d173ea86bf404461e9fda9059a",
+        "bytes": 1208,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569930",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-069_archive_receipt.json"
+      },
+      {
+        "name": "EXP-069_results.tar.gz",
+        "sha256": "06ed231f0c6ed904a0619d72f63fa855fcb33d547a8f35b5e453e2250af982ff",
+        "bytes": 24632060,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573569949",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/EXP-069_results.tar.gz"
+      },
+      {
+        "name": "checkpoint_manifest.json",
+        "sha256": "917c29c038f08610596244b98f27e413f298d57126a48cdb307680a340d01903",
+        "bytes": 3362,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573570030",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/checkpoint_manifest.json"
+      },
+      {
+        "name": "embeddings_index.json",
+        "sha256": "0a311090e4f19f7f269b8adafc11957261377be9480c556fa7d49201f9962f6a",
+        "bytes": 14108,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573570074",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/embeddings_index.json"
+      },
+      {
+        "name": "launch_semantic.json",
+        "sha256": "b3c3eb6d98116beeedd966a45544875d594be9d67bf5ae2ae0cdd41aee3a690d",
+        "bytes": 5252,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573570127",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/launch_semantic.json"
+      },
+      {
+        "name": "source_manifest.json",
+        "sha256": "43765bdbbd7c16b8f32eebca1a3a494c58160104b764ed242844ebd363d85f42",
+        "bytes": 39229,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573570172",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/source_manifest.json"
+      },
+      {
+        "name": "SHA256SUMS",
+        "sha256": "1d4566ebc8d01318c1fb740cd71ae184be5c12e7458470a281e8e113792cd51b",
+        "bytes": 1274,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573570192",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/SHA256SUMS"
+      },
+      {
+        "name": "manifest.json",
+        "sha256": "f2208f09ea4f01b38b2476f6ea89e313c4a7836e7c9d3db354b204a4a22c2b3a",
+        "bytes": 1937,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573570213",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/manifest.json"
+      },
+      {
+        "name": "0ef326f4f8b64b41af11c91f2ad84273.pt",
+        "sha256": "68e58f49d04c0b08bbbcd6c5499a2b8f1f7128acd5e7ee0970f57732a4536e38",
+        "bytes": 1715153159,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573576206",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/0ef326f4f8b64b41af11c91f2ad84273.pt"
+      },
+      {
+        "name": "262bf9d0f9bb4b77a2239fcd50a13082.pt",
+        "sha256": "9488a080ac2e627434c54f0046fac1bc1660e50086b3b443beb1ec1674341dce",
+        "bytes": 1715153159,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573576205",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/262bf9d0f9bb4b77a2239fcd50a13082.pt"
+      },
+      {
+        "name": "f8292201f4ac428784a8d9cea486dd94.pt",
+        "sha256": "798f0ef849a83a03c9f80e8042b0b2dcfcb51b28d014629da4c6d28edaf7348f",
+        "bytes": 1715153159,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573576204",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/f8292201f4ac428784a8d9cea486dd94.pt"
+      },
+      {
+        "name": "30ea8caa7fbd4ee28e03ca4216ad4080.pt",
+        "sha256": "b08233c3d629dd45d0aeb1ca29c7c37ed76849552abbb3b03adc6fb78f5db7cb",
+        "bytes": 1790900661,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573591697",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/30ea8caa7fbd4ee28e03ca4216ad4080.pt"
+      },
+      {
+        "name": "e428a83cfcd0468fb5bd748a992ba30a.pt",
+        "sha256": "aa963d16a33c6fab28e28cb0e1c20963d54875767b613c43d8b9138f751ff171",
+        "bytes": 1790900661,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573593124",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/e428a83cfcd0468fb5bd748a992ba30a.pt"
+      },
+      {
+        "name": "6d94854d7de74ed1af5862ab94d3b61d.pt",
+        "sha256": "1878e6bda7841cb8d0c150dae0b63a1abd9368992df339d819738c67f6dcba7e",
+        "bytes": 1790900661,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573592209",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/6d94854d7de74ed1af5862ab94d3b61d.pt"
+      },
+      {
+        "name": "7fb35e6c70864f94b35bf8a2a47987a6.pt",
+        "sha256": "b56f895d34b2e7dd60e6fb8d4fb87b76bdef4b794677bd9be5c009dd592b3bba",
+        "bytes": 1727948447,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573606569",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/7fb35e6c70864f94b35bf8a2a47987a6.pt"
+      },
+      {
+        "name": "d0b709f57698408f855bfa7114a783f3.pt",
+        "sha256": "6495561ca0163bf5fe4829f7a6abab74252860423cce96add3a43c047db5ee8c",
+        "bytes": 1727948447,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573607157",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/d0b709f57698408f855bfa7114a783f3.pt"
+      },
+      {
+        "name": "766c5452ee2943c49bcb4e57703342ad.pt",
+        "sha256": "7717541ae75c8191ae515e877ff511a622bde1c9b573a1fee2b99b79a8ffc454",
+        "bytes": 1727948447,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573606448",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/766c5452ee2943c49bcb4e57703342ad.pt"
+      },
+      {
+        "name": "7ce63bdeeb464293b296e35ff9eefb13.pt",
+        "sha256": "f3cb4aceac77a7d08f97ce714cd97933ece03ef8b5efcda89c06cf6a2a05e70f",
+        "bytes": 1803695981,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573618210",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/7ce63bdeeb464293b296e35ff9eefb13.pt"
+      },
+      {
+        "name": "39a2ddf6f3a5486494794ab1b9e5a903.pt",
+        "sha256": "da260b84e3178e5a258556fa104c3d10c5bbdd8f906e2e72dd8f7df8d7b6fdbf",
+        "bytes": 1803695981,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573620168",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/39a2ddf6f3a5486494794ab1b9e5a903.pt"
+      },
+      {
+        "name": "3f6a89681a994da39d6aecfa1a619122.pt",
+        "sha256": "e7f42c8d94a4e2b5e0a69e8723d7676076496ee80c55b5289c11fc1942cb24b7",
+        "bytes": 1803695981,
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573619479",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/3f6a89681a994da39d6aecfa1a619122.pt"
+      }
+    ],
+    "checkpoint_transport": "native buffered 8 MiB reads over SSH into local HTTPS upload; GitHub credential remains local",
+    "all_github_digests_and_sizes_verified": true,
+    "support_assets": [
+      {
+        "name": "analyze_night.py",
+        "sha256": "bf1fb974795104e3a318fff683fddc10b08fceaec7d509e6bce8eae8bca1b7f0",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573596320",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/analyze_night.py",
+        "bytes": 3815
+      },
+      {
+        "name": "night_fold0.csv",
+        "sha256": "c3c646c4c7f337facf3dd6d655858755d5a1c86f4b6ab45ab6beb45e9e9e0c52",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573596370",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/night_fold0.csv",
+        "bytes": 65318
+      },
+      {
+        "name": "night_slices.json",
+        "sha256": "7e69d4518812f67462b519318de8b1f976985c74b0e63dc0a57350298ca3d58e",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573596400",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/night_slices.json",
+        "bytes": 1677
+      },
+      {
+        "name": "queue_afem_support.tar.gz",
+        "sha256": "8c80a931b4a2168494472aa2b2ae7a52f7ecdba2159ce8c7b4e870ac440ab1b1",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573596447",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/queue_afem_support.tar.gz",
+        "bytes": 1885217
+      },
+      {
+        "name": "queue_afem_support_receipt.json",
+        "sha256": "689f1b2b714c439b3e50278f2c8a0ab33d9cfe2491699bd4e57009ac5c4ee6d5",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573596502",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/queue_afem_support_receipt.json",
+        "bytes": 44361
+      },
+      {
+        "name": "SUPPORT_SHA256SUMS",
+        "sha256": "b697762818e2bf9e49c7b9a4776410be9645ac3ca8f98f5a9a0a0b589bc7a283",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573596522",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/SUPPORT_SHA256SUMS",
+        "bytes": 439
+      },
+      {
+        "name": "SUPPORT_manifest.json",
+        "sha256": "2728ebfe90823c67f642c419eafb6cd028080dd414f6e143ff731bd88ee576e6",
+        "asset_api_url": "https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/573596546",
+        "download_url": "https://github.com/chrizantona/yslfalcon/releases/download/exp-069/SUPPORT_manifest.json",
+        "bytes": 676
+      }
+    ],
+    "all_published_asset_count": 35,
+    "state": "published_verified",
     "expected_checkpoint_count": 12,
     "expected_checkpoint_bytes": 21113094744,
-    "local_evidence_assets_uploaded": 16
+    "checkpoint_state": "original FP32 bytes, no conversion"
   },
-  "semantic_metrics_recorded_utc": "2026-09-18T22:27:36.059710+00:00"
+  "semantic_metrics_recorded_utc": "2026-09-18T22:27:36.059710+00:00",
+  "semantic_cleanup": {
+    "cleaned_utc": "2026-09-18T23:08:53.224453+00:00",
+    "removed_paths": [
+      "/workspace/yslfalcon_runs/EXP-065",
+      "/workspace/yslfalcon_runs/EXP-066",
+      "/workspace/yslfalcon_runs/EXP-068",
+      "/workspace/yslfalcon_runs/EXP-069",
+      "/workspace/yslfalcon_runs/queue_afem",
+      "/tmp/EXP-065",
+      "/dev/shm/EXP-065"
+    ],
+    "preserved_checkpoints": [
+      {
+        "seed": 0,
+        "name": "262bf9d0f9bb4b77a2239fcd50a13082.pt",
+        "path": "/workspace/checkpoints/262bf9d0f9bb4b77a2239fcd50a13082.pt",
+        "bytes": 1715153159,
+        "sha256": "9488a080ac2e627434c54f0046fac1bc1660e50086b3b443beb1ec1674341dce"
+      },
+      {
+        "seed": 1,
+        "name": "0ef326f4f8b64b41af11c91f2ad84273.pt",
+        "path": "/workspace/checkpoints/0ef326f4f8b64b41af11c91f2ad84273.pt",
+        "bytes": 1715153159,
+        "sha256": "68e58f49d04c0b08bbbcd6c5499a2b8f1f7128acd5e7ee0970f57732a4536e38"
+      },
+      {
+        "seed": 2,
+        "name": "f8292201f4ac428784a8d9cea486dd94.pt",
+        "path": "/workspace/checkpoints/f8292201f4ac428784a8d9cea486dd94.pt",
+        "bytes": 1715153159,
+        "sha256": "798f0ef849a83a03c9f80e8042b0b2dcfcb51b28d014629da4c6d28edaf7348f"
+      },
+      {
+        "seed": 0,
+        "name": "30ea8caa7fbd4ee28e03ca4216ad4080.pt",
+        "path": "/workspace/checkpoints/30ea8caa7fbd4ee28e03ca4216ad4080.pt",
+        "bytes": 1790900661,
+        "sha256": "b08233c3d629dd45d0aeb1ca29c7c37ed76849552abbb3b03adc6fb78f5db7cb"
+      },
+      {
+        "seed": 1,
+        "name": "6d94854d7de74ed1af5862ab94d3b61d.pt",
+        "path": "/workspace/checkpoints/6d94854d7de74ed1af5862ab94d3b61d.pt",
+        "bytes": 1790900661,
+        "sha256": "1878e6bda7841cb8d0c150dae0b63a1abd9368992df339d819738c67f6dcba7e"
+      },
+      {
+        "seed": 2,
+        "name": "e428a83cfcd0468fb5bd748a992ba30a.pt",
+        "path": "/workspace/checkpoints/e428a83cfcd0468fb5bd748a992ba30a.pt",
+        "bytes": 1790900661,
+        "sha256": "aa963d16a33c6fab28e28cb0e1c20963d54875767b613c43d8b9138f751ff171"
+      },
+      {
+        "seed": 0,
+        "name": "766c5452ee2943c49bcb4e57703342ad.pt",
+        "path": "/workspace/checkpoints/766c5452ee2943c49bcb4e57703342ad.pt",
+        "bytes": 1727948447,
+        "sha256": "7717541ae75c8191ae515e877ff511a622bde1c9b573a1fee2b99b79a8ffc454"
+      },
+      {
+        "seed": 1,
+        "name": "7fb35e6c70864f94b35bf8a2a47987a6.pt",
+        "path": "/workspace/checkpoints/7fb35e6c70864f94b35bf8a2a47987a6.pt",
+        "bytes": 1727948447,
+        "sha256": "b56f895d34b2e7dd60e6fb8d4fb87b76bdef4b794677bd9be5c009dd592b3bba"
+      },
+      {
+        "seed": 2,
+        "name": "d0b709f57698408f855bfa7114a783f3.pt",
+        "path": "/workspace/checkpoints/d0b709f57698408f855bfa7114a783f3.pt",
+        "bytes": 1727948447,
+        "sha256": "6495561ca0163bf5fe4829f7a6abab74252860423cce96add3a43c047db5ee8c"
+      },
+      {
+        "seed": 0,
+        "name": "7ce63bdeeb464293b296e35ff9eefb13.pt",
+        "path": "/workspace/checkpoints/7ce63bdeeb464293b296e35ff9eefb13.pt",
+        "bytes": 1803695981,
+        "sha256": "f3cb4aceac77a7d08f97ce714cd97933ece03ef8b5efcda89c06cf6a2a05e70f"
+      },
+      {
+        "seed": 1,
+        "name": "3f6a89681a994da39d6aecfa1a619122.pt",
+        "path": "/workspace/checkpoints/3f6a89681a994da39d6aecfa1a619122.pt",
+        "bytes": 1803695981,
+        "sha256": "e7f42c8d94a4e2b5e0a69e8723d7676076496ee80c55b5289c11fc1942cb24b7"
+      },
+      {
+        "seed": 2,
+        "name": "39a2ddf6f3a5486494794ab1b9e5a903.pt",
+        "path": "/workspace/checkpoints/39a2ddf6f3a5486494794ab1b9e5a903.pt",
+        "bytes": 1803695981,
+        "sha256": "da260b84e3178e5a258556fa104c3d10c5bbdd8f906e2e72dd8f7df8d7b6fdbf"
+      }
+    ],
+    "preserved_source_baseline": "/workspace/checkpoints/95aa27ed552c43a1ad9c3d853390fa18.pt",
+    "protected_data_paths": [
+      "/workspace/lct2026_data/dataset.zip",
+      "/dev/shm/lct2026/dataset",
+      "/dev/shm/lct2026/crops512",
+      "/workspace/ext_data"
+    ],
+    "remaining_owned_compute_processes": [],
+    "github_release_url": "https://github.com/chrizantona/yslfalcon/releases/tag/exp-069",
+    "native_result_archives_preserved": true,
+    "master_support_backup": {
+      "path": "/workspace/handoff_afem/queue_afem_support.tar.gz",
+      "sha256": "8c80a931b4a2168494472aa2b2ae7a52f7ecdba2159ce8c7b4e870ac440ab1b1",
+      "bytes": 1885217
+    },
+    "gpu_snapshot_before_cleanup": "0, 49457 MiB, 0 %\n1, 100461 MiB, 0 %\n2, 17598 MiB, 0 %\n3, 7928 MiB, 0 %\n",
+    "gpu_snapshot_after_cleanup": "0, 49457 MiB, 0 %\n1, 100461 MiB, 0 %\n2, 17598 MiB, 0 %\n3, 7928 MiB, 0 %\n"
+  },
+  "semantic_support_backup": {
+    "archive": "/workspace/handoff_afem/queue_afem_support.tar.gz",
+    "sha256": "8c80a931b4a2168494472aa2b2ae7a52f7ecdba2159ce8c7b4e870ac440ab1b1",
+    "bytes": 1885217,
+    "source_commit": "1db18aa9eea6b01c1341ea064531904345db651e",
+    "created_utc": "2026-09-18T22:34:28.065269+00:00",
+    "files_sha256_verified_locally": 406,
+    "receipt_sha256": "689f1b2b714c439b3e50278f2c8a0ab33d9cfe2491699bd4e57009ac5c4ee6d5",
+    "local_path": "artifacts/queue_afem_support/",
+    "published_asset": "queue_afem_support.tar.gz",
+    "release_url": "https://github.com/chrizantona/yslfalcon/releases/tag/exp-069"
+  },
+  "handoff_finalized_utc": "2026-09-18T23:13:42.539460+00:00"
 }
