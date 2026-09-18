@@ -1,0 +1,4 @@
+# Second pod, 18.09.2026: ConvNeXt-L + OT-GFAM + GLPE with BatchNorm on the stage-3 map (the literal EXP-057 collapsed) -
+# VehicleID pretraining (EXP-059, ~7 h, ~12 GB), then our folds (EXP-060), three seeds in parallel on GPU 3.
+EXP-059 configs/exp059_convnext_glpe_stage3_bn_vehicleid.yaml 3 3 1
+EXP-060 configs/exp060_convnext_glpe_stage3_bn_init_exp059.yaml 3 3 1

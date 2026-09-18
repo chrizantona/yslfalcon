@@ -53,8 +53,8 @@ def tinyclip_state_for_timm(state, grid):
         src = f"{prefix}encoder.layers.{i}."
         for kind in ("weight", "bias"):
             out[f"blocks.{i}.attn.qkv.{kind}"] = torch.cat([state[f"{src}self_attn.{p}_proj.{kind}"] for p in "qkv"])
-            for ours, theirs in (("norm1", "layer_norm1"), ("norm2", "layer_norm2"), ("attn.proj", "self_attn.out_proj"),
-                                 ("mlp.fc1", "mlp.fc1"), ("mlp.fc2", "mlp.fc2")):
+            for ours, theirs in (("norm1", "layer_norm1"), ("norm2", "layer_norm2"),
+                                 ("attn.proj", "self_attn.out_proj"), ("mlp.fc1", "mlp.fc1"), ("mlp.fc2", "mlp.fc2")):
                 out[f"blocks.{i}.{ours}.{kind}"] = state[f"{src}{theirs}.{kind}"]
     return out
 
@@ -195,6 +195,10 @@ class ConvNeXtGLPE(nn.Module):
             convnext.load_state_dict({k: v for k, v in load_verified(weights_dir, cfg["backbone_weights"]).items()
                                       if not k.startswith("head.fc.")})
         self.features = nn.Sequential(convnext.stem, *convnext.stages[:3])  # stage 3: 768 x H/16 x W/16
+        # model.stage3_bn (EXP-059): BatchNorm over the stage-3 channels. Two of the 768 channels of the ImageNet-22k
+        # model carry mean |x| ~1200 and ~680 against a median of 7, so as described the embeddings of all vehicles are
+        # the same (cos 0.996 at the start, 1.000 in training) and the loss stays at chance (EXP-057)
+        self.stage_norm = nn.BatchNorm2d(768) if cfg.get("stage3_bn") else nn.Identity()
         dim, g = 768, cfg["gfam"]
         self.units = nn.Sequential(*(GFAMUnit(dim, g["heads"], g["window"], shift, g["onn_order"])
                                      for shift in (0, g["window"] // 2)))
@@ -202,7 +206,7 @@ class ConvNeXtGLPE(nn.Module):
         self.classifiers = nn.ModuleList([nn.Linear(dim, n_classes, bias=False) for _ in range(6)])
 
     def forward(self, x):
-        f = self.units(self.features(x).permute(0, 2, 3, 1)).permute(0, 3, 1, 2)  # B x C x 14 x 14
+        f = self.units(self.stage_norm(self.features(x)).permute(0, 2, 3, 1)).permute(0, 3, 1, 2)  # B x C x 14 x 14
         parts = [f, *torch.split(f, self.STRIPES[0], 2), *torch.split(f, self.STRIPES[1], 2)]
         vectors = [pool(part) for pool, part in zip(self.pools, parts)]
         embeddings = [F.normalize(v, dim=1) for v in vectors]
