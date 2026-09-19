@@ -102,5 +102,5 @@ EXP-124,EXP-123,rejected,"signed log-space GeM; +0.048097 vs EXP-123 CI [+0.0242
 EXP-125,EXP-123,rejected,"ReLU before stable log-space GeM; +0.010770 vs EXP-124 CI [-0.0145; +0.0352], but -0.371980 vs target EXP-048",0,0.460120,,0.399296,0.674582,0.662875,,0.544594,0.938865,5.952264,0.032017,0.479451,0.431919,16.84,433.9,20,645.4,exp125_seed0.pt
 EXP-126,EXP-124,rejected,"early stop epoch 10: signed GeM loss stayed at random-classifier 56.1676 and train accuracy 0; p moved toward cancellation at 1",0,,,,,,,,,,,,,,,,,
 EXP-127,EXP-125,running,"EXP-125 trained on public VERI-Wild test (138517 images and 10000 vehicles) instead of LCT folds; everything else unchanged",0,,,,,,,,,,,,,,,,,29c54de75dd7402eac0d4bc5e4aa1b59.pt
-EXP-128,EXP-127,running,"120-epoch large-data warm-up and multistep schedule instead of 60-epoch cosine; differential lr unchanged",0,,,,,,,,,,,,,,,,,7d3296a8ddb6407d8684c77ebc8ad6f8.pt
-EXP-129,EXP-128,running,"single Adam lr 3.5e-4 for the backbone and new layers instead of differential 1e-5 / 3.5e-4",0,,,,,,,,,,,,,,,,,83290721959c4e57ae45eac35711d6d0.pt
+EXP-128,EXP-127,superseded,"early stop epoch 14 after original-paper audit: reconstruction drops ConvNeXt stage 4 (768 vs released 1536 channels) and lacks per-part BNNecks",0,,,,,,,,,,,,,,,,,
+EXP-129,EXP-128,rejected,"early stop epoch 10: single backbone lr 3.5e-4 stayed at random loss 56.1624 and accuracy 0; EXP-128 reached loss 39.6069",0,,,,,,,,,,,,,,,,,
