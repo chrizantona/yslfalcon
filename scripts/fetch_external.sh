@@ -56,6 +56,12 @@ if [ "$TARGET" = all ] || [ "$TARGET" = paper ]; then  # reproduced architecture
   fetch weights/paper/tinyclip_vit61m_32_laion400m_config.json \
     https://huggingface.co/wkcn/TinyCLIP-ViT-61M-32-Text-29M-LAION400M/resolve/94cbbea5c7949cfe7bdafde64bcea5e403f59852/config.json \
     40a59f3db33a1df844687e94f25b186bf187bec1d8d1389f0f88b1ab013e233b
+  fetch weights/paper/tinyclip_vit40m_32_laion400m.safetensors \
+    https://huggingface.co/wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M/resolve/95ec8197b3f2fe7f747865c61ca556cf0768b2f7/model.safetensors \
+    1b08131ac0ac54429aab216c397c550527d31f5682afb5d21d35091ad39538ae
+  fetch weights/paper/tinyclip_vit40m_32_laion400m_config.json \
+    https://huggingface.co/wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M/resolve/95ec8197b3f2fe7f747865c61ca556cf0768b2f7/config.json \
+    b786ac49b5cdcb16496a33c8ab4884de036b2f64de27d0b73caf8391f94c9bee
   fetch weights/paper/convnext_large_fb_in22k.safetensors \
     https://huggingface.co/timm/convnext_large.fb_in22k/resolve/be6de86d9928c6cc2a8986963243142f403f382d/model.safetensors \
     7e02ea57d6024d94f5523e9b58cdddd81a1fb4f2e5128b4a879b76f9847058bf
