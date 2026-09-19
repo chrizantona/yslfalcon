@@ -10,6 +10,7 @@ set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 : "${CONFIG:?set CONFIG}" "${GPU:?set GPU}"
 PARALLEL_SEEDS=${PARALLEL_SEEDS:-1}
+MAX_PARALLEL_SEEDS=${MAX_PARALLEL_SEEDS:-0}  # 0 = launch every seed; positive = run seeds in batches of this size
 source scripts/pod_setup.sh
 
 stage crops  # derived copy of the dataset in /dev/shm; existing crops are skipped
@@ -54,6 +55,10 @@ for seed in $SEEDS; do
   PIDS+=($!)
   if [ "$PARALLEL_SEEDS" = 0 ]; then wait "$!"; fi
   seed_index=$((seed_index + 1))
+  if [ "$PARALLEL_SEEDS" != 0 ] && [ "$MAX_PARALLEL_SEEDS" -gt 0 ] && [ "${#PIDS[@]}" -ge "$MAX_PARALLEL_SEEDS" ]; then
+    for pid in "${PIDS[@]}"; do wait "$pid"; done
+    PIDS=()
+  fi
 done
 for pid in "${PIDS[@]}"; do wait "$pid"; done
 
