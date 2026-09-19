@@ -160,6 +160,45 @@ def training_table(cfg, data_cfg, val_cfg):
     return train_df, crops_dir, classes
 
 
+def class_centres(embeddings, k, iterations=10):
+    """k unit centres of one class: farthest-point init, then Lloyd iterations on cosine similarity.
+
+    Sub-centre ArcFace needs its centres to differ: the max over identical centres keeps them tied forever. A class
+    with fewer images than centres repeats one; those duplicates stay tied, which is the single-centre behaviour."""
+    chosen = [int((embeddings @ F.normalize(embeddings.mean(0), dim=0)).argmin())]  # the least typical image first
+    while len(chosen) < min(k, len(embeddings)):
+        chosen.append(int((embeddings @ embeddings[chosen].T).max(1).values.argmin()))
+    centres = embeddings[chosen]
+    for _ in range(iterations):
+        nearest = (embeddings @ centres.T).argmax(1)
+        centres = torch.stack([F.normalize(embeddings[nearest == c].mean(0), dim=0) if (nearest == c).any()
+                               else centres[c] for c in range(len(centres))])
+    return torch.cat([centres, centres[: k - len(centres)]]) if len(centres) < k else centres
+
+
+@torch.no_grad()
+def imprint_sub_centers(model, loader, device):
+    """Sub-centre ArcFace imprinting: k centres per class from a small k-means over that class's train embeddings."""
+    head = model.classifier
+    was_training = model.training
+    model.eval()
+    try:
+        embeddings, labels = [], []
+        for x, y in loader:
+            embeddings.append(F.normalize(model(x.to(device)).float(), dim=1))
+            labels.append(y.to(device))
+        embeddings, labels = torch.cat(embeddings), torch.cat(labels)
+        counts = torch.bincount(labels, minlength=head.n_classes)
+        if (counts == 0).any():
+            raise ValueError("every training class must have a nonzero imprinting centre")
+        centres = torch.stack([class_centres(embeddings[labels == c], head.sub_centers) for c in range(head.n_classes)])
+        head.weight.copy_(centres.reshape_as(head.weight))
+        return {"classes": head.n_classes, "images": len(labels), "sub_centers": head.sub_centers,
+                "min_images_per_class": int(counts.min()), "max_images_per_class": int(counts.max())}
+    finally:
+        model.train(was_training)
+
+
 @torch.no_grad()
 def imprint_classifier(model, loader, device):
     """Initialise ArcFace directions from train-only mean normalised embeddings; leave BN buffers unchanged."""
@@ -253,7 +292,8 @@ def main():
         initial_loader = DataLoader(initial_dataset, batch_size=tcfg["id_head"]["imprint_batch_size"],
                                     num_workers=tcfg["num_workers"], worker_init_fn=_worker_init,
                                     generator=torch.Generator().manual_seed(seed))
-        imprinting = imprint_classifier(model, initial_loader, device)
+        imprint = imprint_sub_centers if tcfg["id_head"].get("sub_centers", 1) > 1 else imprint_classifier
+        imprinting = imprint(model, initial_loader, device)
         print(json.dumps({"imprinting": imprinting}), flush=True)
     log = (out / "train_log.jsonl").open("w")
     print(f"{len(classes)} vehicles, {len(train_df)} images, {len(sampler)} batches/epoch", flush=True)

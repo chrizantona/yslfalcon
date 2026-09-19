@@ -1,0 +1,3 @@
+# Second pod (rougenn), 19.09.2026: sub-centre ArcFace (3 centres per vehicle) on the EXP-089 recipe.
+# GPU 2, three seeds one after another.
+EXP-101 configs/exp101_siglip2_subcenter_arcface.yaml 2 2 0

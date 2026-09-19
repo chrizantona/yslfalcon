@@ -1,0 +1,4 @@
+# Second pod (rougenn), 19.09.2026: pretraining on VERI-Wild test + VehicleID + VeRi-776 (~410k images, 37k vehicles,
+# about 3 hours) and then the EXP-089 recipe from it. GPU 3, seeds one after another.
+EXP-102 configs/exp102_pretrain_three_sets_siglip2.yaml 3 3 0
+EXP-103 configs/exp103_siglip2_from_three_set_pretrain.yaml 3 3 0

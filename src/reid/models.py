@@ -91,17 +91,22 @@ def load_backbone(model, checkpoint_path, interpolate_position=False):
 class MarginClassifier(nn.Module):
     """Cosine classifier with a margin on the target class: CosFace s * (cos - m), ArcFace s * cos(theta + m).
 
-    Works on the same L2-normalised embedding that retrieval compares, so the ID loss optimises the retrieval metric."""
+    Works on the same L2-normalised embedding that retrieval compares, so the ID loss optimises the retrieval metric.
+    sub_centers > 1 gives every class that many centres and scores it by its closest one (sub-centre ArcFace, Deng et
+    al., ECCV 2020): a vehicle seen from the front and from the rear need not fit into one direction."""
 
-    def __init__(self, feat_dim, n_classes, kind, scale, margin):
+    def __init__(self, feat_dim, n_classes, kind, scale, margin, sub_centers=1):
         super().__init__()
         assert kind in ("arcface", "cosface")
         self.kind, self.scale, self.margin = kind, scale, margin
-        self.weight = nn.Parameter(torch.empty(n_classes, feat_dim).normal_(std=0.01))
+        self.n_classes, self.sub_centers = n_classes, sub_centers
+        self.weight = nn.Parameter(torch.empty(n_classes * sub_centers, feat_dim).normal_(std=0.01))
 
     def forward(self, emb, labels):
         with torch.autocast(emb.device.type, enabled=False):  # float32: bfloat16 cosines near 1 are too coarse for margins
             cos = F.linear(F.normalize(emb.float(), dim=1), F.normalize(self.weight.float(), dim=1)).clamp(-1, 1)
+            if self.sub_centers > 1:  # centres are stored class-major: weight[c * sub_centers + j]
+                cos = cos.view(len(cos), self.n_classes, self.sub_centers).amax(2)
             target = cos.gather(1, labels[:, None])
             if self.kind == "cosface":
                 target_m = target - self.margin
@@ -117,7 +122,7 @@ class MarginClassifier(nn.Module):
 class ReIDModel(nn.Module):
     """Backbone + BNNeck. Training returns (feature for the triplet loss, ID logits); eval returns the embedding.
 
-    head: {"type": "linear"} (default) or {"type": "arcface" | "cosface", "scale": s, "margin": m}."""
+    head: {"type": "linear"} (default) or {"type": "arcface" | "cosface", "scale": s, "margin": m, "sub_centers": k}."""
 
     def __init__(self, backbone, feat_dim, n_classes, head=None):
         super().__init__()
@@ -129,7 +134,8 @@ class ReIDModel(nn.Module):
             self.classifier = nn.Linear(feat_dim, n_classes, bias=False)
             nn.init.normal_(self.classifier.weight, std=0.001)
         else:
-            self.classifier = MarginClassifier(feat_dim, n_classes, head["type"], head["scale"], head["margin"])
+            self.classifier = MarginClassifier(feat_dim, n_classes, head["type"], head["scale"], head["margin"],
+                                               head.get("sub_centers", 1))
 
     def forward(self, x, labels=None):
         feat = self.backbone(x)
