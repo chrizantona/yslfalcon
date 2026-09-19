@@ -108,8 +108,29 @@ def test_gfam_units_keep_the_map_shape():
         assert y.shape == x.shape and torch.isfinite(y).all()
 
 
+def test_log_space_gem_matches_power_mean_and_is_finite_on_signed_stripes():
+    positive = torch.rand(2, 4, 5, 3) + 0.01
+    gem = GeM(p=3.0)
+    expected = positive.pow(3).mean((2, 3)).pow(1 / 3)
+    assert torch.allclose(gem(positive), expected, atol=1e-6, rtol=1e-6)
+
+    signed = torch.full((2, 4, 5, 3), -20.0, requires_grad=True)
+    stable = GeM(p=12.0, min_p=1.0, input_activation="softplus")
+    pooled = stable(signed)
+    pooled.sum().backward()
+    assert torch.isfinite(pooled).all()
+    assert torch.isfinite(signed.grad).all()
+    assert torch.isfinite(stable.p.grad)
+
+
+def test_gem_rejects_unknown_input_activation():
+    with pytest.raises(ValueError, match="unknown GeM input activation"):
+        GeM(input_activation="signed_power")
+
+
 def test_convnext_glpe_follows_the_described_layout():
-    cfg = {"arch": "convnext_glpe", "gfam": {"heads": 8, "window": 7, "onn_order": 3}, "stage3_bn": True}
+    cfg = {"arch": "convnext_glpe", "gfam": {"heads": 8, "window": 7, "onn_order": 3}, "stage3_bn": True,
+           "gem_input_activation": "softplus"}
     model, dim, _, _ = build_paper_model(cfg, n_classes=5, load_pretrained=False)
     assert len(model.units) == 2 and [u.attn.shift for u in model.units] == [0, 3]  # one block: W-GFAM, SW-GFAM
     assert all(u.attn.window == 7 for u in model.units) and all(len(u.attn.q.powers) == 3 for u in model.units)
@@ -129,6 +150,14 @@ def test_convnext_glpe_follows_the_described_layout():
         descriptor = model.eval()(x)
     assert descriptor.shape == (2, 6 * 768) == (2, dim)
     assert torch.allclose(descriptor.view(2, 6, 768).norm(dim=2), torch.ones(2, 6))  # six normalised parts
+    assert all(pool.input_activation == "softplus" for pool in model.pools)
+
+    optimizer = build_paper_optimizer(
+        model, {"weight_decay": 5e-4, "lr_groups": {"backbone": 1e-5, "new": 3.5e-4}})
+    assert {group["branch"]: group["lr"] for group in optimizer.param_groups} == {
+        "backbone": 1e-5, "new": 3.5e-4}
+    grouped = [p for group in optimizer.param_groups for p in group["params"]]
+    assert len(grouped) == len({id(p) for p in grouped}) == len(list(model.parameters()))
 
 
 def test_gem_exponent_is_kept_at_or_above_its_floor():

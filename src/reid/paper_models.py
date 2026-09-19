@@ -9,6 +9,7 @@ six embeddings with their own classifiers; the retrieval embedding concatenates 
 Training mode returns (embeddings, logits), one entry per supervised embedding; eval mode returns the retrieval
 embedding. Inputs arrive with the ImageNet mean/std; the TinyCLIP branch renormalises to CLIP's."""
 import hashlib
+import math
 from functools import partial
 from pathlib import Path
 
@@ -201,17 +202,32 @@ class GFAMUnit(nn.Module):
 
 
 class GeM(nn.Module):
-    """Generalised mean pooling with a learnable exponent p >= min_p. Training pushes p down steadily (from 3 to ~2.8
-    in 2,000 steps at lr 3.5e-4, slower without weight decay); unbounded, it reaches 0, where the gradient of
-    pow(1 / p) is NaN (EXP-061, epoch 15). p = 1 is average pooling; model.gem_min_p: 1 keeps GeM defined (EXP-063)."""
+    """Numerically stable generalised mean pooling over a positive feature map.
 
-    def __init__(self, p=3.0, eps=1e-6, min_p=None):
+    EXP-061 fed signed LayerNorm outputs to the usual ``clamp(eps).pow(p)`` implementation. This both discarded every
+    negative activation and underflowed when the learned exponent exceeded about 7.6. ``softplus`` preserves the
+    ordering of signed activations while making them positive; computing the power mean in log space keeps the value
+    and its gradient finite for large exponents. The legacy clamp behaviour remains available for old checkpoints.
+    """
+
+    def __init__(self, p=3.0, eps=1e-6, min_p=None, input_activation="clamp"):
         super().__init__()
+        if input_activation not in {"clamp", "relu", "softplus"}:
+            raise ValueError(f"unknown GeM input activation: {input_activation}")
         self.p, self.eps, self.min_p = nn.Parameter(torch.tensor(p)), eps, min_p
+        self.input_activation = input_activation
 
     def forward(self, x):  # B x C x h x w -> B x C
         p = self.p if self.min_p is None else self.p.clamp(min=self.min_p)
-        return x.clamp(min=self.eps).pow(p).mean((2, 3)).pow(1 / p)
+        if self.input_activation == "softplus":
+            positive = F.softplus(x.float()) + self.eps
+        elif self.input_activation == "relu":
+            positive = x.float().relu()
+        else:
+            positive = x.float()
+        log_x = positive.clamp(min=self.eps).log()
+        log_mean_power = torch.logsumexp(p.float() * log_x, dim=(2, 3)) - math.log(x.shape[2] * x.shape[3])
+        return torch.exp(log_mean_power / p.float())
 
 
 class ConvNeXtGLPE(nn.Module):
@@ -232,7 +248,10 @@ class ConvNeXtGLPE(nn.Module):
         # one OT-GFAM block: W-GFAM, then SW-GFAM (shift window // 2 = 3)
         self.units = nn.ModuleList([GFAMUnit(dim, g["heads"], g["window"], shift, g["onn_order"])
                                     for shift in (0, g["window"] // 2)])
-        self.pools = nn.ModuleList([GeM(min_p=cfg.get("gem_min_p")) for _ in range(6)])
+        self.pools = nn.ModuleList([
+            GeM(min_p=cfg.get("gem_min_p"), input_activation=cfg.get("gem_input_activation", "clamp"))
+            for _ in range(6)
+        ])
         self.classifiers = nn.ModuleList([nn.Linear(dim, n_classes, bias=False) for _ in range(6)])
 
     def forward(self, x):

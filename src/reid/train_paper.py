@@ -58,14 +58,22 @@ def build_paper_optimizer(model, train_cfg):
     rates = train_cfg.get("lr_groups")
     if not rates:
         return torch.optim.Adam(model.parameters(), lr=train_cfg["lr"], weight_decay=train_cfg["weight_decay"])
-    if not all(hasattr(model, name) for name in ("cnn", "clip", "clip_proj", "semantic_norm", "fuse", "afem",
-                                                  "classifiers")):
-        raise ValueError("lr_groups cnn/clip/new are supported only for CLIP-SENet")
-    modules = {
-        "cnn": [model.cnn],
-        "clip": [model.clip, model.clip_proj],
-        "new": [model.semantic_norm, model.fuse, model.afem, model.classifiers],
-    }
+    if all(hasattr(model, name) for name in ("cnn", "clip", "clip_proj", "semantic_norm", "fuse", "afem",
+                                             "classifiers")):
+        modules = {
+            "cnn": [model.cnn],
+            "clip": [model.clip, model.clip_proj],
+            "new": [model.semantic_norm, model.fuse, model.afem, model.classifiers],
+        }
+    elif all(hasattr(model, name) for name in ("features", "stage_norm", "units", "pools", "classifiers")):
+        modules = {
+            "backbone": [model.features],
+            "new": [model.stage_norm, model.units, model.pools, model.classifiers],
+        }
+    else:
+        raise ValueError("lr_groups are unsupported for this paper model")
+    if set(rates) != set(modules):
+        raise ValueError(f"lr_groups must contain exactly {sorted(modules)}")
     groups, seen = [], set()
     for branch, branch_modules in modules.items():
         parameters = [p for module in branch_modules for p in module.parameters() if p.requires_grad]
