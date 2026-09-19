@@ -1,4 +1,4 @@
-"""Real LCT batch check for a stabilised OT-GFAM + GLPE experiment."""
+"""Real LCT or external-data batch check for a stabilised OT-GFAM + GLPE experiment."""
 import argparse
 import json
 from pathlib import Path
@@ -19,12 +19,20 @@ cfg = load_yaml(args.config)
 data = load_yaml("configs/data.yaml")
 val = load_yaml("configs/val_v2.yaml")
 tcfg = cfg["train"]
-assert cfg["eval_fold"] == 0 and tcfg["folds"] == [1, 2, 3]
 assert val["holdout_fold"] == 4
+external_source = tcfg.get("source")
+if external_source:
+    assert external_source in {"veriwild_test", "vehicleid"}
+else:
+    assert cfg["eval_fold"] == 0 and tcfg["folds"] == [1, 2, 3]
 assert not (Path(data["checkpoint_dir"]) / checkpoint_name(cfg, 0)).exists()
 
 table, crops, classes = training_table(cfg, data, val)
-assert len(table) == 5725 and len(classes) == 924
+if external_source:
+    expected = {"veriwild_test": (138517, 10000), "vehicleid": (221567, 26328)}[external_source]
+    assert (len(table), len(classes)) == expected
+else:
+    assert len(table) == 5725 and len(classes) == 924
 model, dim, mean, std = build_paper_model(cfg["model"], len(classes), data["external_weights_dir"])
 assert dim == 6 * 768
 activation = cfg["model"]["gem_input_activation"]
@@ -40,7 +48,10 @@ y = torch.as_tensor([item[1] for item in batch], device="cuda")
 
 model = model.cuda().train()
 optimizer = build_paper_optimizer(model, tcfg)
-assert {group["branch"]: group["lr"] for group in optimizer.param_groups} == tcfg["lr_groups"]
+if "lr_groups" in tcfg:
+    assert {group["branch"]: group["lr"] for group in optimizer.param_groups} == tcfg["lr_groups"]
+else:
+    assert len(optimizer.param_groups) == 1 and optimizer.param_groups[0]["lr"] == tcfg["lr"]
 cross_entropy = torch.nn.CrossEntropyLoss(label_smoothing=tcfg["label_smoothing"])
 torch.cuda.reset_peak_memory_stats()
 with torch.autocast("cuda", dtype=torch.bfloat16):
