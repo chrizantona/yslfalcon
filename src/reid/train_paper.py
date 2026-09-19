@@ -46,7 +46,10 @@ def build_paper_scheduler(optimizer, train_cfg):
         return torch.optim.lr_scheduler.LambdaLR(
             optimizer, warmup_multistep(train_cfg["warmup_epochs"], train_cfg["milestones"]))
     if kind == "cosine":
-        return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=train_cfg["epochs"], eta_min=0.0)
+        t_max = train_cfg.get("scheduler_t_max", train_cfg["epochs"])
+        if t_max < train_cfg["epochs"]:
+            raise ValueError("cosine scheduler_t_max cannot be shorter than the training run")
+        return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=t_max, eta_min=0.0)
     raise ValueError(f"unknown paper scheduler: {kind}")
 
 

@@ -156,6 +156,15 @@ def test_small_dataset_recipe_uses_24_epoch_cosine_without_warmup():
     assert scheduler.T_max == 24 and scheduler.get_last_lr() == [5e-4]
 
 
+def test_cosine_run_can_stop_before_the_fixed_scheduler_horizon():
+    parameter = torch.nn.Parameter(torch.ones(()))
+    optimizer = torch.optim.Adam([parameter], lr=5e-4)
+    scheduler = build_paper_scheduler(optimizer, {"scheduler": "cosine", "epochs": 80, "scheduler_t_max": 124})
+    assert scheduler.T_max == 124
+    with pytest.raises(ValueError, match="cannot be shorter"):
+        build_paper_scheduler(optimizer, {"scheduler": "cosine", "epochs": 80, "scheduler_t_max": 79})
+
+
 def test_paper_loss_sums_ce_and_metric_loss_over_embeddings():
     labels = torch.tensor([0, 0, 1, 1])
     embeddings = [torch.randn(4, 8), torch.randn(4, 8)]
