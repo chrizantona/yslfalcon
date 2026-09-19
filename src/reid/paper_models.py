@@ -10,6 +10,7 @@ Training mode returns (embeddings, logits), one entry per supervised embedding; 
 embedding. Inputs arrive with the ImageNet mean/std; the TinyCLIP branch renormalises to CLIP's."""
 import hashlib
 import math
+from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 
@@ -316,11 +317,96 @@ class ConvNeXtReleasedGLPE(nn.Module):
         return embeddings, [head(neck) for head, neck in zip(self.classifiers, necks)]
 
 
+class ClipConvNeXtGLPEHybrid(nn.Module):
+    """Five GLPE stripes on the frozen spatial map of an already trained CLIP ConvNeXt ReID model.
+
+    The parent's 768-d global descriptor and BN statistics are kept exactly.  Only one shared GeM, five local
+    BNNecks and five local classifiers are trained.  At retrieval time the five local unit vectors form one block;
+    ``local_scale`` controls that block relative to the unit-norm global descriptor.  This makes zero local weight
+    reproduce the parent and avoids giving five new branches five times the vote of the established descriptor.
+    """
+
+    def __init__(self, cfg, n_classes, weights_dir=None, load_pretrained=True):
+        super().__init__()
+        from reid.models import build_backbone
+
+        self.visual, global_dim, mean, std = build_backbone(cfg, weights_dir, load_pretrained)
+        if not hasattr(self.visual, "trunk") or not hasattr(self.visual.trunk, "forward_features"):
+            raise ValueError("clip_convnext_glpe_hybrid requires an OpenCLIP timm visual tower")
+        local_dim = self.visual.trunk.num_features
+        self.global_bn = nn.BatchNorm1d(global_dim)
+        self.global_bn.bias.requires_grad_(False)
+        self.local_pool = GeM(p=cfg.get("gem_p", 3.0), min_p=cfg.get("gem_min_p"),
+                              input_activation=cfg.get("gem_input_activation", "clamp"))
+        self.local_bns = nn.ModuleList([nn.BatchNorm1d(local_dim) for _ in range(5)])
+        self.classifiers = nn.ModuleList([nn.Linear(local_dim, n_classes, bias=False) for _ in range(5)])
+        self.local_scale = float(cfg.get("local_scale", 0.5))
+        self.freeze_base = bool(cfg.get("freeze_base", True))
+        self.preprocess_mean, self.preprocess_std = mean, std
+        self.global_dim, self.local_dim = global_dim, local_dim
+        if self.freeze_base:
+            self.visual.requires_grad_(False)
+            self.global_bn.requires_grad_(False)
+
+    @staticmethod
+    def local_parts(f):
+        h = f.shape[2]
+        h2, h3 = h // 2, h // 3
+        return [f[:, :, :h2], f[:, :, h2:2 * h2],
+                f[:, :, :h3], f[:, :, h3:2 * h3], f[:, :, 2 * h3:3 * h3]]
+
+    def train(self, mode=True):
+        super().train(mode)
+        if self.freeze_base:
+            self.visual.eval()
+            self.global_bn.eval()
+        return self
+
+    def _spatial_and_global(self, x, need_global):
+        context = torch.no_grad() if self.freeze_base else nullcontext()
+        with context:
+            spatial = self.visual.trunk.forward_features(x)
+            if not need_global:
+                return spatial, None
+            pooled = self.visual.trunk.forward_head(spatial, pre_logits=True)
+            global_raw = self.visual.head(pooled)
+            global_embedding = F.normalize(self.global_bn(global_raw), dim=1)
+        return spatial, global_embedding
+
+    def load_parent_checkpoint(self, checkpoint_path, expected_sha256=None):
+        """Load the visual tower and BNNeck from a standard ``reid.train`` checkpoint."""
+        checkpoint_path = Path(checkpoint_path)
+        if expected_sha256:
+            with checkpoint_path.open("rb") as stream:
+                actual = hashlib.file_digest(stream, "sha256").hexdigest()
+            if actual != expected_sha256:
+                raise ValueError(f"init checkpoint checksum mismatch: {checkpoint_path}")
+        state = torch.load(checkpoint_path, map_location="cpu", weights_only=True)["state_dict"]
+        visual = {key[len("backbone."):]: value for key, value in state.items() if key.startswith("backbone.")}
+        neck = {key[len("bnneck."):]: value for key, value in state.items() if key.startswith("bnneck.")}
+        self.visual.load_state_dict(visual, strict=True)
+        self.global_bn.load_state_dict(neck, strict=True)
+        return ["local_pool", "local_bns", "classifiers"]
+
+    def forward(self, x):
+        spatial, global_embedding = self._spatial_and_global(x, need_global=not self.training)
+        vectors = [self.local_pool(part) for part in self.local_parts(spatial)]
+        necks = [bn(vector) for bn, vector in zip(self.local_bns, vectors)]
+        local_embeddings = [F.normalize(neck, dim=1) for neck in necks]
+        if self.training:
+            return local_embeddings, [head(neck) for head, neck in zip(self.classifiers, necks)]
+        local_weight = self.local_scale / math.sqrt(len(local_embeddings))
+        return torch.cat([global_embedding, *(local_weight * emb for emb in local_embeddings)], dim=1)
+
+
 ARCHS = {"clip_senet": CLIPSENet, "convnext_glpe": ConvNeXtGLPE,
-         "convnext_released_glpe": ConvNeXtReleasedGLPE}
+         "convnext_released_glpe": ConvNeXtReleasedGLPE,
+         "clip_convnext_glpe_hybrid": ClipConvNeXtGLPEHybrid}
 
 
 def build_paper_model(cfg, n_classes, weights_dir=None, load_pretrained=True):
     """(model, embedding dim, mean, std) for a config with model.arch."""
     model = ARCHS[cfg["arch"]](cfg, n_classes, weights_dir, load_pretrained)
-    return model, cfg.get("embedding_dim", 6 * 768), IMAGENET_MEAN, IMAGENET_STD
+    mean = getattr(model, "preprocess_mean", IMAGENET_MEAN)
+    std = getattr(model, "preprocess_std", IMAGENET_STD)
+    return model, cfg.get("embedding_dim", 6 * 768), mean, std

@@ -7,8 +7,8 @@ import pytest
 import torch
 from timm.models.vision_transformer import VisionTransformer
 
-from reid.paper_models import (AFEM, CLIPSENet, ConvNeXtReleasedGLPE, GeM, GFAMUnit, build_paper_model,
-                               shifted_window_mask, tinyclip_state_for_timm)
+from reid.paper_models import (AFEM, CLIPSENet, ClipConvNeXtGLPEHybrid, ConvNeXtReleasedGLPE, GeM, GFAMUnit,
+                               build_paper_model, shifted_window_mask, tinyclip_state_for_timm)
 from reid.train import CropDataset
 from reid.train_paper import (build_paper_optimizer, build_paper_scheduler, load_paper_init, paper_loss,
                               warmup_multistep)
@@ -189,6 +189,63 @@ def test_released_convnext_glpe_keeps_stage4_and_matches_the_six_branch_geometry
         "backbone": 1e-5, "new": 3.5e-4}
     grouped = [p for group in optimizer.param_groups for p in group["params"]]
     assert len(grouped) == len({id(p) for p in grouped}) == len(list(model.parameters()))
+
+
+def test_clip_convnext_hybrid_keeps_parent_global_and_trains_only_five_glpe_parts(monkeypatch, tmp_path):
+    class Trunk(torch.nn.Module):
+        num_features = 8
+
+        def __init__(self):
+            super().__init__()
+            self.conv = torch.nn.Conv2d(3, 8, 1)
+
+        def forward_features(self, x):
+            return self.conv(x)
+
+        @staticmethod
+        def forward_head(x, pre_logits=True):
+            assert pre_logits
+            return x.mean((2, 3))
+
+    class Visual(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.trunk = Trunk()
+            self.head = torch.nn.Linear(8, 4, bias=False)
+
+    source_visual = Visual()
+    source_bn = torch.nn.BatchNorm1d(4)
+    state = {**{f"backbone.{key}": value for key, value in source_visual.state_dict().items()},
+             **{f"bnneck.{key}": value for key, value in source_bn.state_dict().items()},
+             "classifier.weight": torch.randn(3, 4)}
+    checkpoint = tmp_path / "parent.pt"
+    torch.save({"state_dict": state}, checkpoint)
+    monkeypatch.setattr("reid.models.build_backbone",
+                        lambda cfg, weights_dir, load_pretrained: (Visual(), 4, (0.1,) * 3, (0.2,) * 3))
+    cfg = {"backbone": "clip", "arch": "clip_convnext_glpe_hybrid", "freeze_base": True,
+           "local_scale": 0.5, "gem_input_activation": "clamp", "embedding_dim": 4 + 5 * 8}
+    model, dim, mean, std = build_paper_model(cfg, n_classes=3, load_pretrained=False)
+    load_paper_init(model, checkpoint)
+    assert dim == 44 and mean == (0.1,) * 3 and std == (0.2,) * 3
+    assert not any(parameter.requires_grad for parameter in model.visual.parameters())
+    assert not any(parameter.requires_grad for parameter in model.global_bn.parameters())
+    model.train()
+    assert not model.visual.training and not model.global_bn.training
+
+    x = torch.rand(4, 3, 10, 10)
+    embeddings, logits = model.train()(x)
+    assert len(embeddings) == len(logits) == 5 and logits[0].shape == (4, 3)
+    assert [part.shape[2] for part in model.local_parts(model.visual.trunk.forward_features(x))] == [5, 5, 3, 3, 3]
+    descriptor = model.eval()(x)
+    assert descriptor.shape == (4, 44)
+    assert torch.allclose(descriptor[:, :4].norm(dim=1), torch.ones(4))
+    local = descriptor[:, 4:].reshape(4, 5, 8)
+    assert torch.allclose(local.norm(dim=2), torch.full((4, 5), 0.5 / 5 ** 0.5))
+
+    optimizer = build_paper_optimizer(
+        model, {"optimizer": "adamw", "weight_decay": 1e-4, "lr_groups": {"local": 5e-4}})
+    assert isinstance(optimizer, torch.optim.AdamW)
+    assert {group["branch"]: group["lr"] for group in optimizer.param_groups} == {"local": 5e-4}
 
 
 def test_gem_exponent_is_kept_at_or_above_its_floor():

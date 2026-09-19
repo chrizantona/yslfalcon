@@ -106,3 +106,4 @@ EXP-128,EXP-127,superseded,"early stop epoch 14 after original-paper audit: reco
 EXP-129,EXP-128,rejected,"early stop epoch 10: single backbone lr 3.5e-4 stayed at random loss 56.1624 and accuracy 0; EXP-128 reached loss 39.6069",0,,,,,,,,,,,,,,,,,
 EXP-130,EXP-125,rejected,released full ConvNeXt-L plus GLPE trained from ImageNet-22K; -0.413139 vs EXP-048 and -0.041159 vs EXP-125,0,0.418961,,0.378188,0.620932,0.654422,,0.519417,0.969432,,,0.438616,0.383596,,,,,
 EXP-131,,reference,official public VeRi-776 ConvNeXt-L plus GLPE checkpoint scored zero-shot; no OT-GFAM or ONN parameters,,0.120276,,0.100264,0.222515,0.362547,,0.132397,0.899563,5.096168,0.012807,0.139034,0.110164,,,,813.6,best_convnext_large_rerank.pth
+EXP-132,EXP-048,running,"frozen EXP-048 seed0 global descriptor plus five supervised GLPE stripes; global/local cosine weight 80/20",0,,,,,,,,,,,,,,,,,4380f105f2324d8c8abf7f53303e984f.pt

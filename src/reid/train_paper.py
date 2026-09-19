@@ -76,6 +76,10 @@ def build_paper_optimizer(model, train_cfg):
             "backbone": [model.back],
             "new": [model.pool, model.bns, model.classifiers],
         }
+    elif all(hasattr(model, name) for name in ("visual", "global_bn", "local_pool", "local_bns", "classifiers")):
+        modules = {
+            "local": [model.local_pool, model.local_bns, model.classifiers],
+        }
     else:
         raise ValueError("lr_groups are unsupported for this paper model")
     if set(rates) != set(modules):
@@ -90,7 +94,8 @@ def build_paper_optimizer(model, train_cfg):
     expected = {id(p) for p in model.parameters() if p.requires_grad}
     if seen != expected:
         raise ValueError(f"paper optimiser groups miss {len(expected - seen)} trainable parameters")
-    return torch.optim.Adam(groups, weight_decay=train_cfg["weight_decay"])
+    optimizer = torch.optim.AdamW if train_cfg.get("optimizer", "adam") == "adamw" else torch.optim.Adam
+    return optimizer(groups, weight_decay=train_cfg["weight_decay"])
 
 
 def paper_loss(embeddings, logits, labels, loss_cfg, cross_entropy):
@@ -109,6 +114,8 @@ def paper_loss(embeddings, logits, labels, loss_cfg, cross_entropy):
 
 def load_paper_init(model, checkpoint_path, expected_sha256=None):
     """Load every transferable paper-model parameter while replacing dataset-specific classifiers."""
+    if hasattr(model, "load_parent_checkpoint"):
+        return model.load_parent_checkpoint(checkpoint_path, expected_sha256)
     checkpoint_path = Path(checkpoint_path)
     if expected_sha256:
         with checkpoint_path.open("rb") as stream:
