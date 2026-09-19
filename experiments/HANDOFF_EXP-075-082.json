@@ -1,0 +1,293 @@
+{
+  "created_utc": "2026-09-19T11:23:37.181370+00:00",
+  "release": {
+    "url": "https://github.com/chrizantona/yslfalcon/releases/tag/exp-082",
+    "id": 392016540,
+    "tag": "exp-082",
+    "assets_verified": 26,
+    "all_github_digests_and_sizes_verified": true
+  },
+  "protocol": "val_v2",
+  "dev_fold": 0,
+  "holdout_fold4_used": false,
+  "tests": "70 passed",
+  "source": {
+    "EXP-075..078": "37a114ee6b760a25d98a11de64ff5871f07632cd",
+    "EXP-082": "db687d8"
+  },
+  "experiments": {
+    "EXP-075": {
+      "archive": "EXP-075_results.tar.gz",
+      "archive_bytes": 14384431,
+      "archive_sha256": "2d24db01dcaca8c386e649fa555be573ec028688db61b79996ddfc34c700a7e1",
+      "source_commit": "37a114ee6b760a25d98a11de64ff5871f07632cd",
+      "arrays_checked": 6,
+      "internal_files_checked": 432,
+      "local_verification": {
+        "exp_id": "EXP-075",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 432,
+        "arrays_sha256_and_header_verified": 6,
+        "embedding_dim": 1152,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-19T09:41:25.840516+00:00"
+      },
+      "checkpoints": [
+        {
+          "exp_id": "EXP-075",
+          "seed": 0,
+          "name": "1fb351a2de9a47a6a0f4f84c5983e460_seed0.pt",
+          "path": "/workspace/checkpoints/1fb351a2de9a47a6a0f4f84c5983e460_seed0.pt",
+          "bytes": 1715161125,
+          "sha256": "09464ea0e2b981d13884a6d437a80d664d0165b2d7589b63647e7e9bea01e431"
+        },
+        {
+          "exp_id": "EXP-075",
+          "seed": 1,
+          "name": "1fb351a2de9a47a6a0f4f84c5983e460_seed1.pt",
+          "path": "/workspace/checkpoints/1fb351a2de9a47a6a0f4f84c5983e460_seed1.pt",
+          "bytes": 1715161125,
+          "sha256": "d455eb91f511638b485062b515b6d587c28395c7888f409bffd05ff7c4bc6b41"
+        },
+        {
+          "exp_id": "EXP-075",
+          "seed": 2,
+          "name": "1fb351a2de9a47a6a0f4f84c5983e460_seed2.pt",
+          "path": "/workspace/checkpoints/1fb351a2de9a47a6a0f4f84c5983e460_seed2.pt",
+          "bytes": 1715161125,
+          "sha256": "e39eb0149f25edeb87a86bc5797c88952f3f8e6c269183e3555ab78213a4ce8a"
+        }
+      ]
+    },
+    "EXP-076": {
+      "archive": "EXP-076_results.tar.gz",
+      "archive_bytes": 14385101,
+      "archive_sha256": "6b8a26d566c358190bec6d5652ef2cc4c7312f7b98ff7f9a0f2fd4570453f166",
+      "source_commit": "37a114ee6b760a25d98a11de64ff5871f07632cd",
+      "arrays_checked": 6,
+      "internal_files_checked": 432,
+      "local_verification": {
+        "exp_id": "EXP-076",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 432,
+        "arrays_sha256_and_header_verified": 6,
+        "embedding_dim": 1152,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-19T09:41:26.081745+00:00"
+      },
+      "checkpoints": [
+        {
+          "exp_id": "EXP-076",
+          "seed": 0,
+          "name": "35e8f18893674694b040bff746c2fa69_seed0.pt",
+          "path": "/workspace/checkpoints/35e8f18893674694b040bff746c2fa69_seed0.pt",
+          "bytes": 1715161125,
+          "sha256": "82d51b08d88d81e6119764c38c96d7df8aa36809c14b2ad39b164f624a656fa7"
+        },
+        {
+          "exp_id": "EXP-076",
+          "seed": 1,
+          "name": "35e8f18893674694b040bff746c2fa69_seed1.pt",
+          "path": "/workspace/checkpoints/35e8f18893674694b040bff746c2fa69_seed1.pt",
+          "bytes": 1715161125,
+          "sha256": "543ad8dabeaf4505db3a6484fabdc818f22815ab921e35e6770216692ac80cd3"
+        },
+        {
+          "exp_id": "EXP-076",
+          "seed": 2,
+          "name": "35e8f18893674694b040bff746c2fa69_seed2.pt",
+          "path": "/workspace/checkpoints/35e8f18893674694b040bff746c2fa69_seed2.pt",
+          "bytes": 1715161125,
+          "sha256": "7e2127d316962b2ae575e92e8bb1514be1a89f77b291724c6ccedf7f0216f3ac"
+        }
+      ]
+    },
+    "EXP-077": {
+      "archive": "EXP-077_results.tar.gz",
+      "archive_bytes": 6125348,
+      "archive_sha256": "6432702caf8c297a2a5668263fa63103c901541b786e7a1f524b04d2890a1ef3",
+      "source_commit": "37a114ee6b760a25d98a11de64ff5871f07632cd",
+      "arrays_checked": 2,
+      "internal_files_checked": 412,
+      "local_verification": {
+        "exp_id": "EXP-077",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 412,
+        "arrays_sha256_and_header_verified": 2,
+        "embedding_dim": 1152,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-19T09:41:26.257864+00:00"
+      },
+      "checkpoints": [
+        {
+          "exp_id": "EXP-077",
+          "seed": 0,
+          "name": "53b74390daf24d159ad6a628742be673.pt",
+          "path": "/workspace/checkpoints/53b74390daf24d159ad6a628742be673.pt",
+          "bytes": 1756981209,
+          "sha256": "dfb15529c709467f46b49eb090a04f31fe8a317282667ca90b900be04f6ccc9b"
+        }
+      ]
+    },
+    "EXP-078": {
+      "archive": "EXP-078_results.tar.gz",
+      "archive_bytes": 13846935,
+      "archive_sha256": "dfe602ef54992c506ea35c1cc939809b5e4667e6a9f81a60399668552403dae3",
+      "source_commit": "37a114ee6b760a25d98a11de64ff5871f07632cd",
+      "arrays_checked": 6,
+      "internal_files_checked": 432,
+      "local_verification": {
+        "exp_id": "EXP-078",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 432,
+        "arrays_sha256_and_header_verified": 6,
+        "embedding_dim": 1152,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-19T09:41:26.499660+00:00"
+      },
+      "checkpoints": [
+        {
+          "exp_id": "EXP-078",
+          "seed": 0,
+          "name": "37d4f18809ed439393725db947acd69c_seed0.pt",
+          "path": "/workspace/checkpoints/37d4f18809ed439393725db947acd69c_seed0.pt",
+          "bytes": 1715161125,
+          "sha256": "09f35ce1456fe77d8978dfc4225ca5415d43a61a6c9da137f22de8692647d68b"
+        },
+        {
+          "exp_id": "EXP-078",
+          "seed": 1,
+          "name": "37d4f18809ed439393725db947acd69c_seed1.pt",
+          "path": "/workspace/checkpoints/37d4f18809ed439393725db947acd69c_seed1.pt",
+          "bytes": 1715161125,
+          "sha256": "d665c238eaed672cbdb56c36cda93246fc20e3e4646190e499ab45ed1506600f"
+        },
+        {
+          "exp_id": "EXP-078",
+          "seed": 2,
+          "name": "37d4f18809ed439393725db947acd69c_seed2.pt",
+          "path": "/workspace/checkpoints/37d4f18809ed439393725db947acd69c_seed2.pt",
+          "bytes": 1715161125,
+          "sha256": "9a7c72b5fdcc774125588b9e683046485e7628b7eb0cb676a22fbb8f5f84c6a1"
+        }
+      ]
+    },
+    "EXP-082": {
+      "archive": "EXP-082_results.tar.gz",
+      "archive_bytes": 10210336,
+      "archive_sha256": "c85a2122273a2b225835edac650fbdf602608306dae88c96c544a77268d69fb1",
+      "source_commit": "db687d8",
+      "arrays_checked": 4,
+      "internal_files_checked": 425,
+      "local_verification": {
+        "exp_id": "EXP-082",
+        "archive_sha256_verified": true,
+        "files_sha256_verified": 425,
+        "arrays_sha256_and_header_verified": 4,
+        "embedding_dim": 1152,
+        "query_order": "protocol/val_v2/fold0_query.csv",
+        "gallery_order": "protocol/val_v2/fold0_gallery.csv",
+        "native_finite_normalized_and_ap_metric_checks": true,
+        "verified_utc": "2026-09-19T09:41:26.699385+00:00"
+      },
+      "checkpoints": [
+        {
+          "exp_id": "EXP-082",
+          "seed": null,
+          "name": "550deb4e802849068d68efbec53313be.pt",
+          "path": "/workspace/checkpoints/550deb4e802849068d68efbec53313be.pt",
+          "bytes": 1715118617,
+          "sha256": "8f96355c2126937bfff2be9b24a0133d68ebd8b8588cf1d3fe48c1b0ee0e3f83"
+        }
+      ]
+    }
+  },
+  "manifest_sha256": "4f1c90f2e4f3f3f468dbc710d4c46402eb2db2b226c414410154845ddda3f0d1",
+  "checkpoint_manifest_sha256": "80051cbadae6116c63800aa420b1efd32641f2f33d4d3bc5698341c214c3b898",
+  "cleanup": {
+    "created_utc": "2026-09-19T11:23:06.334669+00:00",
+    "scope": "only EXP-075..078/082, queue_b070, the audited EXP-040 recovery run and their temporary runtimes/comparison directories",
+    "backup_manifest_sha256": "4f1c90f2e4f3f3f468dbc710d4c46402eb2db2b226c414410154845ddda3f0d1",
+    "local_and_github_verification_required_before_this_script": true,
+    "own_processes_signalled": [],
+    "own_processes_remaining": [],
+    "removed": [
+      "/workspace/yslfalcon_runs/EXP-040-recovery",
+      "/workspace/yslfalcon_runs/queue_b070",
+      "/workspace/yslfalcon_runs/EXP-075",
+      "/workspace/yslfalcon_runs/EXP-076",
+      "/workspace/yslfalcon_runs/EXP-077",
+      "/workspace/yslfalcon_runs/EXP-078",
+      "/workspace/yslfalcon_runs/EXP-082",
+      "/tmp/EXP-075",
+      "/dev/shm/EXP-075",
+      "/tmp/cmp053",
+      "/tmp/cmp054",
+      "/tmp/cmp079",
+      "/tmp/EXP-054_results.tar.gz",
+      "/tmp/EXP-079_results.tar.gz",
+      "/tmp/yslfalcon_supcon_postprocess.py",
+      "/tmp/yslfalcon_supcon_archive.py",
+      "/tmp/yslfalcon_supcon_bundle.py"
+    ],
+    "already_absent": [],
+    "preserved": [
+      "/workspace/lct2026_data/dataset.zip",
+      "/dev/shm/lct2026",
+      "/workspace/ext_data",
+      "/workspace/checkpoints",
+      "/workspace/handoff_supcon"
+    ],
+    "gpu_before": {
+      "gpus": [
+        "0, GPU-0843bce8-1937-7b6b-4daa-2a1b08dd56e8, 63825, 0",
+        "1, GPU-28048445-7cea-d8cf-455c-67ead6c8c65d, 100461, 0",
+        "2, GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 17598, 0",
+        "3, GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c, 7928, 0"
+      ],
+      "compute_processes": [
+        "GPU-0843bce8-1937-7b6b-4daa-2a1b08dd56e8, 216946, 63816, [Not Found]",
+        "GPU-28048445-7cea-d8cf-455c-67ead6c8c65d, 1654208, 1556, [Not Found]",
+        "GPU-28048445-7cea-d8cf-455c-67ead6c8c65d, 3206680, 98876, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 185634, 2414, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 185632, 4266, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 185631, 4236, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 185615, 4236, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 197882, 2414, [Not Found]",
+        "GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c, 1654213, 1556, [Not Found]",
+        "GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c, 1566669, 860, [Not Found]",
+        "GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c, 2456766, 5492, ./.venv/bin/python"
+      ]
+    },
+    "gpu_after": {
+      "gpus": [
+        "0, GPU-0843bce8-1937-7b6b-4daa-2a1b08dd56e8, 61425, 0",
+        "1, GPU-28048445-7cea-d8cf-455c-67ead6c8c65d, 100461, 0",
+        "2, GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 17598, 0",
+        "3, GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c, 7928, 0"
+      ],
+      "compute_processes": [
+        "GPU-0843bce8-1937-7b6b-4daa-2a1b08dd56e8, 216946, 53608, [Not Found]",
+        "GPU-28048445-7cea-d8cf-455c-67ead6c8c65d, 1654208, 1556, [Not Found]",
+        "GPU-28048445-7cea-d8cf-455c-67ead6c8c65d, 3206680, 98876, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 185634, 2414, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 185632, 4266, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 185631, 4236, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 185615, 4236, [Not Found]",
+        "GPU-ea55bdac-a0e0-5eee-7ce9-66d9a35f585a, 197882, 2414, [Not Found]",
+        "GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c, 1654213, 1556, [Not Found]",
+        "GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c, 1566669, 860, [Not Found]",
+        "GPU-07af2270-cff6-be7a-2a15-5d1b8ace666c, 2456766, 5492, ./.venv/bin/python"
+      ]
+    },
+    "foreign_processes_untouched": true
+  }
+}
