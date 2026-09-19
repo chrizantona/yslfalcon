@@ -1,0 +1,4 @@
+# Third pod: VERI-Wild pretraining with ArcFace (imprinting) + SupCon (EXP-077, one seed, ~45 GB, ~1 h), then the
+# EXP-053 recipe from it (EXP-078, three seeds, ~45 GB each). Edit the GPU numbers only.
+EXP-077 configs/exp077_pretrain_veriwild_siglip2_arcface_supcon.yaml 3 3 1
+EXP-078 configs/exp078_siglip2_supcon_init_exp077.yaml 3 3,0,1 1

@@ -1,6 +1,7 @@
 """Train a ReID model (ID + batch-hard triplet loss, BNNeck, PK sampler) on protocol folds, evaluate on the dev fold.
 
-train.metric_loss: {type: supcon, temperature: t} replaces the triplet loss with supervised contrastive loss.
+train.metric_loss: {type: supcon, temperature: t} replaces the triplet loss with supervised contrastive loss;
+{type: supcon+triplet, temperature: t} adds both (triplet with train.triplet_margin).
 
 train.source switches training to an external set or a list of them (pretraining); model.init_checkpoint starts from a pretrained backbone.
 
@@ -230,7 +231,7 @@ def main():
         optimizer, warmup_cosine(tcfg["epochs"] * len(sampler), tcfg["warmup_epochs"] * len(sampler)))
     id_loss = torch.nn.CrossEntropyLoss(label_smoothing=tcfg["label_smoothing"])
     metric_loss = tcfg.get("metric_loss", {"type": "triplet"})
-    if metric_loss["type"] not in ("triplet", "supcon"):
+    if metric_loss["type"] not in ("triplet", "supcon", "supcon+triplet"):
         raise ValueError(f"unknown metric loss {metric_loss['type']}")
 
     images_dir = Path(data_cfg["dataset_dir"]) / "images"
@@ -271,6 +272,9 @@ def main():
             loss_id = id_loss(logits.float(), y)
             if metric_loss["type"] == "supcon":
                 loss_metric = supervised_contrastive(feat.float(), y, metric_loss["temperature"])
+            elif metric_loss["type"] == "supcon+triplet":
+                loss_metric = (supervised_contrastive(feat.float(), y, metric_loss["temperature"])
+                               + batch_hard_triplet(feat.float(), y, tcfg["triplet_margin"]))
             else:
                 loss_metric = batch_hard_triplet(feat.float(), y, tcfg["triplet_margin"])
             optimizer.zero_grad(set_to_none=True)

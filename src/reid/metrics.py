@@ -72,8 +72,9 @@ def zscore(sim):
     return (sim - sim.mean(1, keepdims=True)) / np.maximum(sim.std(1, keepdims=True), 1e-12)
 
 
-def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201):
-    """Candidate mode scored as the organisers do, for a grid of thresholds on the top-1 z-score.
+def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=None):
+    """Candidate mode scored as the organisers do, for a grid of thresholds on the top-1 z-score, or on another
+    per-query confidence when one is given (reid.refusal_confidence); the ranking stays the same.
 
     A query is answered when its best gallery item has z >= t; answered queries list their top items in candidates.csv.
     The decisive candidate is the first listed one that is not junk (same vehicle AND camera), as for mAP@10; the
@@ -90,7 +91,7 @@ def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201):
     correct = g_pid[decisive] == q_pid
     correct_strict = same[:, 0] & ~junk[:, 0]
     has_pair = ((g_pid[None, :] == q_pid[:, None]) & (g_cam[None, :] != q_cam[:, None])).any(1)
-    top_z = z[rows, order[:, 0]]
+    top_z = z[rows, order[:, 0]] if confidence is None else np.asarray(confidence)
 
     def confusion(answered, right):
         tp = (answered & has_pair & right).sum()

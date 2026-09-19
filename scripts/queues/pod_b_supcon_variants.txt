@@ -1,0 +1,5 @@
+# Third pod: EXP-053 variants. EXP-075 (8 images per vehicle, batch 256) needs ~82 GB per seed (measured on H200):
+# put its seeds on GPUs with >= 90 GB free, one seed per GPU. EXP-076 needs ~45 GB per seed like EXP-053.
+# Format: <EXP> <config> <benchmark GPU> <seed GPUs> <seeds in parallel: 1|0>; edit the GPU numbers only.
+EXP-075 configs/exp075_siglip2_supcon_k8.yaml 0 0,1,2 1
+EXP-076 configs/exp076_siglip2_supcon_triplet.yaml 0 0,1,2 1
