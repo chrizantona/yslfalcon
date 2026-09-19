@@ -18,12 +18,28 @@ from reid.embed import embed_boxes, pick_device
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
 from reid.models import ReIDModel, build_backbone, checkpoint_name
 from reid.afem_models import KINDS as AFEM_KINDS, build_extended_model
+from reid.paper_models import build_paper_model
 
 
 def average_state_dicts(states):
     """Floating-point tensors are averaged; integer buffers (BN batch counters) are taken from the first state."""
     return {k: torch.stack([s[k].float() for s in states]).mean(0).to(v.dtype) if v.is_floating_point() else v
             for k, v in states[0].items()}
+
+
+def build_soup_model(cfg, data_cfg, state):
+    """Rebuild the exact training architecture around an averaged state dict."""
+    model_cfg = cfg["model"]
+    if model_cfg.get("arch"):
+        n_classes = state["classifiers.0.weight"].shape[0]
+        return build_paper_model(model_cfg, n_classes, load_pretrained=False)
+    if model_cfg["backbone"] in AFEM_KINDS:
+        n_classes = state["classifier.weight"].shape[0]
+        return build_extended_model(model_cfg, n_classes, load_pretrained=False,
+                                    head=cfg["train"]["id_head"])
+    backbone, feat_dim, mean, std = build_backbone(
+        model_cfg, data_cfg.get("external_weights_dir"), load_pretrained=False)
+    return ReIDModel(backbone, feat_dim, state["classifier.weight"].shape[0]), feat_dim, mean, std
 
 
 def main():
@@ -39,12 +55,7 @@ def main():
     checkpoints = Path(data_cfg["checkpoint_dir"])
     soup = average_state_dicts([torch.load(checkpoints / name, map_location="cpu")["state_dict"]
                                 for name in cfg["checkpoints"]])
-    if cfg["model"]["backbone"] in AFEM_KINDS:
-        model, feat_dim, mean, std = build_extended_model(cfg["model"], soup["classifier.weight"].shape[0],
-                                                        load_pretrained=False, head=cfg["train"]["id_head"])
-    else:
-        backbone, feat_dim, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"), load_pretrained=False)
-        model = ReIDModel(backbone, feat_dim, soup["classifier.weight"].shape[0])
+    model, feat_dim, mean, std = build_soup_model(cfg, data_cfg, soup)
     model.load_state_dict(soup)
     name = checkpoint_name(cfg)
     if (checkpoints / name).exists():

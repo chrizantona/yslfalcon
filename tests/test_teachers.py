@@ -4,7 +4,7 @@ import torch
 
 from reid.ensemble import mean_embedding
 from reid.models import ReIDModel, build_backbone
-from reid.soup import average_state_dicts
+from reid.soup import average_state_dicts, build_soup_model
 from reid.teachers import FastReIDResNet50IBN, load_clipreid, load_fastreid
 
 
@@ -49,6 +49,22 @@ def test_soup_averages_floats_and_keeps_integer_buffers():
     states = [{"w": torch.tensor([1.0, 3.0]), "n": torch.tensor(5)}, {"w": torch.tensor([3.0, 5.0]), "n": torch.tensor(7)}]
     soup = average_state_dicts(states)
     assert torch.equal(soup["w"], torch.tensor([2.0, 4.0])) and soup["n"].item() == 5
+
+
+def test_soup_rebuilds_paper_architecture_from_modulelist_classifier(monkeypatch):
+    captured = {}
+
+    def fake_builder(cfg, n_classes, load_pretrained):
+        captured.update(cfg=cfg, n_classes=n_classes, load_pretrained=load_pretrained)
+        return torch.nn.Identity(), 7, (0.1,) * 3, (0.2,) * 3
+
+    monkeypatch.setattr("reid.soup.build_paper_model", fake_builder)
+    model_cfg = {"arch": "clip_senet", "backbone": "paper"}
+    model, dim, mean, std = build_soup_model(
+        {"model": model_cfg}, {"external_weights_dir": "/unused"},
+        {"classifiers.0.weight": torch.empty(11, 7)})
+    assert isinstance(model, torch.nn.Identity) and (dim, mean, std) == (7, (0.1,) * 3, (0.2,) * 3)
+    assert captured == {"cfg": model_cfg, "n_classes": 11, "load_pretrained": False}
 
 
 def test_fastreid_backbone_for_training_drops_its_bn_and_fits_reidmodel(tmp_path):
