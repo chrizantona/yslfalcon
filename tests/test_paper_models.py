@@ -68,6 +68,19 @@ def test_afem_rejects_unknown_formula():
         AFEM(in_dim=6, dim=4, groups=3, mode="guess")
 
 
+def test_compact_afem_scales_channel_groups_without_full_vector_copies():
+    afem = AFEM(in_dim=6, dim=12, groups=3, mode="compact_group_scale").eval()
+    ts = torch.randn(5, 6)
+    f = afem.linear(ts)
+    assert afem.linear[0].out_features == 12 and afem.weights.shape == (3, 1)
+    torch.nn.init.zeros_(afem.weights)
+    assert torch.allclose(afem(ts), f)
+    torch.nn.init.ones_(afem.weights)
+    assert torch.allclose(afem(ts), 2 * f)
+    with pytest.raises(ValueError, match="must be divisible"):
+        AFEM(in_dim=6, dim=10, groups=3, mode="compact_group_scale")
+
+
 def test_clip_senet_semantic_bn_is_an_explicit_option():
     cfg = {"input_hw": [32, 32], "embedding_dim": 16, "afem_groups": 2, "semantic_bn": True,
            "semantic": {"patch": 32, "width": 20, "depth": 1, "heads": 2, "mlp": 40, "dim": 8}}

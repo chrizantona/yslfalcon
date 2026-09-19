@@ -63,20 +63,32 @@ class AFEM(nn.Module):
     """Adaptive fine-grained enhancement: Linear -> BN -> ReLU gives G+1 vectors.
 
     ``paper_sum`` follows the prose and Fig. 2 of CLIP-SENet: retain one vector and add the weighted sum of the other
-    G group vectors. ``legacy_gate`` preserves the EXP-055--088 implementation so old checkpoints remain reproducible.
+    G group vectors. ``compact_group_scale`` follows the complexity table's plausible compact reading: make one
+    vector, split its channels into G groups and learn one residual scale per group. ``legacy_gate`` preserves the
+    EXP-055--088 implementation so old checkpoints remain reproducible.
     """
 
     def __init__(self, in_dim, dim, groups, mode="legacy_gate"):
         super().__init__()
         self.groups, self.dim = groups, dim
-        if mode not in {"legacy_gate", "paper_sum"}:
+        if mode not in {"legacy_gate", "paper_sum", "compact_group_scale"}:
             raise ValueError(f"unknown AFEM mode: {mode}")
         self.mode = mode
-        self.linear = nn.Sequential(nn.Linear(in_dim, (groups + 1) * dim), nn.BatchNorm1d((groups + 1) * dim),
-                                    nn.ReLU(inplace=True))
-        self.weights = nn.Parameter(torch.randn(groups, dim))
+        if mode == "compact_group_scale":
+            if dim % groups:
+                raise ValueError(f"AFEM dim {dim} must be divisible by {groups} groups")
+            self.linear = nn.Sequential(nn.Linear(in_dim, dim), nn.BatchNorm1d(dim), nn.ReLU(inplace=True))
+            self.weights = nn.Parameter(torch.randn(groups, 1))
+        else:
+            self.linear = nn.Sequential(nn.Linear(in_dim, (groups + 1) * dim),
+                                        nn.BatchNorm1d((groups + 1) * dim), nn.ReLU(inplace=True))
+            self.weights = nn.Parameter(torch.randn(groups, dim))
 
     def forward(self, ts):
+        if self.mode == "compact_group_scale":
+            f = self.linear(ts)
+            groups = f.view(len(ts), self.groups, self.dim // self.groups)
+            return f + (groups * self.weights).flatten(1)
         f = self.linear(ts).view(len(ts), self.groups + 1, self.dim)
         if self.mode == "paper_sum":
             groups, kept = f[:, :self.groups], f[:, self.groups]
