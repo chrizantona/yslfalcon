@@ -1,0 +1,48 @@
+{
+  "release_url": "https://github.com/chrizantona/yslfalcon/releases/tag/exp-135",
+  "release_id": 392250042,
+  "protocol": "val_v2",
+  "dev_fold": 0,
+  "holdout_fold_untouched": 4,
+  "tests": "93 passed",
+  "experiments": {
+    "EXP-132": {
+      "tag_commit": "9eb5c0219f3bce3a6ccd1a98c1ecf6318e5cb240",
+      "mAP10": 0.815434681446115,
+      "archive": "EXP-132-results.tar.gz",
+      "archive_bytes": 30230152,
+      "archive_sha256": "a010885ccf1d585956ffa12320ceac24c09c01225182374ad5a53a8e9d302622"
+    },
+    "EXP-133": {
+      "tag_commit": "f687d31f7dcf38045d6c2b8d1b524d1c4ae993b4",
+      "mAP10": 0.8307776777279856,
+      "archive": "EXP-133-results.tar.gz",
+      "archive_bytes": 30254438,
+      "archive_sha256": "61843bb197f3506add3fbef12ba9ff41d3b312bee0d9b17effe63985f7e71c4a"
+    },
+    "EXP-134": {
+      "tag_commit": "f687d31f7dcf38045d6c2b8d1b524d1c4ae993b4",
+      "mAP10": 0.8311378278957435,
+      "archive": "EXP-134-results.tar.gz",
+      "archive_bytes": 30268074,
+      "archive_sha256": "ca6a4db518d1322c03d0816c9743fef089da7c63fccb9aed2335cf096e4c4a05"
+    },
+    "EXP-135": {
+      "tag_commit": "ea573b4fd47a3211daa1930fe41e86c5b88c48ca",
+      "mAP10": 0.8234936747590661,
+      "archive": "EXP-135-results.tar.gz",
+      "archive_bytes": 30316645,
+      "archive_sha256": "2897ea470dd0ed62ec24550f89b12a1e9af79c76d19160624361ec542ad7a62a"
+    }
+  },
+  "checkpoints_on_pod": {
+    "EXP-132": {
+      "name": "4380f105f2324d8c8abf7f53303e984f.pt",
+      "sha256": "1dd9d8ba572bcd540d2cd25f8481438d20762d96b41ff7aa3e6ec419a39eae2b"
+    },
+    "EXP-135": {
+      "name": "dadd0264aaf240968e57f3c847423977.pt",
+      "sha256": "0ccd18c7edd762d166a0c6e7cc30234a965622e266b2f5d4bb21c50b003fbb5c"
+    }
+  }
+}
