@@ -1,0 +1,6 @@
+# H200 pod, 19.09.2026: sequential CLIP-SENet audit on GPU 2. Existing foreign processes are not changed.
+# EXP-085 tests VehicleID initialisation; EXP-086 small-data schedule; EXP-087 semantic BN; EXP-088 differential LR.
+EXP-085 configs/exp085_clip_senet_public_init_long.yaml 2 2 0
+EXP-086 configs/exp086_clip_senet_public_init_paper_small.yaml 2 2 0
+EXP-087 configs/exp087_clip_senet_semantic_bn.yaml 2 2 0
+EXP-088 configs/exp088_clip_senet_differential_lr.yaml 2 2 0

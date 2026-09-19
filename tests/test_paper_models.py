@@ -9,7 +9,7 @@ from timm.models.vision_transformer import VisionTransformer
 
 from reid.paper_models import AFEM, CLIPSENet, GeM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
 from reid.train import CropDataset
-from reid.train_paper import build_paper_scheduler, paper_loss, warmup_multistep
+from reid.train_paper import build_paper_optimizer, build_paper_scheduler, paper_loss, warmup_multistep
 
 
 def test_tinyclip_weights_map_onto_timm_vit_with_resampled_positions():
@@ -58,6 +58,12 @@ def test_clip_senet_semantic_bn_is_an_explicit_option():
            "semantic": {"patch": 32, "width": 20, "depth": 1, "heads": 2, "mlp": 40, "dim": 8}}
     model = CLIPSENet(cfg, n_classes=3, load_pretrained=False)
     assert isinstance(model.semantic_norm, torch.nn.BatchNorm1d) and model.semantic_norm.num_features == 8
+    optimizer = build_paper_optimizer(model, {"weight_decay": 5e-4,
+                                               "lr_groups": {"cnn": 3.5e-5, "clip": 1e-5, "new": 5e-4}})
+    assert {group["branch"]: group["lr"] for group in optimizer.param_groups} == {
+        "cnn": 3.5e-5, "clip": 1e-5, "new": 5e-4}
+    grouped = [p for group in optimizer.param_groups for p in group["params"]]
+    assert len(grouped) == len({id(p) for p in grouped}) == len(list(model.parameters()))
 
 
 def test_shifted_window_mask_separates_regions_wrapped_by_the_shift():

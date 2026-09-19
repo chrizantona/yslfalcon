@@ -82,3 +82,4 @@ EXP-084,EXP-054,inconclusive,EXP-054 замороженный + обучаема
 EXP-085,EXP-056,running,CLIP-SENet с исходных публичных весов вместо VehicleID-чекпоинта EXP-055; длинный рецепт EXP-056 без изменений,0,,,,,,,,,,,,,,,,,exp085_seed0.pt
 EXP-086,EXP-085,running,расписание CLIP-SENet для небольшого датасета: 24 эпохи Adam 5e-4 cosine вместо 120 эпох WarmupMultiStepLR,0,,,,,,,,,,,,,,,,,exp086_seed0.pt
 EXP-087,EXP-086,running,semantic BatchNorm после TinyCLIP как в Algorithm 1 статьи; остальное как EXP-086,0,,,,,,,,,,,,,,,,,exp087_seed0.pt
+EXP-088,EXP-087,running,раздельный lr: TinyCLIP 1e-5 ResNeXt 3.5e-5 новые слои 5e-4; остальное как EXP-087,0,,,,,,,,,,,,,,,,,exp088_seed0.pt

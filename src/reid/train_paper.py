@@ -50,6 +50,32 @@ def build_paper_scheduler(optimizer, train_cfg):
     raise ValueError(f"unknown paper scheduler: {kind}")
 
 
+def build_paper_optimizer(model, train_cfg):
+    """Adam from the paper, optionally with separate rates for the pretrained CNN/CLIP towers and new layers."""
+    rates = train_cfg.get("lr_groups")
+    if not rates:
+        return torch.optim.Adam(model.parameters(), lr=train_cfg["lr"], weight_decay=train_cfg["weight_decay"])
+    if not all(hasattr(model, name) for name in ("cnn", "clip", "clip_proj", "semantic_norm", "fuse", "afem",
+                                                  "classifiers")):
+        raise ValueError("lr_groups cnn/clip/new are supported only for CLIP-SENet")
+    modules = {
+        "cnn": [model.cnn],
+        "clip": [model.clip, model.clip_proj],
+        "new": [model.semantic_norm, model.fuse, model.afem, model.classifiers],
+    }
+    groups, seen = [], set()
+    for branch, branch_modules in modules.items():
+        parameters = [p for module in branch_modules for p in module.parameters() if p.requires_grad]
+        if any(id(p) in seen for p in parameters):
+            raise ValueError(f"duplicate parameter in paper optimiser group {branch}")
+        seen.update(map(id, parameters))
+        groups.append({"params": parameters, "lr": float(rates[branch]), "branch": branch})
+    expected = {id(p) for p in model.parameters() if p.requires_grad}
+    if seen != expected:
+        raise ValueError(f"paper optimiser groups miss {len(expected - seen)} trainable parameters")
+    return torch.optim.Adam(groups, weight_decay=train_cfg["weight_decay"])
+
+
 def paper_loss(embeddings, logits, labels, loss_cfg, cross_entropy):
     """(sum over the supervised embeddings, the loss of every branch)."""
     branches = []
@@ -89,7 +115,7 @@ def main():
         if unexpected or any(not k.startswith("classifiers.") for k in missing):
             raise ValueError(f"checkpoint does not match the model: {missing} {unexpected}")
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=tcfg["lr"], weight_decay=tcfg["weight_decay"])
+    optimizer = build_paper_optimizer(model, tcfg)
     scheduler = build_paper_scheduler(optimizer, tcfg)
 
     P, K = tcfg["vehicles_per_batch"], tcfg["images_per_vehicle"]
@@ -135,6 +161,8 @@ def main():
                   "loss_branches": [round(v / steps, 4) for v in branch_totals.tolist()],
                   "lr": optimizer.param_groups[0]["lr"], "img_per_s": steps * P * K / (time.time() - epoch_start),
                   "elapsed_min": (time.time() - start) / 60}
+        if tcfg.get("lr_groups"):
+            record["lr_groups"] = {group["branch"]: group["lr"] for group in optimizer.param_groups}
         if hasattr(model, "pools"):
             record["gem_p"] = [round(pool.p.item(), 3) for pool in model.pools]
         scheduler.step()
