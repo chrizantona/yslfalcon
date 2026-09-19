@@ -173,7 +173,7 @@ def class_centres(embeddings, k, iterations=10):
         nearest = (embeddings @ centres.T).argmax(1)
         centres = torch.stack([F.normalize(embeddings[nearest == c].mean(0), dim=0) if (nearest == c).any()
                                else centres[c] for c in range(len(centres))])
-    return torch.cat([centres, centres[: k - len(centres)]]) if len(centres) < k else centres
+    return centres[torch.arange(k) % len(centres)]  # fewer images than centres: the centres repeat cyclically
 
 
 @torch.no_grad()

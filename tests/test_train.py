@@ -88,16 +88,16 @@ def test_sub_centre_arcface_scores_a_class_by_its_closest_centre():
     head = MarginClassifier(feat_dim=2, n_classes=2, kind="arcface", scale=30.0, margin=0.5, sub_centers=2)
     # class 0: centres at 0 and 90 degrees; class 1: both at 180 degrees
     head.weight.data = torch.tensor([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [-1.0, 0.0]])
-    emb = torch.tensor([[0.0, 1.0]])  # exactly the second centre of class 0
-    logits = head(emb, torch.tensor([0]))
+    closest = MarginClassifier(feat_dim=2, n_classes=2, kind="arcface", scale=30.0, margin=0.5)
+    closest.weight.data = torch.tensor([[0.0, 1.0], [-1.0, 0.0]])  # only the nearer centre of each class
+    emb, labels = torch.tensor([[0.3, 1.0]]), torch.tensor([0])
+    logits = head(emb, labels)
     assert logits.shape == (1, 2)
-    assert torch.allclose(logits[0, 1], torch.tensor(30 * -0.0), atol=1e-6)  # cos 90 degrees to class 1
-    assert torch.allclose(logits[0, 0], torch.tensor(30 * math.cos(0.5)), atol=1e-6)  # margin on the closest centre
+    assert torch.allclose(logits, closest(emb, labels), atol=1e-6)  # the far centre of class 0 never counts
     doubled = MarginClassifier(feat_dim=2, n_classes=2, kind="arcface", scale=30.0, margin=0.5, sub_centers=2)
     doubled.weight.data = torch.tensor([[1.0, 0.0], [1.0, 0.0], [-1.0, 0.0], [-1.0, 0.0]])
     single = MarginClassifier(feat_dim=2, n_classes=2, kind="arcface", scale=30.0, margin=0.5)
-    single.weight.data = torch.tensor([[1.0, 0.0], [-1.0, 0.0]])
-    labels = torch.tensor([0])  # repeated centres reproduce the one-centre head exactly
+    single.weight.data = torch.tensor([[1.0, 0.0], [-1.0, 0.0]])  # repeated centres reproduce the one-centre head
     assert torch.allclose(doubled(emb, labels), single(emb, labels), atol=1e-6)
 
 
