@@ -94,6 +94,8 @@ class CLIPSENet(nn.Module):
             self.clip.load_state_dict(tinyclip_state_for_timm(tiny, (h // s["patch"], w // s["patch"])))
             self.clip_proj.weight.data.copy_(tiny["visual_projection.weight"])
         dim = cfg["embedding_dim"]
+        # Algorithm 1 of CLIP-SENet explicitly defines T^s = BN(I(X)). EXP-055/056 omitted this normalisation.
+        self.semantic_norm = nn.BatchNorm1d(s["dim"]) if cfg.get("semantic_bn") else nn.Identity()
         self.fuse = nn.Linear(s["dim"] + 2048, dim)
         self.afem = AFEM(s["dim"], dim, cfg["afem_groups"])
         self.classifiers = nn.ModuleList([nn.Linear(dim, n_classes)])
@@ -104,7 +106,7 @@ class CLIPSENet(nn.Module):
 
     def forward(self, x):
         ta = self.cnn(x).mean((2, 3))
-        ts = self.clip_proj(self.clip(x * self.clip_scale + self.clip_shift))
+        ts = self.semantic_norm(self.clip_proj(self.clip(x * self.clip_scale + self.clip_shift)))
         t = self.fuse(torch.cat([ts, ta], 1)) + self.afem(ts)
         if not self.training:
             return t

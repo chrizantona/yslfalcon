@@ -7,7 +7,7 @@ import pytest
 import torch
 from timm.models.vision_transformer import VisionTransformer
 
-from reid.paper_models import AFEM, GeM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
+from reid.paper_models import AFEM, CLIPSENet, GeM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
 from reid.train import CropDataset
 from reid.train_paper import build_paper_scheduler, paper_loss, warmup_multistep
 
@@ -51,6 +51,13 @@ def test_afem_gates_the_kept_vector_with_the_weighted_groups():
     assert torch.allclose(afem(ts), f[:, 0])
     torch.nn.init.ones_(afem.weights)
     assert torch.allclose(afem(ts), f[:, 0] * (1 + f[:, 1:].sum(1)))
+
+
+def test_clip_senet_semantic_bn_is_an_explicit_option():
+    cfg = {"input_hw": [32, 32], "embedding_dim": 16, "afem_groups": 2, "semantic_bn": True,
+           "semantic": {"patch": 32, "width": 20, "depth": 1, "heads": 2, "mlp": 40, "dim": 8}}
+    model = CLIPSENet(cfg, n_classes=3, load_pretrained=False)
+    assert isinstance(model.semantic_norm, torch.nn.BatchNorm1d) and model.semantic_norm.num_features == 8
 
 
 def test_shifted_window_mask_separates_regions_wrapped_by_the_shift():
