@@ -26,6 +26,7 @@ stage train
 SEEDS=$(sed -n 's/^seeds: *\[\(.*\)\].*/\1/p' "$CONFIG" | tr ',' ' ')
 TRAIN_MODULE=reid.train
 if grep -q '^  arch:' "$CONFIG"; then TRAIN_MODULE=reid.train_paper; fi  # reproduced architectures, reid.paper_models
+if grep -q '^  local:' "$CONFIG"; then TRAIN_MODULE=reid.train_local; fi  # local patch branch on frozen EXP-054
 PIDS=()
 cleanup_seeds() {
   local rc=$?

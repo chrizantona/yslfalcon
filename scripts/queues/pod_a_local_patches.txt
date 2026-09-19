@@ -1,0 +1,4 @@
+# Second pod (rougenn), 19.09.2026: local patch branch on the frozen EXP-054 soup. EXP-083 is scored only (one run,
+# nothing trained); EXP-084 trains the head, three seeds in parallel on GPUs 1/2/3 (backbone frozen, head only).
+EXP-083 configs/exp083_exp054_local_mean.yaml 1 1 0
+EXP-084 configs/exp084_exp054_local_attention.yaml 1 1,2,3 1

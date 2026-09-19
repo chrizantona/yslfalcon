@@ -13,6 +13,9 @@ def load_trained_encoder(model_cfg, checkpoint, external_weights_dir=None, sha25
         with open(checkpoint, "rb") as stream:
             if hashlib.file_digest(stream, "sha256").hexdigest() != sha256:
                 raise ValueError(f"checkpoint checksum mismatch: {checkpoint}")
+    if model_cfg.get("local"):  # reid.local_patches: frozen EXP-054 + local patch head; it loads its base through here
+        from reid.local_patches import load_local_encoder
+        return load_local_encoder(model_cfg, checkpoint, external_weights_dir)
     saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
     state = saved["state_dict"]
     if model_cfg.get("backbone") in AFEM_KINDS:
