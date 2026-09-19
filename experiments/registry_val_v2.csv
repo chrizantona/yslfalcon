@@ -101,3 +101,4 @@ EXP-123,EXP-061,running,"stabilised OT-GFAM + GLPE: stage-3 BN, softplus log-spa
 EXP-124,EXP-123,running,"signed log-space GeM: positive power mean minus negative power mean; all other settings match EXP-123",0,,,,,,,,,,,,,,,,,exp124_seed0.pt
 EXP-125,EXP-123,running,"standard ReLU before stable log-space GeM instead of softplus; all other settings match EXP-123",0,,,,,,,,,,,,,,,,,exp125_seed0.pt
 EXP-126,EXP-124,running,"EXP-124 trained on public VERI-Wild test (138517 images and 10000 vehicles) instead of LCT folds; everything else unchanged",0,,,,,,,,,,,,,,,,,ab72fcefc8334f0bb7ccbba07e6df586.pt
+EXP-127,EXP-125,running,"EXP-125 trained on public VERI-Wild test (138517 images and 10000 vehicles) instead of LCT folds; everything else unchanged",0,,,,,,,,,,,,,,,,,29c54de75dd7402eac0d4bc5e4aa1b59.pt
