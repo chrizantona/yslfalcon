@@ -43,7 +43,7 @@ def test_tinyclip_weights_map_onto_timm_vit_with_resampled_positions():
     assert vit(torch.randn(2, 3, 24, 24)).shape == (2, width)
 
 
-def test_afem_gates_the_kept_vector_with_the_weighted_groups():
+def test_legacy_afem_gates_the_kept_vector_with_the_weighted_groups():
     afem = AFEM(in_dim=6, dim=4, groups=3).eval()
     ts = torch.randn(5, 6)
     f = afem.linear(ts).view(5, 4, 4)
@@ -51,6 +51,21 @@ def test_afem_gates_the_kept_vector_with_the_weighted_groups():
     assert torch.allclose(afem(ts), f[:, 0])
     torch.nn.init.ones_(afem.weights)
     assert torch.allclose(afem(ts), f[:, 0] * (1 + f[:, 1:].sum(1)))
+
+
+def test_paper_afem_adds_the_weighted_groups_to_the_retained_vector():
+    afem = AFEM(in_dim=6, dim=4, groups=3, mode="paper_sum").eval()
+    ts = torch.randn(5, 6)
+    f = afem.linear(ts).view(5, 4, 4)
+    torch.nn.init.zeros_(afem.weights)
+    assert torch.allclose(afem(ts), f[:, 3])
+    torch.nn.init.ones_(afem.weights)
+    assert torch.allclose(afem(ts), f[:, 3] + f[:, :3].sum(1))
+
+
+def test_afem_rejects_unknown_formula():
+    with pytest.raises(ValueError, match="unknown AFEM mode"):
+        AFEM(in_dim=6, dim=4, groups=3, mode="guess")
 
 
 def test_clip_senet_semantic_bn_is_an_explicit_option():

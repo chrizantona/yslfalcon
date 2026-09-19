@@ -60,19 +60,27 @@ def tinyclip_state_for_timm(state, grid):
 
 
 class AFEM(nn.Module):
-    """Adaptive fine-grained enhancement: Linear -> BN -> ReLU gives G+1 vectors; the G group vectors, weighted by
-    learnable w_i (standard normal init), gate the kept vector: T^s' = f + f * sum_i(w_i * g_i). This is our reading of
-    the paper's text; its formula as printed (sum of w_i * f(T^s)) collapses to a fixed per-channel scale."""
+    """Adaptive fine-grained enhancement: Linear -> BN -> ReLU gives G+1 vectors.
 
-    def __init__(self, in_dim, dim, groups):
+    ``paper_sum`` follows the prose and Fig. 2 of CLIP-SENet: retain one vector and add the weighted sum of the other
+    G group vectors. ``legacy_gate`` preserves the EXP-055--088 implementation so old checkpoints remain reproducible.
+    """
+
+    def __init__(self, in_dim, dim, groups, mode="legacy_gate"):
         super().__init__()
         self.groups, self.dim = groups, dim
+        if mode not in {"legacy_gate", "paper_sum"}:
+            raise ValueError(f"unknown AFEM mode: {mode}")
+        self.mode = mode
         self.linear = nn.Sequential(nn.Linear(in_dim, (groups + 1) * dim), nn.BatchNorm1d((groups + 1) * dim),
                                     nn.ReLU(inplace=True))
         self.weights = nn.Parameter(torch.randn(groups, dim))
 
     def forward(self, ts):
         f = self.linear(ts).view(len(ts), self.groups + 1, self.dim)
+        if self.mode == "paper_sum":
+            groups, kept = f[:, :self.groups], f[:, self.groups]
+            return kept + (self.weights * groups).sum(1)
         kept = f[:, 0]
         return kept + kept * (self.weights * f[:, 1:]).sum(1)
 
@@ -97,7 +105,7 @@ class CLIPSENet(nn.Module):
         # Algorithm 1 of CLIP-SENet explicitly defines T^s = BN(I(X)). EXP-055/056 omitted this normalisation.
         self.semantic_norm = nn.BatchNorm1d(s["dim"]) if cfg.get("semantic_bn") else nn.Identity()
         self.fuse = nn.Linear(s["dim"] + 2048, dim)
-        self.afem = AFEM(s["dim"], dim, cfg["afem_groups"])
+        self.afem = AFEM(s["dim"], dim, cfg["afem_groups"], cfg.get("afem_mode", "legacy_gate"))
         self.classifiers = nn.ModuleList([nn.Linear(dim, n_classes)])
         scale = torch.tensor(IMAGENET_STD) / torch.tensor(CLIP_STD)
         self.register_buffer("clip_scale", scale.view(1, 3, 1, 1), persistent=False)
