@@ -1,0 +1,22 @@
+exp_id: EXP-134
+parent: EXP-133
+description: EXP-133 with local block scale 0.125 instead of 0.25
+checkpoint: 4380f105f2324d8c8abf7f53303e984f.pt
+checkpoint_sha256: 1dd9d8ba572bcd540d2cd25f8481438d20762d96b41ff7aa3e6ec419a39eae2b
+model:
+  arch: clip_convnext_glpe_hybrid
+  backbone: clip
+  name: convnext_large_d_320
+  pretrained: laion2b_s29b_b131k_ft_soup
+  weights: clip/convnext_large_d_320_ft_soup.safetensors
+  sha256: 1a8e47bdefd6d36202ec66a8975edda9e3c89560bcd1ecefe6f676311637a671
+  input_hw: [320, 320]
+  embedding_dim: 8448
+  freeze_base: true
+  gem_p: 3.0
+  gem_input_activation: clamp
+  local_scale: 0.125
+embed: {batch_size: 256, num_workers: 8}
+eval_fold: 0
+refusal: {max_candidates: 10, min_tnr: 0.5, threshold: null}
+benchmark: {precision: fp32}
