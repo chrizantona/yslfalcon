@@ -72,7 +72,8 @@ fi
 
 stage benchmark  # after training, so the seeds don't share the GPU with the measurement
 CHECKPOINT_DIR=$(sed -n 's/^checkpoint_dir: *\([^ #]*\).*/\1/p' "$DATA_CFG")
-CHECKPOINT=$($PY -c "import json, sys; print(json.load(open(sys.argv[1]))['checkpoint'])" "artifacts/$EXP/seed0/metrics.json")
+FIRST_SEED=$(echo $SEEDS | awk '{print $1}')  # seed 0 is not always trained (EXP-072 has seeds 3-5)
+CHECKPOINT=$($PY -c "import json, sys; print(json.load(open(sys.argv[1]))['checkpoint'])" "artifacts/$EXP/seed$FIRST_SEED/metrics.json")
 $PY -m reid.benchmark --data-config "$DATA_CFG" --config "$CONFIG" --checkpoint "$CHECKPOINT_DIR/$CHECKPOINT" \
   > logs/benchmark.log 2>&1
 
