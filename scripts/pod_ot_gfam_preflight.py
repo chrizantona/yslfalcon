@@ -1,4 +1,5 @@
-"""Real LCT batch check for the stabilised OT-GFAM + GLPE experiment."""
+"""Real LCT batch check for a stabilised OT-GFAM + GLPE experiment."""
+import argparse
 import json
 from pathlib import Path
 
@@ -11,7 +12,10 @@ from reid.train import CropDataset, PKSampler, training_table
 from reid.train_paper import build_paper_optimizer, paper_loss
 
 
-cfg = load_yaml("configs/exp123_ot_gfam_stable.yaml")
+parser = argparse.ArgumentParser()
+parser.add_argument("--config", default="configs/exp123_ot_gfam_stable.yaml")
+args = parser.parse_args()
+cfg = load_yaml(args.config)
 data = load_yaml("configs/data.yaml")
 val = load_yaml("configs/val_v2.yaml")
 tcfg = cfg["train"]
@@ -23,7 +27,8 @@ table, crops, classes = training_table(cfg, data, val)
 assert len(table) == 5725 and len(classes) == 924
 model, dim, mean, std = build_paper_model(cfg["model"], len(classes), data["external_weights_dir"])
 assert dim == 6 * 768
-assert all(pool.input_activation == "softplus" and pool.min_p == 1.0 for pool in model.pools)
+activation = cfg["model"]["gem_input_activation"]
+assert all(pool.input_activation == activation and pool.min_p == 1.0 for pool in model.pools)
 
 sampler = PKSampler(table, tcfg["vehicles_per_batch"], tcfg["images_per_vehicle"], seed=0)
 sampler.set_epoch(1)
@@ -58,6 +63,8 @@ assert torch.isfinite(descriptor).all()
 assert similarity[different].max() < 0.999, "descriptors of different vehicles collapsed"
 
 print(json.dumps({
+    "exp_id": cfg["exp_id"],
+    "gem_input_activation": activation,
     "train_images": len(table),
     "train_vehicles": len(classes),
     "batch": len(x),

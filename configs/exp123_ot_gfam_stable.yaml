@@ -1,6 +1,6 @@
 exp_id: EXP-123
 parent: EXP-061
-description: numerically stable OT-GFAM + GLPE trained directly on LCT; stage-3 BN, signed-preserving log-space GeM and differential learning rates
+description: numerically stable OT-GFAM + GLPE trained directly on LCT; stage-3 BN, softplus log-space GeM and differential learning rates
 seeds: [0]
 checkpoint_name: exp123_seed{seed}.pt
 model:

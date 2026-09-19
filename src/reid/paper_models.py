@@ -212,22 +212,30 @@ class GeM(nn.Module):
 
     def __init__(self, p=3.0, eps=1e-6, min_p=None, input_activation="clamp"):
         super().__init__()
-        if input_activation not in {"clamp", "relu", "softplus"}:
+        if input_activation not in {"clamp", "relu", "softplus", "signed"}:
             raise ValueError(f"unknown GeM input activation: {input_activation}")
         self.p, self.eps, self.min_p = nn.Parameter(torch.tensor(p)), eps, min_p
         self.input_activation = input_activation
 
     def forward(self, x):  # B x C x h x w -> B x C
         p = self.p if self.min_p is None else self.p.clamp(min=self.min_p)
+
+        def power_mean(positive):
+            log_x = positive.clamp(min=self.eps).log()
+            log_mean_power = torch.logsumexp(p.float() * log_x, dim=(2, 3))
+            log_mean_power = log_mean_power - math.log(x.shape[2] * x.shape[3])
+            return torch.exp(log_mean_power / p.float())
+
         if self.input_activation == "softplus":
             positive = F.softplus(x.float()) + self.eps
         elif self.input_activation == "relu":
             positive = x.float().relu()
+        elif self.input_activation == "signed":
+            values = x.float()
+            return power_mean(values.relu()) - power_mean((-values).relu())
         else:
             positive = x.float()
-        log_x = positive.clamp(min=self.eps).log()
-        log_mean_power = torch.logsumexp(p.float() * log_x, dim=(2, 3)) - math.log(x.shape[2] * x.shape[3])
-        return torch.exp(log_mean_power / p.float())
+        return power_mean(positive)
 
 
 class ConvNeXtGLPE(nn.Module):

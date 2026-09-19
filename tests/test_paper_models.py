@@ -128,6 +128,17 @@ def test_gem_rejects_unknown_input_activation():
         GeM(input_activation="signed_power")
 
 
+def test_signed_gem_preserves_mean_at_p_one_and_large_p_gradients_are_finite():
+    x = torch.randn(2, 4, 5, 3, requires_grad=True)
+    average = GeM(p=1.0, min_p=1.0, input_activation="signed")
+    assert torch.allclose(average(x), x.mean((2, 3)), atol=2e-6, rtol=1e-6)
+
+    stable = GeM(p=12.0, min_p=1.0, input_activation="signed")
+    pooled = stable(x)
+    pooled.square().sum().backward()
+    assert torch.isfinite(pooled).all() and torch.isfinite(x.grad).all() and torch.isfinite(stable.p.grad)
+
+
 def test_convnext_glpe_follows_the_described_layout():
     cfg = {"arch": "convnext_glpe", "gfam": {"heads": 8, "window": 7, "onn_order": 3}, "stage3_bn": True,
            "gem_input_activation": "softplus"}
