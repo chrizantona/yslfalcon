@@ -12,6 +12,7 @@ Usage: PYTHONPATH=src python -m reid.train_paper --data-config configs/data.yaml
            --config configs/exp055_clip_senet_vehicleid.yaml --seed 0
 """
 import argparse
+import hashlib
 import json
 import math
 import random
@@ -101,6 +102,22 @@ def paper_loss(embeddings, logits, labels, loss_cfg, cross_entropy):
     return sum(branches), branches
 
 
+def load_paper_init(model, checkpoint_path, expected_sha256=None):
+    """Load every transferable paper-model parameter while replacing dataset-specific classifiers."""
+    checkpoint_path = Path(checkpoint_path)
+    if expected_sha256:
+        with checkpoint_path.open("rb") as stream:
+            actual = hashlib.file_digest(stream, "sha256").hexdigest()
+        if actual != expected_sha256:
+            raise ValueError(f"init checkpoint checksum mismatch: {checkpoint_path}")
+    state = torch.load(checkpoint_path, map_location="cpu", weights_only=True)["state_dict"]
+    missing, unexpected = model.load_state_dict(
+        {k: v for k, v in state.items() if not k.startswith("classifiers.")}, strict=False)
+    if unexpected or any(not k.startswith("classifiers.") for k in missing):
+        raise ValueError(f"checkpoint does not match the model: {missing} {unexpected}")
+    return missing
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-config", required=True)
@@ -120,11 +137,8 @@ def main():
     model, _, mean, std = build_paper_model(cfg["model"], len(classes), data_cfg["external_weights_dir"],
                                             load_pretrained=not init)
     if init:  # the pretraining run's classifiers cover other vehicles
-        state = torch.load(Path(data_cfg["checkpoint_dir"]) / init, map_location="cpu", weights_only=True)["state_dict"]
-        missing, unexpected = model.load_state_dict(
-            {k: v for k, v in state.items() if not k.startswith("classifiers.")}, strict=False)
-        if unexpected or any(not k.startswith("classifiers.") for k in missing):
-            raise ValueError(f"checkpoint does not match the model: {missing} {unexpected}")
+        load_paper_init(model, Path(data_cfg["checkpoint_dir"]) / init,
+                        cfg["model"].get("init_checkpoint_sha256"))
     model = model.to(device)
     optimizer = build_paper_optimizer(model, tcfg)
     scheduler = build_paper_scheduler(optimizer, tcfg)

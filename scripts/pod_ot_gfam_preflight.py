@@ -9,7 +9,7 @@ from reid.data import load_yaml
 from reid.models import checkpoint_name
 from reid.paper_models import build_paper_model
 from reid.train import CropDataset, PKSampler, training_table
-from reid.train_paper import build_paper_optimizer, paper_loss
+from reid.train_paper import build_paper_optimizer, load_paper_init, paper_loss
 
 
 parser = argparse.ArgumentParser()
@@ -33,7 +33,12 @@ if external_source:
     assert (len(table), len(classes)) == expected
 else:
     assert len(table) == 5725 and len(classes) == 924
-model, dim, mean, std = build_paper_model(cfg["model"], len(classes), data["external_weights_dir"])
+init = cfg["model"].get("init_checkpoint")
+model, dim, mean, std = build_paper_model(cfg["model"], len(classes), data["external_weights_dir"],
+                                          load_pretrained=not init)
+if init:
+    load_paper_init(model, Path(data["checkpoint_dir"]) / init,
+                    cfg["model"].get("init_checkpoint_sha256"))
 assert dim == 6 * 768
 activation = cfg["model"]["gem_input_activation"]
 assert all(pool.input_activation == activation and pool.min_p == 1.0 for pool in model.pools)
@@ -76,6 +81,7 @@ assert similarity[different].max() < 0.999, "descriptors of different vehicles c
 print(json.dumps({
     "exp_id": cfg["exp_id"],
     "gem_input_activation": activation,
+    "init_checkpoint": init,
     "train_images": len(table),
     "train_vehicles": len(classes),
     "batch": len(x),

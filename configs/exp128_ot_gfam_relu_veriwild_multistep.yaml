@@ -1,0 +1,39 @@
+exp_id: EXP-128
+parent: EXP-127
+description: EXP-127 with the 120-epoch large-dataset warm-up and multistep schedule instead of 60-epoch cosine
+seeds: [0]
+checkpoint_name: 7d3296a8ddb6407d8684c77ebc8ad6f8.pt
+model:
+  arch: convnext_glpe
+  backbone: paper
+  name: convnext_glpe
+  input_hw: [224, 224]
+  backbone_weights: {file: paper/convnext_large_fb_in22k.safetensors, sha256: 7e02ea57d6024d94f5523e9b58cdddd81a1fb4f2e5128b4a879b76f9847058bf}
+  gfam: {heads: 8, window: 7, onn_order: 3}
+  stage3_bn: true
+  gem_min_p: 1.0
+  gem_input_activation: relu
+train:
+  source: veriwild_test
+  vehicles_per_batch: 8
+  images_per_vehicle: 4
+  epochs: 120
+  warmup_epochs: 10
+  milestones: [40, 70]
+  lr: 3.5e-4
+  lr_groups: {backbone: 1.0e-5, new: 3.5e-4}
+  weight_decay: 5.0e-4
+  label_smoothing: 0.1
+  loss: {ce: 1.0, triplet: 0.5, margin: 0.3}
+  flip_p: 0.5
+  pad: 0
+  erasing_p: 0.5
+  color_jitter: {p: 0.5, brightness: 0.2, contrast: 0.2, saturation: 0.2, hue: 0.05}
+  num_workers: 12
+  eval_every: 40
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal: {max_candidates: 10, min_tnr: 0.5, threshold: null}
+benchmark: {precision: fp32}

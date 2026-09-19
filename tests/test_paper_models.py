@@ -9,7 +9,8 @@ from timm.models.vision_transformer import VisionTransformer
 
 from reid.paper_models import AFEM, CLIPSENet, GeM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
 from reid.train import CropDataset
-from reid.train_paper import build_paper_optimizer, build_paper_scheduler, paper_loss, warmup_multistep
+from reid.train_paper import (build_paper_optimizer, build_paper_scheduler, load_paper_init, paper_loss,
+                              warmup_multistep)
 
 
 def test_tinyclip_weights_map_onto_timm_vit_with_resampled_positions():
@@ -216,6 +217,25 @@ def test_paper_loss_sums_ce_and_metric_loss_over_embeddings():
     assert torch.isclose(two, branches[0] + branches[1]) and torch.isclose(one, branches[0])  # summed, not averaged
     with pytest.raises(KeyError):
         paper_loss(embeddings, logits, labels, {"ce": 1.0, "supcon": 1.0}, ce)  # SupCon needs its temperature
+
+
+def test_paper_init_loads_features_but_replaces_dataset_classifiers(tmp_path):
+    source = torch.nn.Module()
+    source.features = torch.nn.Linear(3, 4)
+    source.classifiers = torch.nn.ModuleList([torch.nn.Linear(4, 5, bias=False)])
+    checkpoint = tmp_path / "pretrain.pt"
+    torch.save({"state_dict": source.state_dict()}, checkpoint)
+
+    target = torch.nn.Module()
+    target.features = torch.nn.Linear(3, 4)
+    target.classifiers = torch.nn.ModuleList([torch.nn.Linear(4, 2, bias=False)])
+    old_classifier = target.classifiers[0].weight.detach().clone()
+    missing = load_paper_init(target, checkpoint)
+    assert missing == ["classifiers.0.weight"]
+    assert torch.equal(target.features.weight, source.features.weight)
+    assert torch.equal(target.classifiers[0].weight, old_classifier)
+    with pytest.raises(ValueError, match="checksum mismatch"):
+        load_paper_init(target, checkpoint, "0" * 64)
 
 
 def test_color_jitter_changes_colours_and_is_off_by_default(tmp_path):
