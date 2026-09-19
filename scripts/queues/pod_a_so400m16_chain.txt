@@ -1,0 +1,4 @@
+# Second pod (rougenn), 19.09.2026: the chain of the So400m/16 tower at 256 px accepted in EXP-100 - its own
+# VERI-Wild pretraining and then the EXP-089 recipe from it. GPU 1, seeds one after another.
+EXP-120 configs/exp120_pretrain_veriwild_so400m16.yaml 1 1 0
+EXP-121 configs/exp121_so400m16_chain.yaml 1 1 0

@@ -1,0 +1,3 @@
+# Second pod (rougenn), 19.09.2026: the EXP-089 recipe with the schedule doubled (60 epochs, 20 warm-up).
+# GPU 2, three seeds one after another.
+EXP-122 configs/exp122_siglip2_long_schedule.yaml 2 2 0
