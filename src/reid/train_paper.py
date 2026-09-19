@@ -4,7 +4,8 @@ Data, PK sampler, dev-fold evaluation and outputs are those of reid.train; the m
 optimiser differ. For every supervised embedding i the loss is ce * CE(logits_i) with label smoothing plus a metric
 loss on embedding i: train.loss = {ce, supcon: weight, temperature} or {ce, triplet: weight, margin}; the losses are
 summed over the embeddings and logged per branch (loss_branches; for GLPE: global, 2 parts, 3 parts). Adam with L2
-weight decay; the lr rises linearly from 10% over warmup_epochs and drops x0.1 at every milestone epoch.
+weight decay. The large-dataset recipe warms up and drops x0.1 at milestones; train.scheduler: cosine selects the
+paper's 24-epoch small-dataset cosine schedule without warm-up.
 model.init_checkpoint copies everything but the classifiers from a pretraining run.
 
 Usage: PYTHONPATH=src python -m reid.train_paper --data-config configs/data.yaml --val-config configs/val_v2.yaml \
@@ -36,6 +37,17 @@ def warmup_multistep(warmup_epochs, milestones):
             return 0.1 + 0.9 * epoch / warmup_epochs
         return 0.1 ** sum(epoch >= milestone for milestone in milestones)
     return factor
+
+
+def build_paper_scheduler(optimizer, train_cfg):
+    """The two schedules stated by CLIP-SENet: cosine for small sets, warm-up/multistep for large sets."""
+    kind = train_cfg.get("scheduler", "multistep")
+    if kind == "multistep":
+        return torch.optim.lr_scheduler.LambdaLR(
+            optimizer, warmup_multistep(train_cfg["warmup_epochs"], train_cfg["milestones"]))
+    if kind == "cosine":
+        return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=train_cfg["epochs"], eta_min=0.0)
+    raise ValueError(f"unknown paper scheduler: {kind}")
 
 
 def paper_loss(embeddings, logits, labels, loss_cfg, cross_entropy):
@@ -78,8 +90,7 @@ def main():
             raise ValueError(f"checkpoint does not match the model: {missing} {unexpected}")
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=tcfg["lr"], weight_decay=tcfg["weight_decay"])
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, warmup_multistep(tcfg["warmup_epochs"],
-                                                                              tcfg["milestones"]))
+    scheduler = build_paper_scheduler(optimizer, tcfg)
 
     P, K = tcfg["vehicles_per_batch"], tcfg["images_per_vehicle"]
     sampler = PKSampler(train_df, P, K, seed)

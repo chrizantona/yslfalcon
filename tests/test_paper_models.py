@@ -9,7 +9,7 @@ from timm.models.vision_transformer import VisionTransformer
 
 from reid.paper_models import AFEM, GeM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
 from reid.train import CropDataset
-from reid.train_paper import paper_loss, warmup_multistep
+from reid.train_paper import build_paper_scheduler, paper_loss, warmup_multistep
 
 
 def test_tinyclip_weights_map_onto_timm_vit_with_resampled_positions():
@@ -105,6 +105,14 @@ def test_gem_exponent_is_kept_at_or_above_its_floor():
 def test_warmup_then_step_decay():
     factor = warmup_multistep(10, [40, 70])
     assert [round(factor(e), 4) for e in (0, 5, 10, 39, 40, 69, 70)] == [0.1, 0.55, 1.0, 1.0, 0.1, 0.1, 0.01]
+
+
+def test_small_dataset_recipe_uses_24_epoch_cosine_without_warmup():
+    parameter = torch.nn.Parameter(torch.ones(()))
+    optimizer = torch.optim.Adam([parameter], lr=5e-4)
+    scheduler = build_paper_scheduler(optimizer, {"scheduler": "cosine", "epochs": 24})
+    assert isinstance(scheduler, torch.optim.lr_scheduler.CosineAnnealingLR)
+    assert scheduler.T_max == 24 and scheduler.get_last_lr() == [5e-4]
 
 
 def test_paper_loss_sums_ce_and_metric_loss_over_embeddings():
