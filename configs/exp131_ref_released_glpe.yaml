@@ -1,0 +1,12 @@
+exp_id: EXP-131
+description: official public ConvNeXt-L plus GLPE checkpoint trained on VeRi-776; zero-shot LCT reference
+model:
+  backbone: convnext_released_glpe
+  weights: paper/best_convnext_large_rerank.pth
+  sha256: 35ddfd1ea7b73b90a66ef41d652bf6600cef1ce9260f1d7aa8f2f84ac3f90206
+  input_hw: [256, 256]
+embed:
+  batch_size: 128
+  num_workers: 8
+eval_fold: 0
+refusal: {max_candidates: 10, min_tnr: 0.5, threshold: null}

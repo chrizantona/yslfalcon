@@ -68,6 +68,8 @@ if [ "$TARGET" = all ] || [ "$TARGET" = paper ]; then  # reproduced architecture
   fetch weights/paper/convnext_large_fb_in22k.safetensors \
     https://huggingface.co/timm/convnext_large.fb_in22k/resolve/be6de86d9928c6cc2a8986963243142f403f382d/model.safetensors \
     7e02ea57d6024d94f5523e9b58cdddd81a1fb4f2e5128b4a879b76f9847058bf
+  fetch weights/paper/best_convnext_large_rerank.pth "${GDRIVE}1DO5RejFjM-b7rwMfryX0BZLWJNHDt14m" \
+    35ddfd1ea7b73b90a66ef41d652bf6600cef1ce9260f1d7aa8f2f84ac3f90206
 fi
 [ "$TARGET" != paper ] || exit 0
 

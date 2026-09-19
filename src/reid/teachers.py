@@ -4,11 +4,15 @@
   BN(GeM(layer4)), input 256x256, pixel mean/std stored in the checkpoint on the 0..255 scale.
 - CLIP-ReID ViT-B/16 (github.com/Syliz517/CLIP-ReID, MIT): OpenAI CLIP visual tower (QuickGELU) at 256x256, test
   feature = concat(ln_post(cls), ln_post(cls) @ proj) with NECK_FEAT "before", mean = std = 0.5.
+- Ergin/Keçeli released ConvNeXt-L + GLPE checkpoint: complete ConvNeXt-L, shared GeM, six BNNecks and concatenated
+  part embeddings at 256x256. The public file contains no OT-GFAM/ONN parameters.
 
 build_teacher(model_cfg, weights_dir) -> (encoder, feature dim, mean, std) where encoder(images) returns that feature.
 """
+import hashlib
 from pathlib import Path
 
+import numpy as np
 import open_clip
 import torch
 import torch.nn.functional as F
@@ -87,10 +91,50 @@ def load_clipreid(path, input_hw):
     return ClipReIDViT(visual), 768 + 512, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
 
 
+def released_glpe_state_for_model(state):
+    """Map the authors' public module names onto ConvNeXtReleasedGLPE without changing any tensor values."""
+    out = {}
+    for key, value in state.items():
+        if key.startswith("bn_global."):
+            key = "bns.0." + key.removeprefix("bn_global.")
+        elif key.startswith("part_bns."):
+            index, suffix = key.removeprefix("part_bns.").split(".", 1)
+            key = f"bns.{int(index) + 1}.{suffix}"
+        elif key.startswith("cls_global."):
+            key = "classifiers.0." + key.removeprefix("cls_global.")
+        elif key.startswith("part_cls."):
+            index, suffix = key.removeprefix("part_cls.").split(".", 1)
+            key = f"classifiers.{int(index) + 1}.{suffix}"
+        out[key] = value.reshape(()) if key == "pool.p" else value
+    return out
+
+
+def load_released_glpe(path, sha256):
+    """Load the official GLPE checkpoint with weights-only unpickling and a minimal numpy scalar allowlist."""
+    path = Path(path)
+    with path.open("rb") as stream:
+        actual = hashlib.file_digest(stream, "sha256").hexdigest()
+    if actual != sha256:
+        raise ValueError(f"checkpoint checksum mismatch: {path}")
+    safe = [np._core.multiarray.scalar, np.dtype, type(np.dtype(np.float64))]
+    with torch.serialization.safe_globals(safe):
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+    state = checkpoint["model_state_dict"]
+    if any("gfam" in key.lower() or "onn" in key.lower() for key in state):
+        raise ValueError("the released GLPE checkpoint unexpectedly contains OT-GFAM parameters")
+    from reid.paper_models import ConvNeXtReleasedGLPE, IMAGENET_MEAN, IMAGENET_STD
+    n_classes = state["cls_global.weight"].shape[0]
+    model = ConvNeXtReleasedGLPE({}, n_classes, load_pretrained=False)
+    model.load_state_dict(released_glpe_state_for_model(state))
+    return model, 6 * model.back.num_features, IMAGENET_MEAN, IMAGENET_STD
+
+
 def build_teacher(model_cfg, weights_dir):
     path = Path(weights_dir) / model_cfg["weights"]
     if model_cfg["backbone"] == "fastreid_r50ibn":
         return load_fastreid(path)
     if model_cfg["backbone"] == "clipreid_vitb16":
         return load_clipreid(path, model_cfg["input_hw"])
+    if model_cfg["backbone"] == "convnext_released_glpe":
+        return load_released_glpe(path, model_cfg["sha256"])
     raise ValueError(f"unknown teacher {model_cfg['backbone']}")

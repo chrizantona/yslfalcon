@@ -21,7 +21,7 @@ from reid.embed import ClipEmbedder, embed_boxes, pick_device
 from reid.metrics import pick_threshold, refusal_curve, reid_eval, reid_eval_top10
 from reid.teachers import build_teacher
 
-TEACHERS = ("fastreid_r50ibn", "clipreid_vitb16")
+TEACHERS = ("fastreid_r50ibn", "clipreid_vitb16", "convnext_released_glpe")
 
 
 def load_fold(protocol_dir, fold):

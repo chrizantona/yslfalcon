@@ -5,7 +5,7 @@ import torch
 from reid.ensemble import mean_embedding
 from reid.models import ReIDModel, build_backbone
 from reid.soup import average_state_dicts, build_soup_model
-from reid.teachers import FastReIDResNet50IBN, load_clipreid, load_fastreid
+from reid.teachers import FastReIDResNet50IBN, load_clipreid, load_fastreid, released_glpe_state_for_model
 
 
 def test_fastreid_checkpoint_loads_with_its_names_gem_power_and_pixel_stats(tmp_path):
@@ -38,6 +38,21 @@ def test_clipreid_feature_is_cls_and_its_projection_like_open_clip(tmp_path):
         feature = encoder.eval()(x)
         assert feature.shape == (1, dim) == (1, 1280)
         assert torch.allclose(feature[:, 768:], visual(x), atol=1e-4)  # projection part = open_clip image embedding
+
+
+def test_released_glpe_checkpoint_names_map_to_the_six_local_branches():
+    source = {
+        "back.stem.0.weight": torch.randn(2, 3, 4, 4),
+        "pool.p": torch.tensor([3.0]),
+        "bn_global.running_mean": torch.randn(5),
+        "part_bns.4.weight": torch.randn(5),
+        "cls_global.weight": torch.randn(7, 5),
+        "part_cls.4.weight": torch.randn(7, 5),
+    }
+    mapped = released_glpe_state_for_model(source)
+    assert set(mapped) == {"back.stem.0.weight", "pool.p", "bns.0.running_mean", "bns.5.weight",
+                           "classifiers.0.weight", "classifiers.5.weight"}
+    assert mapped["pool.p"].shape == torch.Size([]) and mapped["pool.p"].item() == 3
 
 
 def test_mean_embedding_normalises_members_and_result():
