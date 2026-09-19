@@ -71,6 +71,11 @@ def build_paper_optimizer(model, train_cfg):
             "backbone": [model.features],
             "new": [model.stage_norm, model.units, model.pools, model.classifiers],
         }
+    elif all(hasattr(model, name) for name in ("back", "pool", "bns", "classifiers")):
+        modules = {
+            "backbone": [model.back],
+            "new": [model.pool, model.bns, model.classifiers],
+        }
     else:
         raise ValueError("lr_groups are unsupported for this paper model")
     if set(rates) != set(modules):
@@ -190,6 +195,8 @@ def main():
             record["lr_groups"] = {group["branch"]: group["lr"] for group in optimizer.param_groups}
         if hasattr(model, "pools"):
             record["gem_p"] = [round(pool.p.item(), 3) for pool in model.pools]
+        elif hasattr(model, "pool") and hasattr(model.pool, "p"):
+            record["gem_p"] = [round(model.pool.p.item(), 3)]
         scheduler.step()
         if epoch % tcfg["eval_every"] == 0 or epoch == tcfg["epochs"]:
             result = evaluate_fold(embed, query, gallery, no_match)

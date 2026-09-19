@@ -7,7 +7,8 @@ import pytest
 import torch
 from timm.models.vision_transformer import VisionTransformer
 
-from reid.paper_models import AFEM, CLIPSENet, GeM, GFAMUnit, build_paper_model, shifted_window_mask, tinyclip_state_for_timm
+from reid.paper_models import (AFEM, CLIPSENet, ConvNeXtReleasedGLPE, GeM, GFAMUnit, build_paper_model,
+                               shifted_window_mask, tinyclip_state_for_timm)
 from reid.train import CropDataset
 from reid.train_paper import (build_paper_optimizer, build_paper_scheduler, load_paper_init, paper_loss,
                               warmup_multistep)
@@ -163,6 +164,24 @@ def test_convnext_glpe_follows_the_described_layout():
     assert descriptor.shape == (2, 6 * 768) == (2, dim)
     assert torch.allclose(descriptor.view(2, 6, 768).norm(dim=2), torch.ones(2, 6))  # six normalised parts
     assert all(pool.input_activation == "softplus" for pool in model.pools)
+
+    optimizer = build_paper_optimizer(
+        model, {"weight_decay": 5e-4, "lr_groups": {"backbone": 1e-5, "new": 3.5e-4}})
+    assert {group["branch"]: group["lr"] for group in optimizer.param_groups} == {
+        "backbone": 1e-5, "new": 3.5e-4}
+    grouped = [p for group in optimizer.param_groups for p in group["params"]]
+    assert len(grouped) == len({id(p) for p in grouped}) == len(list(model.parameters()))
+
+
+def test_released_convnext_glpe_keeps_stage4_and_matches_the_six_branch_geometry():
+    cfg = {"arch": "convnext_released_glpe", "embedding_dim": 6 * 1536, "gem_input_activation": "clamp"}
+    model, dim, _, _ = build_paper_model(cfg, n_classes=5, load_pretrained=False)
+    assert len(model.back.stages) == 4 and model.back.num_features == 1536
+    assert model.back.stages[3].downsample[1].stride == (1, 1)
+    assert len(model.bns) == len(model.classifiers) == 6 and dim == 6 * 1536
+    assert isinstance(model.pool, GeM) and not hasattr(model, "pools")  # one shared released GeM for all branches
+    parts = ConvNeXtReleasedGLPE.parts(torch.randn(2, 8, 14, 14))
+    assert [part.shape[2] for part in parts] == [14, 7, 7, 4, 4, 4]
 
     optimizer = build_paper_optimizer(
         model, {"weight_decay": 5e-4, "lr_groups": {"backbone": 1e-5, "new": 3.5e-4}})

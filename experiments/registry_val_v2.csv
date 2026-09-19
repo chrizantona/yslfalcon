@@ -104,3 +104,4 @@ EXP-126,EXP-124,rejected,"early stop epoch 10: signed GeM loss stayed at random-
 EXP-127,EXP-125,running,"EXP-125 trained on public VERI-Wild test (138517 images and 10000 vehicles) instead of LCT folds; everything else unchanged",0,,,,,,,,,,,,,,,,,29c54de75dd7402eac0d4bc5e4aa1b59.pt
 EXP-128,EXP-127,superseded,"early stop epoch 14 after original-paper audit: reconstruction drops ConvNeXt stage 4 (768 vs released 1536 channels) and lacks per-part BNNecks",0,,,,,,,,,,,,,,,,,
 EXP-129,EXP-128,rejected,"early stop epoch 10: single backbone lr 3.5e-4 stayed at random loss 56.1624 and accuracy 0; EXP-128 reached loss 39.6069",0,,,,,,,,,,,,,,,,,
+EXP-130,EXP-125,running,"released GLPE control: complete ConvNeXt-L with final stride 1, shared GeM and six BNNecks; reconstructed OT-GFAM removed",0,,,,,,,,,,,,,,,,,855fae489d4843cdb9c49a3943d78c0d.pt

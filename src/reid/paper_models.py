@@ -2,9 +2,9 @@
 
 clip_senet (CLIP-SENet): ResNeXt101-IBN-a appearance branch (T^a, 2048) and the TinyCLIP ViT-B/32 image encoder
 (semantics T^s, 512) side by side; T^u = FC([T^s, T^a]) (2048), AFEM refines T^s, T = T^u + T^s'. One classifier on T.
-convnext_glpe (ConvNeXt-L + OT-GFAM + GLPE): ConvNeXt-L (ImageNet-22k) up to stage 3 (768 x H/16 x W/16) -> windowed
-and shifted-window gated attention with ONN projections -> GeM over the whole map and over 2 and 3 horizontal stripes:
-six embeddings with their own classifiers; the retrieval embedding concatenates the six normalised ones (6 x 768).
+convnext_glpe is the historical OT-GFAM reconstruction used through EXP-129. convnext_released_glpe follows the
+public inference implementation linked by the original paper: the complete ConvNeXt-L with final-stage stride 1,
+one shared GeM and six independent BNNecks over the global, two-part and three-part branches (6 x 1536).
 
 Training mode returns (embeddings, logits), one entry per supervised embedding; eval mode returns the retrieval
 embedding. Inputs arrive with the ImageNet mean/std; the TinyCLIP branch renormalises to CLIP's."""
@@ -276,7 +276,48 @@ class ConvNeXtGLPE(nn.Module):
         return embeddings, [head(v) for head, v in zip(self.classifiers, vectors)]
 
 
-ARCHS = {"clip_senet": CLIPSENet, "convnext_glpe": ConvNeXtGLPE}
+class ConvNeXtReleasedGLPE(nn.Module):
+    """The GLPE descriptor that is actually present in the authors' public repository.
+
+    The release has no training forward, so classifiers are attached to the BNNeck features for our controlled LCT
+    training. Retrieval exactly follows the release: full ConvNeXt-L, final downsample stride one, shared GeM,
+    independent BNNecks, L2 per branch and concatenation. Integer slicing deliberately drops the final row when the
+    feature-map height is not divisible by three, matching the released implementation.
+    """
+
+    def __init__(self, cfg, n_classes, weights_dir=None, load_pretrained=True):
+        super().__init__()
+        self.back = timm.create_model("convnext_large", pretrained=False, num_classes=0)
+        self.back.stages[3].downsample[1].stride = (1, 1)
+        if load_pretrained:
+            state = load_verified(weights_dir, cfg["backbone_weights"])
+            self.back.load_state_dict({k: v for k, v in state.items() if not k.startswith("head.fc.")})
+        dim = self.back.num_features
+        self.pool = GeM(p=cfg.get("gem_p", 3.0), min_p=cfg.get("gem_min_p"),
+                        input_activation=cfg.get("gem_input_activation", "clamp"))
+        self.bns = nn.ModuleList([nn.BatchNorm1d(dim) for _ in range(6)])
+        self.classifiers = nn.ModuleList([nn.Linear(dim, n_classes, bias=False) for _ in range(6)])
+
+    @staticmethod
+    def parts(f):
+        h = f.shape[2]
+        h2, h3 = h // 2, h // 3
+        return [f,
+                f[:, :, :h2], f[:, :, h2:2 * h2],
+                f[:, :, :h3], f[:, :, h3:2 * h3], f[:, :, 2 * h3:3 * h3]]
+
+    def forward(self, x):
+        f = self.back.forward_features(x)
+        vectors = [self.pool(part) for part in self.parts(f)]
+        necks = [bn(vector) for bn, vector in zip(self.bns, vectors)]
+        embeddings = [F.normalize(neck, dim=1) for neck in necks]
+        if not self.training:
+            return torch.cat(embeddings, 1)
+        return embeddings, [head(neck) for head, neck in zip(self.classifiers, necks)]
+
+
+ARCHS = {"clip_senet": CLIPSENet, "convnext_glpe": ConvNeXtGLPE,
+         "convnext_released_glpe": ConvNeXtReleasedGLPE}
 
 
 def build_paper_model(cfg, n_classes, weights_dir=None, load_pretrained=True):
