@@ -158,6 +158,11 @@ class GradientReversal(torch.autograd.Function):
         return -ctx.lambd * grad, None
 
 
+def camera_codes(df):
+    """Camera ids as int64 class indices: pandas category codes are int8, which cross_entropy cannot take."""
+    return df.camera_id.astype("category").cat.codes.to_numpy().astype(np.int64)
+
+
 def camera_lambda(cfg, epoch):
     """The adversarial weight, ramped linearly from 0 over the first ramp_epochs so the head is useful before it
     starts pushing back on the backbone."""
@@ -330,10 +335,10 @@ def main():
                       interpolate_position=cfg["model"].get("interpolate_positional_embedding", False))
     model = model.to(device)
     groups = optimizer_groups(model, tcfg)
-    camera_cfg, camera_head, camera_codes = tcfg.get("camera_adversarial"), None, None
+    camera_cfg, camera_head, camera_targets = tcfg.get("camera_adversarial"), None, None
     if camera_cfg:  # camera_id is a target of an auxiliary loss here, never an input: inference is unchanged
-        codes = train_df.camera_id.astype("category").cat.codes.to_numpy()
-        camera_codes = torch.as_tensor(codes, device=device)
+        codes = camera_codes(train_df)
+        camera_targets = torch.as_tensor(codes, device=device)
         camera_head = torch.nn.Linear(feat_dim, int(codes.max()) + 1).to(device)
         groups.append({"params": list(camera_head.parameters()), "lr": tcfg["lr_head"]})
     optimizer = torch.optim.AdamW(groups, weight_decay=tcfg["weight_decay"])
@@ -426,7 +431,7 @@ def main():
                 loss = loss + distill["weight"] * loss_distill
             if camera_head is not None:  # the head learns the camera, the reversed gradient unlearns it in the backbone
                 camera_logits = camera_head(GradientReversal.apply(feat.float(), camera_lambda(camera_cfg, epoch)))
-                loss_camera = id_loss(camera_logits, camera_codes[rows])
+                loss_camera = id_loss(camera_logits, camera_targets[rows])
                 camera_total += loss_camera.item()
                 loss = loss + loss_camera
             if extra_loader is not None:  # the same loss on unlabelled external images: only the teacher speaks there

@@ -1,12 +1,13 @@
 import math
 
+import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
 
 from reid.models import MarginClassifier, ReIDModel, load_backbone
-from reid.train import (GradientReversal, PKSampler, batch_hard_triplet, camera_lambda, class_centres,
-                        similarity_distillation, supervised_contrastive)
+from reid.train import (GradientReversal, PKSampler, batch_hard_triplet, camera_codes, camera_lambda,
+                        class_centres, similarity_distillation, supervised_contrastive)
 
 
 def margin_logits(kind, emb, labels, margin=0.5, scale=30.0):
@@ -154,3 +155,12 @@ def test_camera_lambda_ramps_from_zero_and_then_holds():
     assert camera_lambda(cfg, 0) == 0.0
     assert math.isclose(camera_lambda(cfg, 5), 0.15)
     assert math.isclose(camera_lambda(cfg, 10), 0.3) and math.isclose(camera_lambda(cfg, 30), 0.3)
+
+
+def test_camera_codes_are_int64_indices_cross_entropy_can_take():
+    df = pd.DataFrame({"camera_id": [89, 90, 89, 7]})
+    codes = camera_codes(df)
+    assert codes.dtype == np.int64  # pandas category codes are int8 and cross_entropy rejects them
+    assert sorted(set(codes)) == [0, 1, 2] and codes[0] == codes[2]
+    logits = torch.randn(4, int(codes.max()) + 1)
+    torch.nn.CrossEntropyLoss()(logits, torch.as_tensor(codes))  # must not raise
