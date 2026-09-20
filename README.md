@@ -364,6 +364,9 @@ Giant-opt/16@384 до VehicleID: mAP@10 **0,609096**, R1 0,568162, R5 0,791557, 
 маленькие рамки 0,5400 и обрезанные машины 0,5384. EXP-167 измерит ровно одно следующее изменение — fine-tuning той
 же башни на официальном train-split VehicleID; запуск ждёт исходный зашифрованный архив и обязательный аудит
 пересечений/аугментаций. План переноса статьи — `experiments/PLAN_GIANT_PATCH_DISTILLATION.md`.
+[Приватный Release exp-166](https://github.com/chrizantona/yslfalcon/releases/tag/exp-166) содержит float32 embeddings,
+AP каждого запроса, метрики, срезы, логи и SHA256SUMS; архив 11 054 542 байта, sha256
+`ba8a11e1479e4af741058c3cb6cf6dccd2bd2b2460eac31d2e6605d95e87ae84`.
 
 ## Передача результатов и обученная модель
 Артефакты EXP-022…024 и веса `exp022_seed0.pt`, `exp024.pt` передаются через [приватный GitHub Release exp-024](https://github.com/chrizantona/yslfalcon/releases/tag/exp-024). В assets есть SHA256SUMS и manifest.json; проверьте их после скачивания. `scripts/github_release_handoff.py` загружает проверенные файлы через Git credential helper, с проверкой SHA256 ответа GitHub. Исходные теги exp-020…024 сохраняются без перезаписи.
