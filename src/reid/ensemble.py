@@ -59,7 +59,11 @@ def main():
         return
 
     results, base_ap = {}, None
-    for name, members in cfg["variants"].items():
+    if cfg["base_variant"] not in cfg["variants"]:
+        raise ValueError(f"base_variant {cfg['base_variant']} is not among the variants")
+    # the base is scored first whatever its place in the config: everything else is compared against its AP
+    for name in [cfg["base_variant"], *(n for n in cfg["variants"] if n != cfg["base_variant"])]:
+        members = cfg["variants"][name]
         result = score(ensemble_of(members), query, gallery, no_match)
         header = {"exp_id": cfg["exp_id"], "variant": name, "members": members, "protocol": val_cfg["version"],
                   "fold": fold, "n_query": len(query), "n_gallery": len(gallery)}
