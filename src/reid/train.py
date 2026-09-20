@@ -283,6 +283,31 @@ def enable_gradient_checkpointing(model, enabled):
     return True
 
 
+def disable_fused_attention_blocks(model, indices):
+    """Use timm's explicit attention math in selected blocks while leaving their weights and graph unchanged.
+
+    Some large ViTs produce non-finite gradients in the fused BF16 SDPA backward when activation checkpointing
+    recomputes the first block.  The unfused path implements the same scaled QK softmax and AV product, but avoids
+    that kernel.  Fail loudly if a config requests it for an incompatible backbone.
+    """
+    indices = list(indices or [])
+    if not indices:
+        return []
+    blocks = getattr(getattr(getattr(model, "backbone", None), "trunk", None), "blocks", None)
+    if blocks is None:
+        raise ValueError("unfused_attention_blocks requires a timm-backed OpenCLIP transformer")
+    if len(set(indices)) != len(indices) or any(not isinstance(index, int) for index in indices):
+        raise ValueError("unfused_attention_blocks must contain unique integer block indices")
+    for index in indices:
+        if not 0 <= index < len(blocks):
+            raise ValueError(f"unfused attention block {index} is outside 0..{len(blocks) - 1}")
+        attention = getattr(blocks[index], "attn", None)
+        if attention is None or not hasattr(attention, "fused_attn"):
+            raise ValueError(f"block {index} does not expose timm fused_attn")
+        attention.fused_attn = False
+    return indices
+
+
 def select_best_dev(previous, model, result, epoch):
     """Keep a CPU snapshot when dev mAP@10 improves, without writing one giant checkpoint per epoch.
 
@@ -417,6 +442,7 @@ def main():
         load_backbone(model, Path(data_cfg["checkpoint_dir"]) / cfg["model"]["init_checkpoint"],
                       interpolate_position=cfg["model"].get("interpolate_positional_embedding", False))
     gradient_checkpointing = enable_gradient_checkpointing(model, tcfg.get("gradient_checkpointing", False))
+    unfused_attention_blocks = disable_fused_attention_blocks(model, tcfg.get("unfused_attention_blocks"))
     model = model.to(device)
     groups = optimizer_groups(model, tcfg)
     camera_cfg, camera_head, camera_targets = tcfg.get("camera_adversarial"), None, None
@@ -594,6 +620,8 @@ def main():
     header = {"exp_id": cfg["exp_id"], "seed": seed, "protocol": val_cfg["version"], "fold": cfg["eval_fold"],
               "n_query": len(query), "n_gallery": len(gallery), "train_minutes": (time.time() - start) / 60}
     header["gradient_checkpointing"] = gradient_checkpointing
+    if unfused_attention_blocks:
+        header["unfused_attention_blocks"] = unfused_attention_blocks
     if imprinting is not None:
         header["imprinting"] = imprinting
     if teacher is not None:

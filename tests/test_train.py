@@ -8,8 +8,8 @@ import torch.nn.functional as F
 
 from reid.models import MarginClassifier, ReIDModel, load_backbone
 from reid.train import (GradientReversal, PKSampler, batch_hard_triplet, camera_codes, camera_lambda,
-                        class_centres, enable_gradient_checkpointing, lookalike_vehicles, similarity_distillation,
-                        select_best_dev, supervised_contrastive)
+                        class_centres, disable_fused_attention_blocks, enable_gradient_checkpointing,
+                        lookalike_vehicles, select_best_dev, similarity_distillation, supervised_contrastive)
 
 
 def test_gradient_checkpointing_is_explicit_and_rejects_unsupported_backbones():
@@ -23,6 +23,31 @@ def test_gradient_checkpointing_is_explicit_and_rejects_unsupported_backbones():
     assert not enable_gradient_checkpointing(supported, False)
     with pytest.raises(ValueError, match="does not support"):
         enable_gradient_checkpointing(ReIDModel(torch.nn.Linear(2, 2), 2, 3), True)
+
+
+def test_unfused_attention_is_limited_to_explicit_timm_blocks():
+    class Attention(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.fused_attn = True
+
+    class Block(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.attn = Attention()
+
+    backbone = torch.nn.Module()
+    backbone.trunk = torch.nn.Module()
+    backbone.trunk.blocks = torch.nn.ModuleList([Block(), Block(), Block()])
+    model = ReIDModel(backbone, 2, 3)
+    assert disable_fused_attention_blocks(model, [0, 2]) == [0, 2]
+    assert [block.attn.fused_attn for block in backbone.trunk.blocks] == [False, True, False]
+    with pytest.raises(ValueError, match="unique integer"):
+        disable_fused_attention_blocks(model, [0, 0])
+    with pytest.raises(ValueError, match="outside"):
+        disable_fused_attention_blocks(model, [3])
+    with pytest.raises(ValueError, match="timm-backed"):
+        disable_fused_attention_blocks(ReIDModel(torch.nn.Linear(2, 2), 2, 3), [0])
 
 
 def test_best_dev_keeps_matching_cpu_weights_result_and_epoch():
