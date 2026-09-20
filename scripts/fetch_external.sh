@@ -4,8 +4,8 @@
 # Files that already exist with the right checksum are skipped. The competition dataset is not public: see DATA.md.
 set -Eeuo pipefail
 EXT_DIR=${EXT_DIR:-/workspace/ext_data}
-TARGET=${1:-all}  # all | clip_l | backbones | paper | osnet | veriwild
-case "$TARGET" in all|clip_l|backbones|paper|osnet|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
+TARGET=${1:-all}  # all | clip_l | backbones | giant | paper | osnet | veriwild
+case "$TARGET" in all|clip_l|backbones|giant|paper|osnet|veriwild) ;; *) echo "unknown target: $TARGET" >&2; exit 2;; esac
 GDRIVE="https://drive.usercontent.google.com/download?export=download&confirm=t&id="
 FASTREID="https://github.com/JDAI-CV/fast-reid/releases/download/v0.1.1"
 KAGGLE="https://www.kaggle.com/api/v1/datasets/download"
@@ -51,6 +51,13 @@ if [ "$TARGET" = all ] || [ "$TARGET" = backbones ]; then  # backbone screens EX
     1a8e47bdefd6d36202ec66a8975edda9e3c89560bcd1ecefe6f676311637a671
 fi
 [ "$TARGET" != backbones ] || exit 0
+
+if [ "$TARGET" = all ] || [ "$TARGET" = giant ]; then
+  fetch weights/clip/siglip2_gopt16_384_webli.safetensors \
+    https://huggingface.co/timm/ViT-gopt-16-SigLIP2-384/resolve/ad3410bee2c3373be5ed01e7c4e7fcd2bf95a183/open_clip_model.safetensors \
+    ef0a1542024824268a1c87cfc85987d5a0e9a6d464eb03790b65f51051c43414
+fi
+[ "$TARGET" != giant ] || exit 0
 
 if [ "$TARGET" = all ] || [ "$TARGET" = paper ]; then  # reproduced architectures EXP-055…058 (reid.paper_models)
   fetch weights/paper/resnext101_ibn_a-6ace051d.pth \

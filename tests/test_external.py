@@ -66,6 +66,21 @@ def test_vehicleid_must_be_unpacked_first(tmp_path):
         prepare(None, tmp_path, "vehicleid")
 
 
+def test_vehicleid_official_train_excludes_other_labelled_images_and_uses_its_own_table(tmp_path):
+    (tmp_path / "images").mkdir()
+    for image in ("0000002", "0000003", "0000009"):
+        (tmp_path / "images" / f"{image}.jpg").write_bytes(b"jpeg")
+    (tmp_path / "img2vid.txt").write_text("0000002 00007\n0000003 00007\n0000009 00008\n")
+    (tmp_path / "train_list.txt").write_text("0000003 00007\n0000002 00007\n")
+
+    table = prepare(None, tmp_path, "vehicleid_train", "train_official.csv")
+
+    assert table.image_id.tolist() == ["0000002", "0000003"]
+    assert table.vehicle_id.tolist() == ["vid_00007", "vid_00007"]
+    assert load_table(tmp_path, "train_official.csv").image_id.tolist() == ["0000002", "0000003"]
+    assert not (tmp_path / "train.csv").exists()
+
+
 def test_source_is_one_set_or_a_list():
     assert source_names({"source": "veriwild_test"}) == ["veriwild_test"]
     assert source_names({"source": ["veriwild_test", "veri776"]}) == ["veriwild_test", "veri776"]
@@ -78,3 +93,11 @@ def test_external_table_labels_are_row_indices_for_the_distillation_lookup(tmp_p
     table = external_table({"external": {"set": {"dir": str(tmp_path)}}}, "set")
     assert list(table.label) == [0, 1, 2]  # the row index, in file order, is what the teacher matrix is indexed by
     assert table.crops_dir.unique().tolist() == [str(tmp_path / "images")]
+
+
+def test_external_table_honours_a_named_table_for_a_shared_image_directory(tmp_path):
+    (tmp_path / "images").mkdir()
+    pd.DataFrame({"image_id": ["a"], "vehicle_id": ["vid_1"], "camera_id": [0]}).to_csv(
+        tmp_path / "train_official.csv", index=False)
+    table = external_table({"external": {"set": {"dir": str(tmp_path), "table": "train_official.csv"}}}, "set")
+    assert table.image_id.tolist() == ["a"]

@@ -18,5 +18,7 @@ python3 -c 'import sys, tarfile; tarfile.open(sys.argv[1]).extract("7zzs", sys.a
 
 mkdir -p "$OUT/images"
 "$TOOLS/7zzs" e -y -bso0 -bsp0 -p"$(cat "$PASSWORD_FILE")" -o"$OUT" "$ARCHIVE" VehicleID_V1.0/attribute/img2vid.txt
+"$TOOLS/7zzs" e -y -bso0 -bsp0 -p"$(cat "$PASSWORD_FILE")" -o"$OUT" "$ARCHIVE" VehicleID_V1.0/train_test_split/train_list.txt
 "$TOOLS/7zzs" e -y -bso0 -bsp0 -p"$(cat "$PASSWORD_FILE")" -o"$OUT/images" "$ARCHIVE" 'VehicleID_V1.0/image/*.jpg'
-echo "$(find "$OUT/images" -name '*.jpg' | wc -l) images, $(wc -l < "$OUT/img2vid.txt") labels -> $OUT"
+echo "$(find "$OUT/images" -name '*.jpg' | wc -l) images, $(wc -l < "$OUT/img2vid.txt") labels, "\
+     "$(wc -l < "$OUT/train_list.txt") official-train rows -> $OUT"

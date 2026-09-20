@@ -47,7 +47,12 @@ class CropDataset(Dataset):
         self.input_hw = tuple(input_hw)
         self.mean, self.std = np.asarray(mean, np.float32), np.asarray(std, np.float32)
         self.flip_p, self.pad = cfg["flip_p"], cfg["pad"]
-        self.erase = v2.RandomErasing(p=cfg["erasing_p"], value=0)  # 0 = mean colour after normalisation
+        erase = {"p": cfg["erasing_p"], "value": 0}  # 0 = mean colour after normalisation
+        if "erasing_scale" in cfg:
+            erase["scale"] = tuple(cfg["erasing_scale"])
+        if "erasing_ratio" in cfg:
+            erase["ratio"] = tuple(cfg["erasing_ratio"])
+        self.erase = v2.RandomErasing(**erase)
         jitter = dict(cfg.get("color_jitter") or {})
         p = jitter.pop("p", 0.0)
         self.jitter = v2.RandomApply([v2.ColorJitter(**jitter)], p=p) if jitter else None
@@ -218,8 +223,9 @@ def camera_lambda(cfg, epoch):
 def external_table(data_cfg, name):
     """An external set as a table for CropDataset; its label column carries the row index, which is what the
     distillation needs to look up teacher embeddings. The labels themselves are never used: this stream is unlabelled."""
-    table = load_table(data_cfg["external"][name]["dir"]).reset_index(drop=True)
-    table["crops_dir"] = str(Path(data_cfg["external"][name]["dir"]) / "images")
+    spec = data_cfg["external"][name]
+    table = load_table(spec["dir"], spec.get("table", "train.csv")).reset_index(drop=True)
+    table["crops_dir"] = str(Path(spec["dir"]) / "images")
     table["label"] = np.arange(len(table))
     return table
 
@@ -266,13 +272,26 @@ def _worker_init(_):
     cv2.setNumThreads(1)
 
 
+def enable_gradient_checkpointing(model, enabled):
+    """Enable activation checkpointing explicitly and fail if a requested backbone cannot provide it."""
+    if not enabled:
+        return False
+    setter = getattr(model.backbone, "set_grad_checkpointing", None)
+    if setter is None:
+        raise ValueError("gradient_checkpointing requested but the backbone does not support it")
+    setter(True)
+    return True
+
+
 def training_table(cfg, data_cfg, val_cfg):
     """(training rows with class labels and a 0..n-1 index, crops dir or None when rows carry their own, classes)."""
     tcfg = cfg["train"]
     if tcfg.get("source"):  # pretraining on external sets prepared by reid.external; our folds are not used
-        tables = [load_table(data_cfg["external"][name]["dir"])
-                  .assign(crops_dir=str(Path(data_cfg["external"][name]["dir"]) / "images"))
-                  for name in source_names(tcfg)]
+        tables = []
+        for name in source_names(tcfg):
+            spec = data_cfg["external"][name]
+            tables.append(load_table(spec["dir"], spec.get("table", "train.csv"))
+                          .assign(crops_dir=str(Path(spec["dir"]) / "images")))
         train_df, crops_dir = pd.concat(tables, ignore_index=True), None
     else:
         assert cfg["eval_fold"] not in tcfg["folds"] and val_cfg["holdout_fold"] not in tcfg["folds"]
@@ -384,6 +403,7 @@ def main():
     if cfg["model"].get("init_checkpoint"):  # backbone from a pretraining run; BNNeck and classifier start fresh
         load_backbone(model, Path(data_cfg["checkpoint_dir"]) / cfg["model"]["init_checkpoint"],
                       interpolate_position=cfg["model"].get("interpolate_positional_embedding", False))
+    gradient_checkpointing = enable_gradient_checkpointing(model, tcfg.get("gradient_checkpointing", False))
     model = model.to(device)
     groups = optimizer_groups(model, tcfg)
     camera_cfg, camera_head, camera_targets = tcfg.get("camera_adversarial"), None, None
@@ -554,6 +574,7 @@ def main():
 
     header = {"exp_id": cfg["exp_id"], "seed": seed, "protocol": val_cfg["version"], "fold": cfg["eval_fold"],
               "n_query": len(query), "n_gallery": len(gallery), "train_minutes": (time.time() - start) / 60}
+    header["gradient_checkpointing"] = gradient_checkpointing
     if imprinting is not None:
         header["imprinting"] = imprinting
     if teacher is not None:

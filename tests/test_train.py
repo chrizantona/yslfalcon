@@ -2,12 +2,27 @@ import math
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 import torch.nn.functional as F
 
 from reid.models import MarginClassifier, ReIDModel, load_backbone
 from reid.train import (GradientReversal, PKSampler, batch_hard_triplet, camera_codes, camera_lambda,
-                        class_centres, lookalike_vehicles, similarity_distillation, supervised_contrastive)
+                        class_centres, enable_gradient_checkpointing, lookalike_vehicles, similarity_distillation,
+                        supervised_contrastive)
+
+
+def test_gradient_checkpointing_is_explicit_and_rejects_unsupported_backbones():
+    class Supported(torch.nn.Linear):
+        def set_grad_checkpointing(self, enabled):
+            self.checkpointing = enabled
+
+    supported = ReIDModel(Supported(2, 2), 2, 3)
+    assert enable_gradient_checkpointing(supported, True)
+    assert supported.backbone.checkpointing
+    assert not enable_gradient_checkpointing(supported, False)
+    with pytest.raises(ValueError, match="does not support"):
+        enable_gradient_checkpointing(ReIDModel(torch.nn.Linear(2, 2), 2, 3), True)
 
 
 def margin_logits(kind, emb, labels, margin=0.5, scale=30.0):

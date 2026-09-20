@@ -19,6 +19,7 @@ import pandas as pd
 from reid.data import load_yaml
 from reid.embed import ClipEmbedder, embed_boxes, pick_device
 from reid.metrics import pick_threshold, refusal_curve, reid_eval, reid_eval_top10
+from reid.models import build_backbone
 from reid.teachers import build_teacher
 
 TEACHERS = ("fastreid_r50ibn", "clipreid_vitb16", "convnext_released_glpe")
@@ -90,6 +91,14 @@ def main():
         def embed(df):
             return embed_boxes(encoder, df, images_dir, cfg["model"]["input_hw"], mean, std, data_cfg["crop_max_side"],
                                device=device, **cfg["embed"])
+    elif cfg["model"].get("backbone"):  # a locally pinned generic backbone, including large teacher references
+        device = pick_device()
+        encoder, _, mean, std = build_backbone(cfg["model"], data_cfg.get("external_weights_dir"))
+        encoder = encoder.eval().to(device)
+
+        def embed(df):
+            return embed_boxes(encoder, df, images_dir, cfg["model"]["input_hw"], mean, std,
+                               data_cfg["crop_max_side"], device=device, **cfg["embed"])
     else:
         embedder = ClipEmbedder(**cfg["model"], device=pick_device())
 

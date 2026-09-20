@@ -324,3 +324,15 @@ def test_color_jitter_changes_colours_and_is_off_by_default(tmp_path):
                            {**base, "color_jitter": {"p": 1.0, "brightness": 0.5}})
     torch.manual_seed(0)
     assert not torch.equal(plain[0][0], jittered[0][0])
+
+
+def test_random_erasing_uses_configured_small_area(tmp_path):
+    image = np.full((64, 64, 3), 255, np.uint8)
+    cv2.imwrite(str(tmp_path / "a.jpg"), image)
+    df = pd.DataFrame({"image_id": ["a"], "label": [0]})
+    cfg = {"flip_p": 0, "pad": 0, "erasing_p": 1.0, "erasing_scale": [0.02, 0.08],
+           "erasing_ratio": [0.5, 2.0]}
+    dataset = CropDataset(df, tmp_path, (64, 64), (0.5,) * 3, (0.5,) * 3, cfg)
+    erased, _ = dataset[0]
+    erased_fraction = (erased == 0).all(0).float().mean().item()
+    assert 0.02 <= erased_fraction <= 0.08

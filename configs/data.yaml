@@ -15,3 +15,9 @@ external:                               # pretraining sets: archive on /workspac
   vehicleid:                            # VehicleID (PKU, on request); encrypted, unpacked beforehand by scripts/prepare_vehicleid.sh
     archive: /workspace/ext_data/vehicleid/VehicleID_V1.0.zip
     dir: /dev/shm/ext/vehicleid
+  vehicleid_train:                      # official train split only; required for every new VehicleID experiment
+    archive: /workspace/ext_data/vehicleid/VehicleID_V1.0.zip
+    dir: /dev/shm/ext/vehicleid
+    kind: vehicleid_train
+    table: train_official.csv
+    expected_vehicles: 13164

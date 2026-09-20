@@ -35,6 +35,55 @@ def test_layer_decay_covers_all_trainable_parameters_once_and_leaves_head_lr():
     assert any(p is model.bnneck.weight for p in groups[-1]["params"])
 
 
+def test_layer_decay_uses_timm_openclip_layer_groups():
+    class TimmTower(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.stem = torch.nn.Linear(2, 2)
+            self.block = torch.nn.Linear(2, 2)
+            self.projection = torch.nn.Linear(2, 2)
+
+        def layer_groups(self):
+            return [("stem", [self.stem]), ("block", list(self.block.parameters())),
+                    ("proj", [self.projection])]
+
+    model = ReIDModel(TimmTower(), 2, 3)
+    groups = optimizer_groups(model, {"layer_decay": 0.9, "lr_backbone": 1e-5, "lr_head": 5e-4})
+    assert [group["lr"] for group in groups] == pytest.approx([0.81e-5, 0.9e-5, 1e-5, 5e-4])
+    parameters = [id(parameter) for group in groups for parameter in group["params"]]
+    assert len(parameters) == len(set(parameters))
+    assert set(parameters) == {id(parameter) for parameter in model.parameters() if parameter.requires_grad}
+
+
+def test_layer_decay_supports_pinned_openclip_timm_api(monkeypatch):
+    class Trunk(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.stem = torch.nn.Linear(2, 2)
+            self.block = torch.nn.Linear(2, 2)
+
+        def group_matcher(self):
+            return object()
+
+    class OldTimmTower(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.trunk = Trunk()
+            self.head = torch.nn.Linear(2, 2)
+
+    def grouped(trunk, matcher):
+        assert matcher is not None
+        return {0: ["stem.weight", "stem.bias"], 1: ["block.weight", "block.bias"]}
+
+    monkeypatch.setattr("timm.models.group_parameters", grouped)
+    model = ReIDModel(OldTimmTower(), 2, 3)
+    groups = optimizer_groups(model, {"layer_decay": 0.9, "lr_backbone": 1e-5, "lr_head": 5e-4})
+    assert [group["lr"] for group in groups] == pytest.approx([0.81e-5, 0.9e-5, 1e-5, 5e-4])
+    parameters = [id(parameter) for group in groups for parameter in group["params"]]
+    assert len(parameters) == len(set(parameters))
+    assert set(parameters) == {id(parameter) for parameter in model.parameters() if parameter.requires_grad}
+
+
 def test_default_optimizer_keeps_original_two_groups():
     model = ReIDModel(torch.nn.Linear(2, 2), 2, 3)
     groups = optimizer_groups(model, {"lr_backbone": 1e-5, "lr_head": 5e-4})

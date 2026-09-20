@@ -7,10 +7,12 @@ Supported:
 - veri776: VeRi-776 from the Kaggle mirror abhyudaya12/veri-vehicle-re-identification-dataset (VeRi/image_train and
   VeRi/image_test, files <vehicle>_c<camera>_<time>_<n>.jpg). image_query repeats vehicles of image_test and is
   skipped. Vehicle ids get a "v776_" prefix.
-- vehicleid: VehicleID (PKU, given by the authors on request). The archive is encrypted, so it is unpacked beforehand by
-  scripts/prepare_vehicleid.sh into <dir>/images/<image>.jpg and <dir>/img2vid.txt ("image vehicle" per line); images
-  without a vehicle label are skipped. Vehicle ids get a "vid_" prefix. There are no camera labels: every image counts
-  as its own camera, so the PK sampler picks random frames of a vehicle.
+- vehicleid: all labelled VehicleID images, kept for exact reproduction of the old experiments.
+- vehicleid_train: only images listed by the official train_test_split/train_list.txt. New experiments must use this
+  source, so the official VehicleID test identities never enter training.
+  The encrypted archive is unpacked beforehand by scripts/prepare_vehicleid.sh into <dir>/images/<image>.jpg plus
+  img2vid.txt and train_list.txt. Vehicle ids get a "vid_" prefix. There are no camera labels: every image counts as
+  its own camera, so the PK sampler picks random frames of a vehicle.
 The prefixes keep the vehicles of different sets, and ours, apart. Images are ready vehicle crops, read as
 <dir>/images/<image_id>.jpg by the training dataset.
 
@@ -69,12 +71,18 @@ def veri776_table(archive):
 SOURCES = {"veriwild_test": (veriwild_table, veriwild_members), "veri776": (veri776_table, veri776_members)}
 
 
-def vehicleid_table(out_dir):
-    """train.csv rows for VehicleID already unpacked by scripts/prepare_vehicleid.sh."""
+def vehicleid_table(out_dir, official_train=False):
+    """Rows for VehicleID already unpacked by scripts/prepare_vehicleid.sh.
+
+    official_train=False deliberately preserves the historical all-labelled-images source. New experiments use the
+    official train list, which excludes every official VehicleID evaluation identity.
+    """
     out_dir = Path(out_dir)
-    if not (out_dir / "img2vid.txt").exists():
-        raise FileNotFoundError(f"{out_dir}: the VehicleID archive is encrypted, unpack it with scripts/prepare_vehicleid.sh")
-    table = pd.read_csv(out_dir / "img2vid.txt", sep=r"\s+", header=None, names=["image_id", "vehicle"], dtype=str)
+    labels = out_dir / ("train_list.txt" if official_train else "img2vid.txt")
+    if not labels.exists():
+        raise FileNotFoundError(f"{labels}: the VehicleID archive is encrypted, unpack it with "
+                                "scripts/prepare_vehicleid.sh")
+    table = pd.read_csv(labels, sep=r"\s+", header=None, names=["image_id", "vehicle"], dtype=str)
     present = {path.stem for path in (out_dir / "images").glob("*.jpg")}
     table = table[table.image_id.isin(present)].sort_values("image_id").reset_index(drop=True)
     table["vehicle_id"] = "vid_" + table.vehicle
@@ -82,12 +90,12 @@ def vehicleid_table(out_dir):
     return table[["image_id", "vehicle_id", "camera_id"]]
 
 
-def prepare(archive, out_dir, kind="veriwild_test"):
-    """Unpack the images once and (re)write train.csv; returns the table."""
+def prepare(archive, out_dir, kind="veriwild_test", table_file="train.csv"):
+    """Unpack the images once and (re)write one training table; returns the table."""
     out_dir = Path(out_dir)
-    if kind == "vehicleid":
-        table = vehicleid_table(out_dir)
-        table.to_csv(out_dir / "train.csv", index=False)
+    if kind in ("vehicleid", "vehicleid_train"):
+        table = vehicleid_table(out_dir, official_train=kind == "vehicleid_train")
+        table.to_csv(out_dir / table_file, index=False)
         return table
     make_table, members = SOURCES[kind]
     table = make_table(archive)
@@ -97,13 +105,13 @@ def prepare(archive, out_dir, kind="veriwild_test"):
                 (out_dir / target).parent.mkdir(parents=True, exist_ok=True)
                 with z.open(name) as src, (out_dir / target).open("wb") as dst:
                     shutil.copyfileobj(src, dst)
-    table.to_csv(out_dir / "train.csv", index=False)
+    table.to_csv(out_dir / table_file, index=False)
     return table
 
 
-def load_table(out_dir):
-    """train.csv of a prepared external set; ids stay strings (VehicleID image ids are digits with leading zeros)."""
-    return pd.read_csv(Path(out_dir) / "train.csv", dtype={"image_id": str, "vehicle_id": str})
+def load_table(out_dir, table_file="train.csv"):
+    """A prepared external table; ids stay strings (VehicleID image ids are digits with leading zeros)."""
+    return pd.read_csv(Path(out_dir) / table_file, dtype={"image_id": str, "vehicle_id": str})
 
 
 def source_names(train_cfg):
@@ -119,9 +127,12 @@ def main():
     args = parser.parse_args()
     external = load_yaml(args.data_config)["external"]
     for name in source_names(load_yaml(args.config)["train"]):
-        table = prepare(external[name]["archive"], external[name]["dir"], name)
+        spec = external[name]
+        table = prepare(spec["archive"], spec["dir"], spec.get("kind", name), spec.get("table", "train.csv"))
+        if spec.get("expected_vehicles") and table.vehicle_id.nunique() != spec["expected_vehicles"]:
+            raise ValueError(f"{name}: expected {spec['expected_vehicles']} vehicles, got {table.vehicle_id.nunique()}")
         print(f"{name}: {len(table)} images, {table.vehicle_id.nunique()} vehicles, "
-              f"{table.camera_id.nunique()} cameras -> {external[name]['dir']}")
+              f"{table.camera_id.nunique()} cameras -> {spec['dir']}/{spec.get('table', 'train.csv')}")
 
 
 if __name__ == "__main__":
