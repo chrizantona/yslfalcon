@@ -81,6 +81,15 @@ def test_vehicleid_official_train_excludes_other_labelled_images_and_uses_its_ow
     assert not (tmp_path / "train.csv").exists()
 
 
+def test_vehicleid_official_train_rejects_an_incomplete_copy(tmp_path):
+    (tmp_path / "images").mkdir()
+    (tmp_path / "images" / "0000002.jpg").write_bytes(b"jpeg")
+    (tmp_path / "train_list.txt").write_text("0000002 00007\n0000003 00007\n")
+
+    with pytest.raises(FileNotFoundError, match="1 listed images are missing"):
+        prepare(None, tmp_path, "vehicleid_train", "train_official.csv")
+
+
 def test_source_is_one_set_or_a_list():
     assert source_names({"source": "veriwild_test"}) == ["veriwild_test"]
     assert source_names({"source": ["veriwild_test", "veri776"]}) == ["veriwild_test", "veri776"]

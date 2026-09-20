@@ -17,7 +17,8 @@ external:                               # pretraining sets: archive on /workspac
     dir: /dev/shm/ext/vehicleid
   vehicleid_train:                      # official train split only; required for every new VehicleID experiment
     archive: /workspace/ext_data/vehicleid/VehicleID_V1.0.zip
-    dir: /dev/shm/ext/vehicleid
+    dir: /workspace/ext_data/vehicleid/official_train  # persistent subset; do not duplicate 3.7 GiB in RAM
     kind: vehicleid_train
     table: train_official.csv
+    expected_images: 113346
     expected_vehicles: 13164

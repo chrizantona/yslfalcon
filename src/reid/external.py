@@ -84,6 +84,15 @@ def vehicleid_table(out_dir, official_train=False):
                                 "scripts/prepare_vehicleid.sh")
     table = pd.read_csv(labels, sep=r"\s+", header=None, names=["image_id", "vehicle"], dtype=str)
     present = {path.stem for path in (out_dir / "images").glob("*.jpg")}
+    if official_train:
+        duplicate = table.image_id[table.image_id.duplicated()].unique().tolist()
+        if duplicate:
+            raise ValueError(f"official VehicleID train_list contains {len(duplicate)} duplicate image ids: "
+                             f"{duplicate[:5]}")
+        missing = sorted(set(table.image_id) - present)
+        if missing:
+            raise FileNotFoundError(f"official VehicleID train is incomplete: {len(missing)} listed images are "
+                                    f"missing under {out_dir / 'images'}; first ids: {missing[:5]}")
     table = table[table.image_id.isin(present)].sort_values("image_id").reset_index(drop=True)
     table["vehicle_id"] = "vid_" + table.vehicle
     table["camera_id"] = range(len(table))
@@ -131,6 +140,8 @@ def main():
         table = prepare(spec["archive"], spec["dir"], spec.get("kind", name), spec.get("table", "train.csv"))
         if spec.get("expected_vehicles") and table.vehicle_id.nunique() != spec["expected_vehicles"]:
             raise ValueError(f"{name}: expected {spec['expected_vehicles']} vehicles, got {table.vehicle_id.nunique()}")
+        if spec.get("expected_images") and len(table) != spec["expected_images"]:
+            raise ValueError(f"{name}: expected {spec['expected_images']} images, got {len(table)}")
         print(f"{name}: {len(table)} images, {table.vehicle_id.nunique()} vehicles, "
               f"{table.camera_id.nunique()} cameras -> {spec['dir']}/{spec.get('table', 'train.csv')}")
 

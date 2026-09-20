@@ -4,8 +4,8 @@ The report separates each transform and the full stochastic recipe. Cosine is me
 tower between an original crop and its augmented view; it is a guardrail, not a replacement for visual inspection.
 
 Usage: PYTHONPATH=src python -m reid.augmentation_audit --data-config configs/data.yaml \
-           --config configs/exp166_siglip2_giant_vehicleid_teacher.yaml --source vehicleid_train \
-           --out artifacts/EXP-166/augmentation_audit --device cuda
+           --config configs/exp167_siglip2_giant_vehicleid_teacher.yaml --source vehicleid_train \
+           --out artifacts/EXP-167/augmentation_audit --device cuda
 """
 import argparse
 import json

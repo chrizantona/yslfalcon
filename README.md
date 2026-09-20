@@ -172,7 +172,7 @@ H200 FP16: 065 — 12,86 мс / 616,1 FPS; 066 — 14,08 / 625,5; 068 — 14,02 
 | EXP-164 | EXP-161 | суп трёх сидов DropPath 0,05 | inconclusive; ничья с EXP-090 | 0,8949 | 0,8742 | 0,9736 | 0,9305 | 0,9064 | **0,9869** | 7,2795 | 1715,1 |
 | EXP-165 | EXP-164 | αQE (k = 1) поверх супа EXP-164 | **accepted; лучшая сумма баллов** | 0,8995 | 0,8786 | **0,9771** | **0,9376** | 0,9202 | 0,9782 | 7,4608 | 1715,1 |
 | EXP-166 | EXP-000 | zero-shot SigLIP 2 Giant-opt/16@384 до VehicleID | reference; teacher control | 0,6091 | 0,5682 | 0,7916 | 0,7329 | 0,6652 | 0,8908 | 3,6672 | 4654,6 |
-| EXP-167 | EXP-166 | fine-tune Giant на официальном VehicleID train с мягкими аугментациями | planned; ждёт данные и аудиты | — | — | — | — | — | — | — | teacher only |
+| EXP-167 | EXP-166 | fine-tune Giant на официальном VehicleID train с мягкими аугментациями | planned; числовые аудиты готовы, ждёт visual review | — | — | — | — | — | — | — | teacher only |
 | EXP-091 | EXP-088 | сумма групп AFEM из текста/Fig. 2 без лишнего умножения | rejected | 0,3166 | 0,2683 | 0,5145 | 0,5546 | 0,3955 | 0,9258 | 2,8666 | 583,7 |
 | EXP-092 | EXP-088 | 7068 optimizer steps вместо 1368 при тех же differential lr | accepted к родителю; не основной кандидат | 0,5637 | 0,4978 | 0,7933 | 0,6956 | 0,6344 | 0,8384 | 3,6015 | 583,7 |
 | EXP-093 | EXP-092 | TinyCLIP ViT-40M/32 вместо ViT-61M/32 | rejected | 0,4226 | 0,3668 | 0,6341 | 0,5781 | 0,4833 | 0,7991 | 2,7534 | 496,8 |
@@ -361,9 +361,12 @@ EXP-030…034 измерены на втором поде, где GPU и CPU д�
 **20.09.2026, подготовка Giant teacher.** EXP-166 фиксирует исходную переносимость публичного SigLIP 2
 Giant-opt/16@384 до VehicleID: mAP@10 **0,609096**, R1 0,568162, R5 0,791557, отказ 0,732914. Это teacher reference,
 а не кандидат в сдачу: visual tower содержит 1,164 млрд параметров и занимает 4,65 ГБ FP32. Особенно слабые срезы —
-маленькие рамки 0,5400 и обрезанные машины 0,5384. EXP-167 измерит ровно одно следующее изменение — fine-tuning той
-же башни на официальном train-split VehicleID; запуск ждёт исходный зашифрованный архив и обязательный аудит
-пересечений/аугментаций. План переноса статьи — `experiments/PLAN_GIANT_PATCH_DISTILLATION.md`.
+маленькие рамки 0,5400 и обрезанные машины 0,5384. Для EXP-167 подготовлен только официальный train VehicleID:
+113 346 кадров / 13 164 ID, без official test и без копии в RAM; content-digest локальной и pod-копии совпал.
+Exact LCT overlap равен нулю. 790 pHash-кандидатов не пересеклись с semantic top-5; max identity-centroid cosine
+VehicleID→LCT `0,9410` ниже медианы ближайшей чужой LCT identity `0,9534`. Числовых признаков утечки нет, но запуск
+ждёт ручной просмотр pHash/semantic/augmentation-монтажей и безопасную схему checkpoint по ранним эпохам. План
+переноса статьи — `experiments/PLAN_GIANT_PATCH_DISTILLATION.md`.
 [Приватный Release exp-166](https://github.com/chrizantona/yslfalcon/releases/tag/exp-166) содержит float32 embeddings,
 AP каждого запроса, метрики, срезы, логи и SHA256SUMS; архив 11 054 542 байта, sha256
 `ba8a11e1479e4af741058c3cb6cf6dccd2bd2b2460eac31d2e6605d95e87ae84`.

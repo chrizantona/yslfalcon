@@ -91,6 +91,13 @@ def save_montage(matches, out, limit=64):
         cv2.imwrite(str(out), np.concatenate(rows, axis=0))
 
 
+def save_montage_pages(matches, out_dir, page_size=64):
+    """Write every candidate, strongest first, instead of silently limiting manual review to the first page."""
+    for start in range(0, len(matches), page_size):
+        save_montage(matches.iloc[start:start + page_size],
+                     out_dir / f"near_duplicates_page_{start // page_size:02d}.jpg", limit=page_size)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-config", required=True)
@@ -125,8 +132,10 @@ def main():
                 "exact_sha256": ext_sha[i] == lct_sha[j]} for i, j, distance in near]
     matches = pd.DataFrame(records, columns=["external_image_id", "external_vehicle_id", "external_path",
                                              "lct_image_id", "lct_split", "lct_path", "hamming", "exact_sha256"])
+    matches = matches.sort_values(["exact_sha256", "hamming"], ascending=[False, True]).reset_index(drop=True)
     matches.to_csv(out / "near_duplicates.csv", index=False)
     save_montage(matches, out / "near_duplicates.jpg")
+    save_montage_pages(matches, out)
     report = {"source": args.source, "external_images": len(external), "external_vehicles": external.vehicle_id.nunique(),
               "lct_crops": len(lct), "exact_sha256_pairs": len(exact), "phash_threshold": args.phash_threshold,
               "phash_candidate_pairs": len(matches), "requires_manual_review": bool(len(matches))}
