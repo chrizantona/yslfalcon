@@ -1,0 +1,38 @@
+exp_id: EXP-169
+parent: EXP-168
+description: package against the over-fitting of EXP-168 - VERI-Wild identities in pair training, hard negatives only, token augmentation, dropout, and fold 3 held out to validate the pairs
+source_dir: artifacts/EXP-165/qe_k1_a3
+checkpoint: 62b5cc1c7578e9f5430afb75351851dd.pt
+model:
+  backbone: clip
+  name: ViT-SO400M-14-SigLIP2
+  pretrained: webli
+  weights: clip/siglip2_so400m14_webli.safetensors
+  sha256: bd5884118e72b5cc24c37cff23b8d202e2c3dac723b8a150901b022785235626
+  input_hw: [224, 224]
+  drop_path_rate: 0.05
+window: 20
+width: 256
+blocks: 2
+heads: 4
+dropout: 0.1                # added: the module of EXP-168 had none
+weights: [0.0, 0.25, 0.5, 1.0]
+train:
+  folds: [1, 2]             # changed: fold 3 leaves the training pairs
+  validation_fold: 3        # added: held-out vehicles pick the epoch, so the dev fold is never used for it
+  external: veriwild_test   # added: 10000 vehicles with 162 real cameras against our 924
+  external_images_per_vehicle: 4
+  external_share: 0.5       # half the steps see our cameras so the module is not trained on another domain alone
+  negatives: 7
+  hard_share: 1.0           # changed: every negative is a nearest other vehicle, as at inference
+  token_keep: 0.75          # added: a random three quarters of the tokens, plus an upright or mirrored view
+  groups_per_batch: 8
+  steps_per_epoch: 700      # the compute budget of EXP-168 over a pool ten times larger
+  epochs: 10
+  lr: 3.0e-4
+  weight_decay: 0.05
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null

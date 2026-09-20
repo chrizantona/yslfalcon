@@ -31,36 +31,38 @@ from reid.evaluate import load_fold
 from reid.gallery_transforms import normalise
 from reid.inference import load_trained_encoder
 from reid.metrics import pick_threshold, refusal_curve, reid_eval, reid_eval_top10
-from reid.train import CropDataset, _worker_init
+from reid.train import CropDataset, _worker_init, external_table
 
 
 class CrossBlock(nn.Module):
     """One block of mutual attention: each side attends to the other through the same weights, so the block - and
     with it the whole score - is symmetric in the pair."""
 
-    def __init__(self, width, heads):
+    def __init__(self, width, heads, dropout=0.0):
         super().__init__()
         self.norm_q, self.norm_kv = nn.LayerNorm(width), nn.LayerNorm(width)
-        self.attn = nn.MultiheadAttention(width, heads, batch_first=True)
+        self.attn = nn.MultiheadAttention(width, heads, dropout=dropout, batch_first=True)
+        self.drop = nn.Dropout(dropout)
         self.norm_ff = nn.LayerNorm(width)
-        self.ff = nn.Sequential(nn.Linear(width, 4 * width), nn.GELU(), nn.Linear(4 * width, width))
+        self.ff = nn.Sequential(nn.Linear(width, 4 * width), nn.GELU(), nn.Dropout(dropout),
+                                nn.Linear(4 * width, width))
 
     def forward(self, a, b):
         qa, qb, ka, kb = self.norm_q(a), self.norm_q(b), self.norm_kv(a), self.norm_kv(b)
-        a = a + self.attn(qa, kb, kb, need_weights=False)[0]
-        b = b + self.attn(qb, ka, ka, need_weights=False)[0]
-        return a + self.ff(self.norm_ff(a)), b + self.ff(self.norm_ff(b))
+        a = a + self.drop(self.attn(qa, kb, kb, need_weights=False)[0])
+        b = b + self.drop(self.attn(qb, ka, ka, need_weights=False)[0])
+        return a + self.drop(self.ff(self.norm_ff(a))), b + self.drop(self.ff(self.norm_ff(b)))
 
 
 class PairReranker(nn.Module):
     """Logit of "the same vehicle, seen from another camera" for a pair of patch-token sets."""
 
-    def __init__(self, token_dim, width=256, blocks=2, heads=4):
+    def __init__(self, token_dim, width=256, blocks=2, heads=4, dropout=0.0):
         super().__init__()
         self.proj = nn.Sequential(nn.Linear(token_dim, width), nn.LayerNorm(width))
-        self.blocks = nn.ModuleList([CrossBlock(width, heads) for _ in range(blocks)])
+        self.blocks = nn.ModuleList([CrossBlock(width, heads, dropout) for _ in range(blocks)])
         self.head = nn.Sequential(nn.LayerNorm(2 * width), nn.Linear(2 * width, width), nn.GELU(),
-                                  nn.Linear(width, 1))
+                                  nn.Dropout(dropout), nn.Linear(width, 1))
 
     def forward(self, tokens_a, tokens_b):
         a, b = self.proj(tokens_a), self.proj(tokens_b)
@@ -71,11 +73,11 @@ class PairReranker(nn.Module):
         return self.head(torch.cat([u + v, (u - v).abs()], dim=1)).squeeze(1)
 
 
-def plain_loader(df, crops_dir, input_hw, mean, std, batch_size, num_workers=8):
-    frame = df.assign(label=0).reset_index(drop=True)
-    plain = {"flip_p": 0.0, "pad": 0, "erasing_p": 0.0}
-    return DataLoader(CropDataset(frame, crops_dir, input_hw, mean, std, plain), batch_size=batch_size,
-                      num_workers=num_workers, worker_init_fn=_worker_init)
+def plain_loader(df, crops_dir, input_hw, mean, std, batch_size, num_workers=8, flip=False):
+    frame = df if "label" in df else df.assign(label=0)
+    plain = {"flip_p": 1.0 if flip else 0.0, "pad": 0, "erasing_p": 0.0}  # flip_p 1.0 = the mirrored view, not a coin
+    return DataLoader(CropDataset(frame.reset_index(drop=True), crops_dir, input_hw, mean, std, plain),
+                      batch_size=batch_size, num_workers=num_workers, worker_init_fn=_worker_init)
 
 
 @torch.no_grad()
@@ -98,25 +100,62 @@ def crop_embeddings(encoder, loader, device):
     return np.concatenate(chunks)
 
 
-def training_groups(df, embeddings, n_negatives, hard_share, rng):
-    """(anchor, positive, negatives) per anchor: the positive is the same vehicle from another camera, part of the
-    negatives are the nearest other vehicles under the frozen encoder and the rest are drawn at random."""
-    vehicle, camera = df.vehicle_id.to_numpy(), df.camera_id.to_numpy()
-    similarity = embeddings @ embeddings.T
-    np.fill_diagonal(similarity, -np.inf)
-    ranked = np.argsort(-similarity, axis=1)
+@torch.no_grad()
+def mine_neighbours(embeddings, vehicle_codes, n_hard, device, chunk=2048):
+    """For every row, the nearest images of other vehicles under the frozen encoder."""
+    emb = torch.as_tensor(embeddings, device=device)
+    codes = torch.as_tensor(np.asarray(vehicle_codes), device=device)
+    out = torch.empty(len(emb), n_hard, dtype=torch.int64)
+    for start in range(0, len(emb), chunk):
+        stop = min(start + chunk, len(emb))
+        similarity = emb[start:stop] @ emb.T
+        similarity[codes[start:stop, None] == codes[None, :]] = -float("inf")
+        out[start:stop] = similarity.topk(n_hard, dim=1).indices.cpu()
+    return out.numpy()
+
+
+def training_groups(df, embeddings, n_negatives, hard_share, rng, device=None):
+    """(anchor, positives, hard negatives) per anchor. The positives are the same vehicle from another camera; the
+    hard negatives are the nearest images of other vehicles. Anchors whose vehicle was seen by one camera only are
+    dropped - they cannot teach cross-camera matching."""
+    vehicle = pd.factorize(df.vehicle_id.to_numpy())[0]
+    camera = df.camera_id.to_numpy()
     n_hard = int(round(hard_share * n_negatives))
+    hard = (mine_neighbours(embeddings, vehicle, n_hard, device or "cpu") if n_hard
+            else np.empty((len(df), 0), dtype=np.int64))
+    rows_of = {}
+    for row, code in enumerate(vehicle):
+        rows_of.setdefault(code, []).append(row)
     groups = []
     for anchor in range(len(df)):
-        positives = np.flatnonzero((vehicle == vehicle[anchor]) & (camera != camera[anchor]))
-        if not len(positives):  # a vehicle seen from one camera teaches nothing about cross-camera matching
+        positives = np.array([r for r in rows_of[vehicle[anchor]] if camera[r] != camera[anchor]])
+        if not len(positives):
             continue
-        others = ranked[anchor][vehicle[ranked[anchor]] != vehicle[anchor]]
-        hard = others[:n_hard]
-        pool = np.setdiff1d(np.flatnonzero(vehicle != vehicle[anchor]), hard)
-        groups.append((anchor, positives, np.concatenate(
-            [hard, rng.choice(pool, n_negatives - n_hard, replace=False)])))
-    return groups
+        groups.append((anchor, positives, hard[anchor]))
+    return groups, vehicle
+
+
+def take_tokens(banks, indices, rng, keep, device):
+    """One stored view per row - upright or mirrored - with a random subset of its tokens kept."""
+    bank = banks[rng.integers(len(banks))]
+    tokens = bank[torch.as_tensor(np.asarray(indices))].to(device, non_blocking=True).float()
+    if keep < 1.0:
+        n = tokens.shape[1]
+        wanted = max(1, int(round(keep * n)))
+        chosen = torch.rand(len(tokens), n, device=tokens.device).argsort(1)[:, :wanted]
+        tokens = tokens.gather(1, chosen[:, :, None].expand(-1, -1, tokens.shape[2]))
+    return tokens
+
+
+def draw_candidates(group, vehicle, n_negatives, n_hard, rng):
+    """One positive followed by the negatives of the group: the mined hard ones first, the rest drawn at random."""
+    anchor, positives, hard = group
+    picked = [rng.choice(positives), *hard[:n_hard]]
+    while len(picked) < n_negatives + 1:
+        other = rng.integers(len(vehicle))
+        if vehicle[other] != vehicle[anchor]:
+            picked.append(other)
+    return picked
 
 
 def group_loss(logits):
@@ -128,23 +167,61 @@ def group_loss(logits):
     return F.cross_entropy(logits, target) + F.binary_cross_entropy_with_logits(logits, binary)
 
 
-def train(model, tokens, groups, cfg, device, seed, log):
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
-    per_epoch = len(groups) // cfg["groups_per_batch"]
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=cfg["lr"],
-                                                    total_steps=max(cfg["epochs"] * per_epoch, 1), pct_start=0.1)
+def cached(path, build):
+    """Token banks are the same for every seed - the tower is frozen - so they are built once and kept in /dev/shm."""
+    path = Path(path)
+    if path.exists():
+        return torch.from_numpy(np.load(path))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    bank = build()
+    np.save(path, bank.numpy())
+    return bank
+
+
+@torch.no_grad()
+def validate(model, source, cfg, device, seed=0):
+    """Share of held-out groups whose positive outranks its negatives: the training objective on vehicles the pairs
+    never trained on, so over-fitting shows up without ever looking at the dev fold."""
+    banks, groups, vehicle = source
+    model.eval()
     rng = np.random.default_rng(seed)
+    correct = seen = 0
+    for start in range(0, len(groups), cfg["groups_per_batch"]):
+        chosen = groups[start: start + cfg["groups_per_batch"]]
+        if not chosen:
+            break
+        candidates = np.array([draw_candidates(g, vehicle, cfg["negatives"], len(g[2]), rng) for g in chosen])
+        anchors = np.repeat([g[0] for g in chosen], candidates.shape[1])
+        a = take_tokens(banks[:1], anchors, rng, 1.0, device)
+        b = take_tokens(banks[:1], candidates.ravel(), rng, 1.0, device)
+        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device == "cuda"):
+            logits = model(a, b)
+        correct += int((logits.float().view(len(chosen), -1).argmax(1) == 0).sum())
+        seen += len(chosen)
+    return correct / max(seen, 1)
+
+
+def train(model, sources, validation, cfg, device, seed, log):
+    """sources: list of (banks, groups, vehicle codes); the first is ours, the second - when present - external."""
+    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
+    total_steps = cfg["epochs"] * cfg["steps_per_epoch"]
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=cfg["lr"], total_steps=total_steps,
+                                                    pct_start=0.1)
+    rng = np.random.default_rng(seed)
+    n_hard = int(round(cfg["hard_share"] * cfg["negatives"]))
+    best = (-1.0, None, 0)
     start = time.time()
     for epoch in range(1, cfg["epochs"] + 1):
         model.train()
-        order = rng.permutation(len(groups))
         total, correct, seen = 0.0, 0, 0
-        for step in range(per_epoch):
-            chosen = [groups[i] for i in order[step * cfg["groups_per_batch"]: (step + 1) * cfg["groups_per_batch"]]]
-            candidates = np.array([[rng.choice(pos), *neg] for _, pos, neg in chosen])
-            anchors = np.repeat([a for a, _, _ in chosen], candidates.shape[1])
-            a = tokens[anchors].to(device, non_blocking=True).float()
-            b = tokens[candidates.ravel()].to(device, non_blocking=True).float()
+        for _ in range(cfg["steps_per_epoch"]):
+            external = len(sources) > 1 and rng.random() < cfg["external_share"]
+            banks, groups, vehicle = sources[1] if external else sources[0]
+            chosen = [groups[i] for i in rng.integers(len(groups), size=cfg["groups_per_batch"])]
+            candidates = np.array([draw_candidates(g, vehicle, cfg["negatives"], n_hard, rng) for g in chosen])
+            anchors = np.repeat([g[0] for g in chosen], candidates.shape[1])
+            a = take_tokens(banks, anchors, rng, cfg["token_keep"], device)
+            b = take_tokens(banks, candidates.ravel(), rng, cfg["token_keep"], device)
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device == "cuda"):
                 logits = model(a, b)
             logits = logits.float().view(len(chosen), -1)
@@ -156,12 +233,16 @@ def train(model, tokens, groups, cfg, device, seed, log):
             total += loss.item()
             correct += int((logits.argmax(1) == 0).sum())
             seen += len(chosen)
-        record = {"epoch": epoch, "loss": total / max(per_epoch, 1), "positive_on_top": correct / max(seen, 1),
-                  "elapsed_min": (time.time() - start) / 60}
+        held_out = validate(model, validation, cfg, device)
+        if held_out > best[0]:
+            best = (held_out, {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}, epoch)
+        record = {"epoch": epoch, "loss": total / cfg["steps_per_epoch"], "positive_on_top": correct / max(seen, 1),
+                  "held_out_positive_on_top": held_out, "elapsed_min": (time.time() - start) / 60}
         log.write(json.dumps(record) + "\n")
         log.flush()
         print(json.dumps(record), flush=True)
-    return model
+    model.load_state_dict(best[1])  # the epoch chosen on held-out vehicles, never on the dev fold
+    return {"best_epoch": best[2], "best_held_out": best[0]}
 
 
 @torch.no_grad()
@@ -232,27 +313,52 @@ def main():
     tower = encoder[0]  # Sequential(backbone, bnneck): patch tokens come from the backbone's trunk
 
     folds = pd.read_csv(Path(val_cfg["out_dir"]) / "folds.csv")
-    train_df = folds[folds.fold.isin(cfg["train"]["folds"])].reset_index(drop=True)
+    tcfg = cfg["train"]
     query, gallery, no_match = load_fold(Path(val_cfg["out_dir"]), cfg["eval_fold"])
-    loaders = {name: plain_loader(frame, data_cfg["crops_dir"], cfg["model"]["input_hw"], mean, std, 64)
-               for name, frame in (("train", train_df), ("query", query), ("gallery", gallery))}
+    hw, crops = cfg["model"]["input_hw"], data_cfg["crops_dir"]
+    cache = Path(tcfg.get("token_cache", "/dev/shm/rerank_tokens")) / cfg["checkpoint"].replace(".pt", "")
 
-    print(json.dumps({"stage": "tokens", "train": len(train_df), "query": len(query), "gallery": len(gallery)}),
-          flush=True)
-    train_tokens = token_bank(tower, loaders["train"], device)
-    query_tokens = token_bank(tower, loaders["query"], device)
-    gallery_tokens = token_bank(tower, loaders["gallery"], device)
-    mining = crop_embeddings(encoder, loaders["train"], device)
+    def banks_of(name, frame, mirrored=True):
+        views = [False, True] if mirrored else [False]
+        name = f"{name}_{len(frame)}"  # the row count is part of the key: a different subset is a different bank
+        return [cached(cache / f"{name}{'_flip' if flip else ''}.npy",
+                       lambda flip=flip: token_bank(tower, plain_loader(frame, crops, hw, mean, std, 64, flip=flip),
+                                                    device))
+                for flip in views]
 
-    groups = training_groups(train_df, mining, cfg["train"]["negatives"], cfg["train"]["hard_share"],
-                             np.random.default_rng(args.seed))
-    print(json.dumps({"stage": "train", "groups": len(groups), "of_rows": len(train_df),
-                      "tokens_gb": round(train_tokens.numel() * 2 / 1e9, 2)}), flush=True)
+    def source_of(name, frame, mirrored=True):
+        embeddings = cached(cache / f"{name}_{len(frame)}_emb.npy",
+                            lambda: torch.from_numpy(crop_embeddings(encoder, plain_loader(frame, crops, hw, mean,
+                                                                                           std, 64), device)))
+        groups, vehicle = training_groups(frame, embeddings.numpy(), tcfg["negatives"], tcfg["hard_share"],
+                                          np.random.default_rng(0), device)
+        if not groups:
+            raise ValueError(f"source {name} has no cross-camera pairs: {len(frame)} rows, "
+                             f"{frame.vehicle_id.nunique()} vehicles")
+        print(json.dumps({"source": name, "rows": len(frame), "vehicles": int(frame.vehicle_id.nunique()),
+                          "groups": len(groups)}), flush=True)
+        return banks_of(name, frame, mirrored), groups, vehicle
 
-    model = PairReranker(train_tokens.shape[-1], cfg["width"], cfg["blocks"], cfg["heads"]).to(device)
+    train_df = folds[folds.fold.isin(tcfg["folds"])].reset_index(drop=True)
+    validation_df = folds[folds.fold == tcfg["validation_fold"]].reset_index(drop=True)
+    sources = [source_of("train", train_df)]
+    if tcfg.get("external"):
+        external = external_table(data_cfg, tcfg["external"])
+        keep_n = tcfg["external_images_per_vehicle"]
+        external = (external.sample(frac=1.0, random_state=0).groupby("vehicle_id", group_keys=False)
+                    .head(keep_n).reset_index(drop=True))
+        sources.append(source_of("external", external))
+    validation = source_of("validation", validation_df, mirrored=False)
+
+    query_tokens = banks_of("query", query, mirrored=False)[0]
+    gallery_tokens = banks_of("gallery", gallery, mirrored=False)[0]
+
+    model = PairReranker(query_tokens.shape[-1], cfg["width"], cfg["blocks"], cfg["heads"],
+                         cfg.get("dropout", 0.0)).to(device)
     parameters = sum(p.numel() for p in model.parameters())
     with (out / "train_log.jsonl").open("w") as log:
-        train(model, train_tokens, groups, cfg["train"], device, args.seed, log)
+        selection = train(model, sources, validation, tcfg, device, args.seed, log)
+    print(json.dumps({"stage": "selected", **selection}), flush=True)
 
     source = Path(cfg["source_dir"])
     query_emb = normalise(np.load(source / "query_emb.npy").astype(np.float32))
@@ -277,7 +383,7 @@ def main():
         print(json.dumps({"weight": weight, **{k: round(v, 6) for k, v in results[f"w{weight}"].items()}}), flush=True)
 
     summary = {"exp_id": cfg["exp_id"], "protocol": val_cfg["version"], "fold": cfg["eval_fold"], "seed": args.seed,
-               "window": cfg["window"], "reranker_parameters": parameters,
+               "window": cfg["window"], **selection, "reranker_parameters": parameters,
                "reranker_mb": round(parameters * 4 / 1e6, 2), "variants": results}
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     torch.save({"state_dict": model.state_dict(), "config": cfg}, out / "reranker.pt")
