@@ -145,6 +145,20 @@ def similarity_distillation(feat, teacher, temperature):
     return F.kl_div(student_sim.log_softmax(1), teacher_sim.softmax(1), reduction="batchmean")
 
 
+def external_table(data_cfg, name):
+    """An external set as a table for CropDataset; its label column carries the row index, which is what the
+    distillation needs to look up teacher embeddings. The labels themselves are never used: this stream is unlabelled."""
+    table = load_table(data_cfg["external"][name]["dir"]).reset_index(drop=True)
+    table["crops_dir"] = str(Path(data_cfg["external"][name]["dir"]) / "images")
+    table["label"] = np.arange(len(table))
+    return table
+
+
+def cycle(loader):
+    while True:
+        yield from loader
+
+
 @torch.no_grad()
 def teacher_embeddings(distill, data_cfg, tcfg, train_df, crops_dir, device):
     """Mean of the L2-normalised embeddings of the distillation teachers over the training crops, in train_df order.
@@ -334,12 +348,26 @@ def main():
         imprint = imprint_sub_centers if tcfg["id_head"].get("sub_centers", 1) > 1 else imprint_classifier
         imprinting = imprint(model, initial_loader, device)
         print(json.dumps({"imprinting": imprinting}), flush=True)
-    distill, teacher = tcfg.get("distill"), None
+    distill, teacher, extra_loader, extra_teacher = tcfg.get("distill"), None, None, None
     if distill:  # embeddings of the teachers over the plain training crops, computed once and then frozen
         teacher = teacher_embeddings(distill, data_cfg, tcfg, train_df, crops_dir, device)
         header_distill = {"teachers": [spec["checkpoint"] for spec in distill["teachers"]],
                           "weight": distill["weight"], "temperature": distill["temperature"],
                           "images": len(teacher), "dim": teacher.shape[1]}
+        if distill.get("extra"):  # unlabelled images distilled next to our batches; the seeds share the cached teacher
+            extra = distill["extra"]
+            extra_df = external_table(data_cfg, extra["source"])
+            cache = Path("artifacts") / cfg["exp_id"] / f"teacher_{extra['source']}.npy"
+            if cache.exists():
+                extra_teacher = torch.from_numpy(np.load(cache)).to(device)
+            else:
+                extra_teacher = teacher_embeddings(distill, data_cfg, tcfg, extra_df, None, device)
+                np.save(cache, extra_teacher.cpu().numpy())
+            extra_loader = cycle(DataLoader(
+                CropDataset(extra_df, None, cfg["model"]["input_hw"], mean, std, tcfg),
+                batch_size=extra["batch_size"], shuffle=True, drop_last=True, num_workers=tcfg["num_workers"],
+                worker_init_fn=_worker_init, generator=torch.Generator().manual_seed(seed)))
+            header_distill["extra"] = {**extra, "images": len(extra_teacher)}
         print(json.dumps({"distill": header_distill}), flush=True)
     log = (out / "train_log.jsonl").open("w")
     print(f"{len(classes)} vehicles, {len(train_df)} images, {len(sampler)} batches/epoch", flush=True)
@@ -349,7 +377,7 @@ def main():
         sampler.set_epoch(epoch)
         model.train()
         totals, steps, epoch_start = np.zeros(3), 0, time.time()
-        auxiliary_total = distill_total = 0.0
+        auxiliary_total = distill_total = extra_total = 0.0
         # the sampler is deterministic given (seed, epoch), so iterating it here reproduces the batches the loader
         # is about to yield; distillation needs the row indices to look up its teacher embeddings
         for (x, y), rows in zip(loader, sampler):
@@ -371,6 +399,14 @@ def main():
                 loss_distill = similarity_distillation(feat.float(), teacher[rows], distill["temperature"])
                 distill_total += loss_distill.item()
                 loss = loss + distill["weight"] * loss_distill
+            if extra_loader is not None:  # the same loss on unlabelled external images: only the teacher speaks there
+                x_extra, rows_extra = next(extra_loader)
+                with torch.autocast("cuda", dtype=torch.bfloat16):
+                    feat_extra = model.backbone(x_extra.to(device, non_blocking=True))
+                loss_extra = similarity_distillation(feat_extra.float(), extra_teacher[rows_extra.to(device)],
+                                                     distill["temperature"])
+                extra_total += loss_extra.item()
+                loss = loss + distill["extra"].get("weight", distill["weight"]) * loss_extra
             if len(outputs) == 4:
                 app_feat, app_logits = outputs[2:]
                 if metric_loss["type"] != "supcon":
@@ -402,6 +438,8 @@ def main():
             record["loss_auxiliary"] = auxiliary_total / max(steps, 1)
         if teacher is not None:
             record["loss_distill"] = distill_total / max(steps, 1)
+            if extra_loader is not None:
+                record["loss_distill_extra"] = extra_total / max(steps, 1)
         afem = getattr(model.backbone, "refinement", None)
         if hasattr(afem, "group_logits"):
             record["afem_residual_scale"] = float(afem.residual_scale.detach())

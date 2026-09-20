@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 
 from reid.external import load_table, prepare, source_names
+from reid.train import external_table
 
 
 def test_prepare_keeps_present_images_prefixes_vehicles_and_unpacks(tmp_path):
@@ -68,3 +69,12 @@ def test_vehicleid_must_be_unpacked_first(tmp_path):
 def test_source_is_one_set_or_a_list():
     assert source_names({"source": "veriwild_test"}) == ["veriwild_test"]
     assert source_names({"source": ["veriwild_test", "veri776"]}) == ["veriwild_test", "veri776"]
+
+
+def test_external_table_labels_are_row_indices_for_the_distillation_lookup(tmp_path):
+    (tmp_path / "images").mkdir()
+    pd.DataFrame({"image_id": ["b", "a", "c"], "vehicle_id": ["vw_2", "vw_1", "vw_2"],
+                  "camera_id": [1, 2, 3]}).to_csv(tmp_path / "train.csv", index=False)
+    table = external_table({"external": {"set": {"dir": str(tmp_path)}}}, "set")
+    assert list(table.label) == [0, 1, 2]  # the row index, in file order, is what the teacher matrix is indexed by
+    assert table.crops_dir.unique().tolist() == [str(tmp_path / "images")]
