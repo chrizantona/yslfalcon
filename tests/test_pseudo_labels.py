@@ -37,3 +37,22 @@ def test_score_clusters_counts_purity_and_split_vehicles():
     assert scores["pure_clusters"] == 0.5  # one clean cluster, one mixing b and c
     assert scores["image_purity"] == 0.75  # three of four images sit with their cluster's majority vehicle
     assert scores["coverage"] == 0.8
+
+
+def test_training_table_labels_folds_and_pseudo_vehicles_together(tmp_path):
+    # our vehicle ids are integers and pseudo ones are strings: one class index has to cover both
+    import pandas as pd
+    from reid.train import training_table
+
+    pd.DataFrame({"image_id": ["a", "b", "c"], "vehicle_id": [7, 7, 9], "camera_id": [1, 2, 1],
+                  "fold": [1, 1, 1]}).to_csv(tmp_path / "folds.csv", index=False)
+    pseudo = tmp_path / "pseudo.csv"
+    pd.DataFrame({"image_id": ["t1", "t2"], "vehicle_id": ["pl_0", "pl_0"],
+                  "camera_id": [0, 1]}).to_csv(pseudo, index=False)
+
+    cfg = {"eval_fold": 0, "train": {"folds": [1], "pseudo_labels": str(pseudo)}}
+    table, _, classes = training_table(cfg, {"crops_dir": "/crops"}, {"out_dir": str(tmp_path), "holdout_fold": 4})
+
+    assert len(table) == 5 and len(classes) == 3
+    assert sorted(table.label.unique().tolist()) == [0, 1, 2]
+    assert table.label.iloc[3] == table.label.iloc[4]  # both pseudo frames land on one class

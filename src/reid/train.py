@@ -282,6 +282,7 @@ def training_table(cfg, data_cfg, val_cfg):
             pseudo = pd.read_csv(tcfg["pseudo_labels"])
             train_df = pd.concat([train_df, pseudo[train_df.columns.intersection(pseudo.columns)]],
                                  ignore_index=True)
+            train_df["vehicle_id"] = train_df.vehicle_id.astype(str)  # our ids are ints and pseudo ones are "pl_*"
     classes = {vehicle: k for k, vehicle in enumerate(sorted(train_df.vehicle_id.unique()))}
     train_df["label"] = train_df.vehicle_id.map(classes)
     return train_df, crops_dir, classes
