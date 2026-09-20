@@ -278,6 +278,10 @@ def training_table(cfg, data_cfg, val_cfg):
         assert cfg["eval_fold"] not in tcfg["folds"] and val_cfg["holdout_fold"] not in tcfg["folds"]
         folds = pd.read_csv(Path(val_cfg["out_dir"]) / "folds.csv")
         train_df, crops_dir = folds[folds.fold.isin(tcfg["folds"])].reset_index(drop=True), data_cfg["crops_dir"]
+        if tcfg.get("pseudo_labels"):  # extra vehicles clustered out of unlabelled images (reid.pseudo_labels)
+            pseudo = pd.read_csv(tcfg["pseudo_labels"])
+            train_df = pd.concat([train_df, pseudo[train_df.columns.intersection(pseudo.columns)]],
+                                 ignore_index=True)
     classes = {vehicle: k for k, vehicle in enumerate(sorted(train_df.vehicle_id.unique()))}
     train_df["label"] = train_df.vehicle_id.map(classes)
     return train_df, crops_dir, classes

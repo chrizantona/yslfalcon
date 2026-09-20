@@ -1,0 +1,3 @@
+# Second pod (rougenn), 20.09.2026: the EXP-089 recipe with the 282 pseudo-labelled vehicles of EXP-162 added to
+# the training folds. GPU 1, three seeds one after another.
+EXP-163 configs/exp163_pseudo_label_training.yaml 1 1 0
