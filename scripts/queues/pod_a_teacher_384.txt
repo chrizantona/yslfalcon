@@ -1,0 +1,4 @@
+# Second pod (rougenn), 20.09.2026: the distillation teacher - the So400m/16 tower at 384 px, its own VERI-Wild
+# pretraining and then the EXP-089 recipe. GPU 1, one seed each. The teacher is never submitted: 576 tokens.
+EXP-151 configs/exp151_pretrain_veriwild_so400m16_384.yaml 1 1 0
+EXP-152 configs/exp152_so400m16_384_teacher.yaml 1 1 0

@@ -43,6 +43,9 @@ if [ "$TARGET" = all ] || [ "$TARGET" = backbones ]; then  # backbone screens EX
   fetch weights/clip/siglip2_so400m16_256_webli.safetensors \
     https://huggingface.co/timm/ViT-SO400M-16-SigLIP2-256/resolve/8b4c2efdfd48e0d72644df99ed5dc20c110fc352/open_clip_model.safetensors \
     c824f8bb65616a30b57f32e62ca3f4a10287b00f263c989706093cd20daaa4f0
+  fetch weights/clip/siglip2_so400m16_384_webli.safetensors \
+    https://huggingface.co/timm/ViT-SO400M-16-SigLIP2-384/resolve/fec784dabb3081a5f101fc74eefaf9d1ed08237b/open_clip_model.safetensors \
+    8ceec00df3c462d155d172933339cd9178a86bfab72f4458dbe84bd54f5ad026
   fetch weights/clip/convnext_large_d_320_ft_soup.safetensors \
     https://huggingface.co/laion/CLIP-convnext_large_d_320.laion2B-s29B-b131K-ft-soup/resolve/654d0f80ff73c58e7281a3ca7dc425589049e2e1/open_clip_model.safetensors \
     1a8e47bdefd6d36202ec66a8975edda9e3c89560bcd1ecefe6f676311637a671

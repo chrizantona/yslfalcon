@@ -1,0 +1,16 @@
+exp_id: EXP-150
+parent: EXP-090
+description: ensembles of saved fold embeddings - seeds of one recipe, soups of different recipes and two different towers; a reference point and a candidate distillation teacher, not a submission
+base_variant: base
+variants:                                 # fixed in advance; every one is reported
+  base: [artifacts/EXP-090/val_fold0]                                                   # the soup alone
+  seeds089: [artifacts/EXP-089/seed0, artifacts/EXP-089/seed1, artifacts/EXP-089/seed2]  # three seeds of one recipe
+  soups2: [artifacts/EXP-090/val_fold0, artifacts/EXP-079/val_fold0]                     # two recipes
+  soups3: [artifacts/EXP-090/val_fold0, artifacts/EXP-079/val_fold0, artifacts/EXP-054/val_fold0]
+  towers2: [artifacts/EXP-090/val_fold0, artifacts/EXP-121/seed0]                        # /14 at 224 plus /16 at 256
+  mixed3: [artifacts/EXP-090/val_fold0, artifacts/EXP-079/val_fold0, artifacts/EXP-121/seed0]
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null

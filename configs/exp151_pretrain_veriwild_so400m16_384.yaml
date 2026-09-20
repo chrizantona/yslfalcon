@@ -1,0 +1,38 @@
+exp_id: EXP-151
+parent: EXP-121
+description: the VERI-Wild pretraining of EXP-040 for the SigLIP 2 So400m/16 tower at 384 px - the teacher of a planned distillation, not a submission candidate
+seeds: [0]
+checkpoint_name: 5f0a3c9b71f2470d9c1d2d8c4b6a7e13.pt  # random name fixed in advance: EXP-152 starts from it
+model:
+  backbone: clip
+  name: ViT-SO400M-16-SigLIP2-384
+  pretrained: webli
+  weights: clip/siglip2_so400m16_384_webli.safetensors
+  sha256: 8ceec00df3c462d155d172933339cd9178a86bfab72f4458dbe84bd54f5ad026
+  input_hw: [384, 384]           # 576 patch tokens: 2.25x the compute of 256
+train:
+  source: veriwild_test     # changed: folds 1-3 -> external set; none of our images are used
+  vehicles_per_batch: 32    # P
+  images_per_vehicle: 4     # K
+  epochs: 30                # one epoch = every training vehicle once (~312 steps)
+  warmup_epochs: 10
+  lr_backbone: 1.0e-5
+  lr_head: 5.0e-4
+  weight_decay: 1.0e-4
+  label_smoothing: 0.1
+  triplet_margin: 0.3
+  flip_p: 0.5
+  pad: 10
+  erasing_p: 0.5
+  num_workers: 12
+  eval_every: 10
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
+benchmark:
+  precision: fp32
