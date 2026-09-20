@@ -1,0 +1,14 @@
+exp_id: EXP-165
+parent: EXP-164
+description: alpha-query expansion over the gallery on the saved EXP-164 embeddings - no training, the model is untouched; k and alpha are the ones chosen in EXP-104
+source_dir: artifacts/EXP-164/val_fold0
+base_variant: base
+variants:                                 # fixed in advance; every one is reported
+  base: {type: base}
+  qe_k1_a3: {type: alpha_qe, k: 1, alpha: 3.0}
+  qe_k2_a3: {type: alpha_qe, k: 2, alpha: 3.0}
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
