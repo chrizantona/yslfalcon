@@ -1,0 +1,45 @@
+exp_id: EXP-160
+parent: EXP-089
+description: EXP-089 with hard identity sampling - half of every PK batch is grown around an anchor from the vehicles whose ArcFace centres are closest, so the hardest negative is a real lookalike
+seeds: [0, 1, 2]
+checkpoint_name: 559a1c760e634fb98ec5f77b3dceae1e_seed{seed}.pt
+model:
+  backbone: clip
+  name: ViT-SO400M-14-SigLIP2
+  pretrained: webli
+  weights: clip/siglip2_so400m14_webli.safetensors
+  sha256: bd5884118e72b5cc24c37cff23b8d202e2c3dac723b8a150901b022785235626
+  init_checkpoint: b155ab652c084d75bf3054d188e01313.pt
+  input_hw: [224, 224]
+train:
+  id_head: {type: arcface, scale: 30.0, margin: 0.5, imprinting: true, imprint_batch_size: 128}
+  folds: [1, 2, 3]          # fold 0 = dev evaluation, fold 4 = untouched holdout
+  vehicles_per_batch: 32    # P
+  images_per_vehicle: 4     # K
+  epochs: 30                # one epoch = every training vehicle once
+  warmup_epochs: 10
+  lr_backbone: 1.0e-5
+  lr_head: 5.0e-4
+  weight_decay: 1.0e-4
+  label_smoothing: 0.1
+  metric_loss: {type: supcon+triplet, temperature: 0.1}
+  hard_identity:            # added: batches of lookalikes once the class centres mean something
+    share: 0.5              # half of the 32 vehicles come from the anchor neighbourhood
+    pool: 16                # how many nearest vehicles of the anchor may be taken
+    start_epoch: 11         # after the warm-up; before that the batches stay random
+  triplet_margin: 0.3
+  flip_p: 0.5
+  pad: 10
+  erasing_p: 0.5
+  num_workers: 12
+  eval_every: 20
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
+benchmark:
+  precision: fp32

@@ -1,0 +1,3 @@
+# Second pod (rougenn), 20.09.2026: hard identity sampling - half of every PK batch grown around an anchor from the
+# vehicles whose ArcFace centres are closest. GPU 3, three seeds one after another.
+EXP-160 configs/exp160_hard_identity_sampling.yaml 3 3 0
