@@ -14,5 +14,5 @@ members:                    # the same ensemble, run over test_query.csv and tes
   - {config: configs/exp090_soup_exp089_seeds.yaml, checkpoint: 73e50afa87f9459184d3e96cdca786d8.pt, sha256: 605aee3dc819ecfe7234d8602a2ec27a225c62f9fb53cf1f63ecfd8ad8cd64ae}
   - {config: configs/exp121_so400m16_chain.yaml, checkpoint: 991d4d3cdda14906a2711e3112959b83_seed0.pt}
   - {config: configs/exp152_so400m16_384_teacher.yaml, checkpoint: 6b2d18ae40c04f5f8f2a1c3d5e7b9a02_seed0.pt}
-k: null                     # filled in from the calibration below
-z_threshold: null
+k: 5                        # calibrated on fold 0: 275 clusters for 309 vehicles, 95% of them pure
+z_threshold: 5.0            # coverage 82%, image purity 98%, only 8% of vehicles split
