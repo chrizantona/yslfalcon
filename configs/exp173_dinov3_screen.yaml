@@ -1,0 +1,37 @@
+exp_id: EXP-173
+parent: EXP-089
+description: DINOv3 ViT-L/16 in place of SigLIP 2 So400m/14 under the EXP-089 recipe - a screening for a backbone whose pretraining is self-supervised on images alone, so its mistakes should not be where SigLIP's are
+seeds: [0]
+checkpoint_name: 1c102d23417392b981dfb9b45d1cba6c_seed{seed}.pt
+model:
+  backbone: timm            # changed: open_clip tower -> timm; DINOv3 has no text branch
+  name: vit_large_patch16_dinov3.lvd1689m
+  input_hw: [224, 224]      # patch 16 at 224 = 196 tokens against SigLIP's 256
+train:
+  id_head: {type: arcface, scale: 30.0, margin: 0.5, imprinting: true, imprint_batch_size: 128}
+  folds: [1, 2, 3]          # fold 0 = dev evaluation, fold 4 = untouched holdout
+  vehicles_per_batch: 32    # P
+  images_per_vehicle: 4     # K
+  epochs: 30
+  warmup_epochs: 10
+  lr_backbone: 1.0e-5
+  lr_head: 5.0e-4
+  weight_decay: 1.0e-4
+  label_smoothing: 0.1
+  metric_loss: {type: supcon+triplet, temperature: 0.1}
+  triplet_margin: 0.3
+  flip_p: 0.5
+  pad: 10
+  erasing_p: 0.5
+  num_workers: 12
+  eval_every: 10
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 0
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
+benchmark:
+  precision: fp16
