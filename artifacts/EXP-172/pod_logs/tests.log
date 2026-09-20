@@ -1,0 +1,17 @@
+........................................................................ [ 54%]
+...........................................................              [100%]
+=============================== warnings summary ===============================
+tests/test_reid.py::test_map_at_10_drops_junk_without_backfill_and_divides_by_min_npos_10
+  /workspace/yslfalcon_runs/EXP-172/src/reid/metrics.py:62: RuntimeWarning: Mean of empty slice
+    "mAP10": float(np.nanmean(ap)),
+
+tests/test_reid.py::test_map_at_10_drops_junk_without_backfill_and_divides_by_min_npos_10
+  /workspace/yslfalcon_runs/EXP-167/.venv/lib/python3.13/site-packages/numpy/_core/fromnumeric.py:3862: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/test_reid.py::test_map_at_10_drops_junk_without_backfill_and_divides_by_min_npos_10
+  /workspace/yslfalcon_runs/EXP-167/.venv/lib/python3.13/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+131 passed, 3 warnings in 99.54s (0:01:39)

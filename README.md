@@ -177,7 +177,7 @@ H200 FP16: 065 — 12,86 мс / 616,1 FPS; 066 — 14,08 / 625,5; 068 — 14,02 
 | EXP-173 | EXP-089 | DINOv3 ViT-L/16 вместо SigLIP 2, без своего претрейна | rejected; недоучена | 0,7425 | 0,7027 | 0,9138 | 0,8572 | 0,8147 | 0,9563 | 5,7534 | — |
 | EXP-166 | EXP-000 | zero-shot SigLIP 2 Giant-opt/16@384 до VehicleID | reference; teacher control | 0,6091 | 0,5682 | 0,7916 | 0,7329 | 0,6652 | 0,8908 | 3,6672 | 4654,6 |
 | EXP-167 | EXP-166 | fine-tune Giant на официальном VehicleID train с мягкими аугментациями | failed до эпохи 1; NaN fused BF16 SDPA backward | — | — | — | — | — | — | — | teacher only |
-| EXP-172 | EXP-167 | тот же Giant teacher, unfused attention только в блоке 0 | running; 10-step numerical preflight конечен | — | — | — | — | — | — | — | teacher only |
+| EXP-172 | EXP-167 | тот же Giant teacher, unfused attention только в блоке 0 | reference; VehicleID +0,1756 к raw Giant, но ниже deployable-моделей | 0,7847 | 0,7511 | 0,8971 | 0,8432 | 0,8115 | 0,9170 | 4,2904 | 4735,7; teacher only |
 | EXP-091 | EXP-088 | сумма групп AFEM из текста/Fig. 2 без лишнего умножения | rejected | 0,3166 | 0,2683 | 0,5145 | 0,5546 | 0,3955 | 0,9258 | 2,8666 | 583,7 |
 | EXP-092 | EXP-088 | 7068 optimizer steps вместо 1368 при тех же differential lr | accepted к родителю; не основной кандидат | 0,5637 | 0,4978 | 0,7933 | 0,6956 | 0,6344 | 0,8384 | 3,6015 | 583,7 |
 | EXP-093 | EXP-092 | TinyCLIP ViT-40M/32 вместо ViT-61M/32 | rejected | 0,4226 | 0,3668 | 0,6341 | 0,5781 | 0,4833 | 0,7991 | 2,7534 | 496,8 |

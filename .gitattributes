@@ -1,0 +1,1 @@
+artifacts/EXP-172/checkpoints/*.pt.part-* filter=lfs diff=lfs merge=lfs -text
