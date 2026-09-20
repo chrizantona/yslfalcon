@@ -32,7 +32,8 @@ train:
   erasing_ratio: [0.5, 2.0]
   gradient_checkpointing: true
   num_workers: 12
-  eval_every: 5
+  eval_every: 1
+  select_best_dev: true
 embed:
   batch_size: 16
   num_workers: 8

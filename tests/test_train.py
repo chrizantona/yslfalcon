@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from reid.models import MarginClassifier, ReIDModel, load_backbone
 from reid.train import (GradientReversal, PKSampler, batch_hard_triplet, camera_codes, camera_lambda,
                         class_centres, enable_gradient_checkpointing, lookalike_vehicles, similarity_distillation,
-                        supervised_contrastive)
+                        select_best_dev, supervised_contrastive)
 
 
 def test_gradient_checkpointing_is_explicit_and_rejects_unsupported_backbones():
@@ -23,6 +23,25 @@ def test_gradient_checkpointing_is_explicit_and_rejects_unsupported_backbones():
     assert not enable_gradient_checkpointing(supported, False)
     with pytest.raises(ValueError, match="does not support"):
         enable_gradient_checkpointing(ReIDModel(torch.nn.Linear(2, 2), 2, 3), True)
+
+
+def test_best_dev_keeps_matching_cpu_weights_result_and_epoch():
+    model = torch.nn.Linear(2, 1, bias=False)
+    first = {"retrieval": {"mAP10": 0.4}}
+    best, improved = select_best_dev(None, model, first, epoch=1)
+    assert improved and best["epoch"] == 1 and best["result"] is first
+    assert best["state_dict"]["weight"].device.type == "cpu"
+    first_weight = best["state_dict"]["weight"].clone()
+
+    model.weight.data.add_(1)
+    worse = {"retrieval": {"mAP10": 0.3}}
+    same, improved = select_best_dev(best, model, worse, epoch=2)
+    assert not improved and same is best and torch.equal(same["state_dict"]["weight"], first_weight)
+
+    better = {"retrieval": {"mAP10": 0.5}}
+    best, improved = select_best_dev(best, model, better, epoch=3)
+    assert improved and best["epoch"] == 3 and best["result"] is better
+    assert torch.equal(best["state_dict"]["weight"], model.weight.cpu())
 
 
 def margin_logits(kind, emb, labels, margin=0.5, scale=30.0):

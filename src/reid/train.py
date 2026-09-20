@@ -283,6 +283,19 @@ def enable_gradient_checkpointing(model, enabled):
     return True
 
 
+def select_best_dev(previous, model, result, epoch):
+    """Keep a CPU snapshot when dev mAP@10 improves, without writing one giant checkpoint per epoch.
+
+    The returned result and weights come from the same evaluation point.  At most the current and previous best
+    snapshots coexist while an improvement is copied; this is preferable to accumulating checkpoints on disk.
+    """
+    score = float(result["retrieval"]["mAP10"])
+    if previous is not None and score <= previous["mAP10"]:
+        return previous, False
+    state_dict = {name: value.detach().cpu().clone() for name, value in model.state_dict().items()}
+    return {"epoch": int(epoch), "mAP10": score, "state_dict": state_dict, "result": result}, True
+
+
 def training_table(cfg, data_cfg, val_cfg):
     """(training rows with class labels and a 0..n-1 index, crops dir or None when rows carry their own, classes)."""
     tcfg = cfg["train"]
@@ -475,6 +488,7 @@ def main():
     print(f"{len(classes)} vehicles, {len(train_df)} images, {len(sampler)} batches/epoch", flush=True)
 
     start = time.time()
+    best_dev = None
     for epoch in range(1, tcfg["epochs"] + 1):
         sampler.set_epoch(epoch)
         if hard_cfg and epoch >= hard_cfg["start_epoch"]:  # batches of lookalikes once the class centres mean something
@@ -568,6 +582,11 @@ def main():
         if epoch % tcfg["eval_every"] == 0 or epoch == tcfg["epochs"]:
             result = evaluate_fold(embed, query, gallery, no_match)
             record["dev"] = {**result["retrieval"], "refusal_F1": result["refusal"]["F1"], "refusal_TNR": result["refusal"]["TNR"]}
+            if tcfg.get("select_best_dev", False):
+                best_dev, improved = select_best_dev(best_dev, model, result, epoch)
+                record["selected_best"] = improved
+                record["best_epoch"] = best_dev["epoch"]
+                record["best_mAP10"] = best_dev["mAP10"]
         log.write(json.dumps(record) + "\n")
         log.flush()
         print(json.dumps(record), flush=True)
@@ -579,6 +598,15 @@ def main():
         header["imprinting"] = imprinting
     if teacher is not None:
         header["distill"] = header_distill
+    checkpoint_state = model.state_dict()
+    if tcfg.get("select_best_dev", False):
+        if best_dev is None:
+            raise RuntimeError("select_best_dev requires at least one dev evaluation")
+        result = best_dev["result"]
+        checkpoint_state = best_dev["state_dict"]
+        header["checkpoint_selection"] = "max_dev_mAP10"
+        header["selected_epoch"] = best_dev["epoch"]
+        header["selected_mAP10"] = best_dev["mAP10"]
     if tcfg.get("save_checkpoint", True):
         # weights stay on the pod; the random file name is recorded here, in the card and in the registry
         checkpoints = Path(data_cfg["checkpoint_dir"])
@@ -586,7 +614,7 @@ def main():
         name = checkpoint_name(cfg, seed)
         if (checkpoints / name).exists():
             raise FileExistsError(checkpoints / name)
-        torch.save({"exp_id": cfg["exp_id"], "seed": seed, "config": cfg, "state_dict": model.state_dict()},
+        torch.save({"exp_id": cfg["exp_id"], "seed": seed, "config": cfg, "state_dict": checkpoint_state},
                    checkpoints / name)
         header["checkpoint"] = name
         header["checkpoint_mb"] = round((checkpoints / name).stat().st_size / 1e6, 1)
