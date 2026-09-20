@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from reid.models import MarginClassifier, ReIDModel, load_backbone
 from reid.train import (GradientReversal, PKSampler, batch_hard_triplet, camera_codes, camera_lambda,
-                        class_centres, similarity_distillation, supervised_contrastive)
+                        class_centres, lookalike_vehicles, similarity_distillation, supervised_contrastive)
 
 
 def margin_logits(kind, emb, labels, margin=0.5, scale=30.0):
@@ -164,3 +164,28 @@ def test_camera_codes_are_int64_indices_cross_entropy_can_take():
     assert sorted(set(codes)) == [0, 1, 2] and codes[0] == codes[2]
     logits = torch.randn(4, int(codes.max()) + 1)
     torch.nn.CrossEntropyLoss()(logits, torch.as_tensor(codes))  # must not raise
+
+
+def test_hard_identity_batches_are_built_around_lookalikes_and_still_cover_every_vehicle_once():
+    rows = [(vehicle, camera) for vehicle in range(8) for camera in (10, 20) for _ in range(2)]
+    df = pd.DataFrame(rows, columns=["vehicle_id", "camera_id"])
+    sampler = PKSampler(df, P=4, K=4, seed=0, hard_share=0.5)
+    sampler.set_neighbours({v: [(v + 1) % 8, (v + 2) % 8, (v + 3) % 8] for v in range(8)})  # ring of lookalikes
+    batches = list(sampler)
+    assert len(batches) == 2 and all(len(b) == 16 for b in batches)
+    seen = sorted(df.iloc[sum(batches, [])].vehicle_id.unique())
+    assert seen == list(range(8))  # every vehicle exactly once, as without mining
+    for batch in batches:
+        vehicles = list(dict.fromkeys(df.iloc[batch].vehicle_id))
+        anchor = vehicles[0]
+        assert (anchor + 1) % 8 in vehicles  # half of the batch is the anchor's nearest available vehicles
+    plain = PKSampler(df, P=4, K=4, seed=0, hard_share=0.5)  # no neighbour map yet: random batches, as before
+    assert len(list(plain)) == 2
+
+
+def test_lookalike_vehicles_ranks_by_the_class_centres():
+    head = MarginClassifier(feat_dim=2, n_classes=3, kind="arcface", scale=30.0, margin=0.5)
+    head.weight.data = torch.tensor([[1.0, 0.0], [0.99, 0.14], [-1.0, 0.0]])  # 0 and 1 nearly coincide
+    neighbours = lookalike_vehicles(head, ["a", "b", "c"], pool=2)
+    assert neighbours["a"][0] == "b" and neighbours["b"][0] == "a"
+    assert neighbours["c"] == ["b", "a"] or neighbours["c"] == ["a", "b"]  # both are far, order does not matter here

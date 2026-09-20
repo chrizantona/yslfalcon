@@ -75,15 +75,25 @@ class PKSampler(Sampler):
     """Batches of P vehicles x K images; every training vehicle appears once per epoch.
 
     A vehicle's frames are taken round-robin over its cameras, so a batch holds one frame per (vehicle, camera) burst
-    before repeating a burst, and positives come from other cameras. Needs df with a fresh 0..n-1 index."""
+    before repeating a burst, and positives come from other cameras. Needs df with a fresh 0..n-1 index.
 
-    def __init__(self, df, P, K, seed):
+    hard_share > 0 with a neighbour map (set_neighbours) grows every batch around one anchor vehicle from the vehicles
+    the model currently finds most similar to it, so the hardest negative of a batch is a real lookalike rather than
+    whichever vehicle happened to be drawn. The rest of the batch stays random, and every vehicle still appears at
+    most once per epoch."""
+
+    def __init__(self, df, P, K, seed, hard_share=0.0):
         self.P, self.K, self.seed, self.epoch = P, K, seed, 0
+        self.hard_share, self.neighbours = hard_share, None
         self.views = {vehicle: [frames.index.to_numpy() for _, frames in rows.groupby("camera_id")]
                       for vehicle, rows in df.groupby("vehicle_id")}
 
     def set_epoch(self, epoch):
         self.epoch = epoch
+
+    def set_neighbours(self, neighbours):
+        """{vehicle: vehicles ranked by similarity}; None goes back to purely random batches."""
+        self.neighbours = neighbours
 
     def __len__(self):
         return len(self.views) // self.P
@@ -100,11 +110,34 @@ class PKSampler(Sampler):
             picked.append(rng.choice(picked))
         return picked
 
+    def _vehicle_batches(self, rng):
+        """The P vehicles of every batch: a shuffled partition, or one grown around an anchor from its lookalikes."""
+        order = [v for v in rng.permutation(list(self.views))]
+        if not self.neighbours or self.hard_share <= 0:
+            return [order[b * self.P: (b + 1) * self.P] for b in range(len(self))]
+        n_hard = max(1, round(self.hard_share * self.P))
+        remaining = dict.fromkeys(order)  # an ordered set: the shuffled order is the random part of every batch
+        batches = []
+        for _ in range(len(self)):
+            anchor = next(iter(remaining))
+            del remaining[anchor]
+            batch = [anchor]
+            for neighbour in self.neighbours.get(anchor, ()):
+                if len(batch) >= n_hard:
+                    break
+                if neighbour in remaining:
+                    del remaining[neighbour]
+                    batch.append(neighbour)
+            while len(batch) < self.P and remaining:
+                batch.append(next(iter(remaining)))
+                del remaining[batch[-1]]
+            batches.append(batch)
+        return batches
+
     def __iter__(self):
         rng = np.random.default_rng((self.seed, self.epoch))
-        vehicles = rng.permutation(list(self.views))
-        for b in range(len(self)):
-            yield [int(i) for vehicle in vehicles[b * self.P: (b + 1) * self.P] for i in self._pick(self.views[vehicle], rng)]
+        for batch in self._vehicle_batches(rng):
+            yield [int(i) for vehicle in batch for i in self._pick(self.views[vehicle], rng)]
 
 
 def batch_hard_triplet(feat, labels, margin):
@@ -156,6 +189,19 @@ class GradientReversal(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad):
         return -ctx.lambd * grad, None
+
+
+@torch.no_grad()
+def lookalike_vehicles(classifier, vehicles, pool):
+    """{vehicle: its `pool` most similar vehicles} from the ArcFace class centres.
+
+    The centres are what the model itself uses to tell vehicles apart, so centres that sit close together are exactly
+    the vehicles it confuses - and they come free, without another pass over the crops."""
+    centres = F.normalize(classifier.weight.detach().float(), dim=1)
+    similarity = centres @ centres.T
+    similarity.fill_diagonal_(float("-inf"))
+    nearest = similarity.topk(min(pool, len(centres) - 1), dim=1).indices.cpu().numpy()
+    return {vehicles[i]: [vehicles[j] for j in row] for i, row in enumerate(nearest)}
 
 
 def camera_codes(df):
@@ -344,7 +390,8 @@ def main():
     optimizer = torch.optim.AdamW(groups, weight_decay=tcfg["weight_decay"])
 
     P, K = tcfg["vehicles_per_batch"], tcfg["images_per_vehicle"]
-    sampler = PKSampler(train_df, P, K, seed)
+    hard_cfg = tcfg.get("hard_identity")
+    sampler = PKSampler(train_df, P, K, seed, hard_share=hard_cfg["share"] if hard_cfg else 0.0)
     dataset = CropDataset(train_df, crops_dir, cfg["model"]["input_hw"], mean, std, tcfg)
     loader = DataLoader(dataset, batch_sampler=sampler, num_workers=tcfg["num_workers"], pin_memory=True,
                         persistent_workers=True, worker_init_fn=_worker_init,
@@ -405,6 +452,8 @@ def main():
     start = time.time()
     for epoch in range(1, tcfg["epochs"] + 1):
         sampler.set_epoch(epoch)
+        if hard_cfg and epoch >= hard_cfg["start_epoch"]:  # batches of lookalikes once the class centres mean something
+            sampler.set_neighbours(lookalike_vehicles(model.classifier, sorted(classes), hard_cfg["pool"]))
         model.train()
         totals, steps, epoch_start = np.zeros(3), 0, time.time()
         auxiliary_total = distill_total = extra_total = camera_total = 0.0
