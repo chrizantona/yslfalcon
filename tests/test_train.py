@@ -131,9 +131,9 @@ def test_similarity_distillation_matches_the_soft_label_cross_entropy_and_its_gr
     feat = torch.randn(5, 3, requires_grad=True)
     loss = similarity_distillation(feat, teacher, 0.2)
     student = F.normalize(feat, dim=1)
-    eye = torch.eye(5, dtype=torch.bool)
-    z = (student @ student.T / 0.2).masked_fill(eye, float("-inf"))
-    p = (teacher @ teacher.T / 0.2).masked_fill(eye, float("-inf")).softmax(1)
+    off = ~torch.eye(5, dtype=torch.bool)
+    z = (student @ student.T / 0.2)[off].view(5, 4)
+    p = (teacher @ teacher.T / 0.2)[off].view(5, 4).softmax(1)
     entropy = -(p * p.clamp(min=1e-12).log()).sum(1).mean()
     cross_entropy = -(p * z.log_softmax(1)).sum(1).mean()
     assert torch.allclose(loss, cross_entropy - entropy, atol=1e-5)  # KL = cross-entropy minus the teacher entropy

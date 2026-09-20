@@ -134,12 +134,14 @@ def similarity_distillation(feat, teacher, temperature):
     """KL(teacher || student) between the rows of the two batch similarity matrices; the teacher is a constant.
 
     The teacher's coordinates are never copied, only its judgement of which images are alike: the softmax over a row
-    ignores a shift of all similarities, so the student keeps its own basis. The diagonal is dropped as in SupCon -
-    a self-similarity of 1 would take almost the whole softmax mass."""
+    ignores a shift of all similarities, so the student keeps its own basis. The self-similarity of 1 would take
+    almost the whole softmax mass, so each row keeps only its n - 1 other images - dropped, not masked with -inf,
+    because a zero target against an infinite logit makes F.kl_div return NaN."""
     student = F.normalize(feat, dim=1)
-    eye = torch.eye(len(student), dtype=torch.bool, device=student.device)
-    student_sim = (student @ student.T / temperature).masked_fill(eye, float("-inf"))
-    teacher_sim = (teacher @ teacher.T / temperature).masked_fill(eye, float("-inf"))
+    n = len(student)
+    off_diagonal = ~torch.eye(n, dtype=torch.bool, device=student.device)
+    student_sim = (student @ student.T / temperature)[off_diagonal].view(n, n - 1)
+    teacher_sim = (teacher @ teacher.T / temperature)[off_diagonal].view(n, n - 1)
     return F.kl_div(student_sim.log_softmax(1), teacher_sim.softmax(1), reduction="batchmean")
 
 
