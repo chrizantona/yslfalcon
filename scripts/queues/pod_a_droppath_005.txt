@@ -1,0 +1,3 @@
+# Second pod (rougenn), 20.09.2026: DropPath 0.05 on the usual 30 epochs, after 0.1 left the model undertrained.
+# GPU 2, three seeds one after another.
+EXP-161 configs/exp161_droppath_005.yaml 2 2 0
