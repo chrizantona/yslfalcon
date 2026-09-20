@@ -175,12 +175,10 @@ def test_hard_identity_batches_are_built_around_lookalikes_and_still_cover_every
     assert len(batches) == 2 and all(len(b) == 16 for b in batches)
     seen = sorted(df.iloc[sum(batches, [])].vehicle_id.unique())
     assert seen == list(range(8))  # every vehicle exactly once, as without mining
-    for batch in batches:
-        vehicles = list(dict.fromkeys(df.iloc[batch].vehicle_id))
-        anchor = vehicles[0]
-        assert (anchor + 1) % 8 in vehicles  # half of the batch is the anchor's nearest available vehicles
+    first = list(dict.fromkeys(df.iloc[batches[0]].vehicle_id))
+    assert first[1] == (first[0] + 1) % 8  # nothing is taken yet, so the anchor gets its nearest vehicle
     plain = PKSampler(df, P=4, K=4, seed=0, hard_share=0.5)  # no neighbour map yet: random batches, as before
-    assert len(list(plain)) == 2
+    assert [sorted(b) for b in plain] == [sorted(b) for b in PKSampler(df, P=4, K=4, seed=0)]
 
 
 def test_lookalike_vehicles_ranks_by_the_class_centres():
