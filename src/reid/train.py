@@ -130,6 +130,43 @@ def supervised_contrastive(feat, labels, temperature):
     return -per_anchor[positives.any(1)].mean()
 
 
+def similarity_distillation(feat, teacher, temperature):
+    """KL(teacher || student) between the rows of the two batch similarity matrices; the teacher is a constant.
+
+    The teacher's coordinates are never copied, only its judgement of which images are alike: the softmax over a row
+    ignores a shift of all similarities, so the student keeps its own basis. The diagonal is dropped as in SupCon -
+    a self-similarity of 1 would take almost the whole softmax mass."""
+    student = F.normalize(feat, dim=1)
+    eye = torch.eye(len(student), dtype=torch.bool, device=student.device)
+    student_sim = (student @ student.T / temperature).masked_fill(eye, float("-inf"))
+    teacher_sim = (teacher @ teacher.T / temperature).masked_fill(eye, float("-inf"))
+    return F.kl_div(student_sim.log_softmax(1), teacher_sim.softmax(1), reduction="batchmean")
+
+
+@torch.no_grad()
+def teacher_embeddings(distill, data_cfg, tcfg, train_df, crops_dir, device):
+    """Mean of the L2-normalised embeddings of the distillation teachers over the training crops, in train_df order.
+
+    Every teacher carries its own config, so members with different towers and input sizes can be mixed; they are
+    loaded one at a time and freed, and the augmentations are off - the teacher sees the plain crop."""
+    from reid.inference import load_trained_encoder  # local: reid.inference imports the model builders
+    parts = []
+    for spec in distill["teachers"]:
+        model_cfg = load_yaml(spec["config"])["model"]
+        encoder, _, mean, std = load_trained_encoder(model_cfg, Path(data_cfg["checkpoint_dir"]) / spec["checkpoint"],
+                                                     data_cfg.get("external_weights_dir"), spec.get("sha256"))
+        encoder = encoder.eval().to(device)
+        loader = DataLoader(CropDataset(train_df, crops_dir, model_cfg["input_hw"], mean, std,
+                                        {**tcfg, "flip_p": 0, "pad": 0, "erasing_p": 0}),
+                            batch_size=tcfg["id_head"]["imprint_batch_size"], num_workers=tcfg["num_workers"],
+                            worker_init_fn=_worker_init)
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            parts.append(torch.cat([F.normalize(encoder(x.to(device)).float(), dim=1) for x, _ in loader]))
+        del encoder
+        torch.cuda.empty_cache()
+    return F.normalize(torch.stack(parts).mean(0), dim=1)
+
+
 def warmup_cosine(total_steps, warmup_steps):
     def factor(step):
         if step < warmup_steps:
@@ -295,6 +332,13 @@ def main():
         imprint = imprint_sub_centers if tcfg["id_head"].get("sub_centers", 1) > 1 else imprint_classifier
         imprinting = imprint(model, initial_loader, device)
         print(json.dumps({"imprinting": imprinting}), flush=True)
+    distill, teacher = tcfg.get("distill"), None
+    if distill:  # embeddings of the teachers over the plain training crops, computed once and then frozen
+        teacher = teacher_embeddings(distill, data_cfg, tcfg, train_df, crops_dir, device)
+        header_distill = {"teachers": [spec["checkpoint"] for spec in distill["teachers"]],
+                          "weight": distill["weight"], "temperature": distill["temperature"],
+                          "images": len(teacher), "dim": teacher.shape[1]}
+        print(json.dumps({"distill": header_distill}), flush=True)
     log = (out / "train_log.jsonl").open("w")
     print(f"{len(classes)} vehicles, {len(train_df)} images, {len(sampler)} batches/epoch", flush=True)
 
@@ -303,8 +347,10 @@ def main():
         sampler.set_epoch(epoch)
         model.train()
         totals, steps, epoch_start = np.zeros(3), 0, time.time()
-        auxiliary_total = 0.0
-        for x, y in loader:
+        auxiliary_total = distill_total = 0.0
+        # the sampler is deterministic given (seed, epoch), so iterating it here reproduces the batches the loader
+        # is about to yield; distillation needs the row indices to look up its teacher embeddings
+        for (x, y), rows in zip(loader, sampler):
             x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 outputs = model(x, y)
@@ -319,6 +365,10 @@ def main():
                 loss_metric = batch_hard_triplet(feat.float(), y, tcfg["triplet_margin"])
             optimizer.zero_grad(set_to_none=True)
             loss = loss_id + loss_metric
+            if teacher is not None:
+                loss_distill = similarity_distillation(feat.float(), teacher[rows], distill["temperature"])
+                distill_total += loss_distill.item()
+                loss = loss + distill["weight"] * loss_distill
             if len(outputs) == 4:
                 app_feat, app_logits = outputs[2:]
                 if metric_loss["type"] != "supcon":
@@ -348,6 +398,8 @@ def main():
             record["lr_backbone"] = max(g["lr"] for g in optimizer.param_groups if g["branch"] in {"siglip", "osnet"})
         if hasattr(model, "auxiliary_classifier"):
             record["loss_auxiliary"] = auxiliary_total / max(steps, 1)
+        if teacher is not None:
+            record["loss_distill"] = distill_total / max(steps, 1)
         afem = getattr(model.backbone, "refinement", None)
         if hasattr(afem, "group_logits"):
             record["afem_residual_scale"] = float(afem.residual_scale.detach())
@@ -372,6 +424,8 @@ def main():
               "n_query": len(query), "n_gallery": len(gallery), "train_minutes": (time.time() - start) / 60}
     if imprinting is not None:
         header["imprinting"] = imprinting
+    if teacher is not None:
+        header["distill"] = header_distill
     if tcfg.get("save_checkpoint", True):
         # weights stay on the pod; the random file name is recorded here, in the card and in the registry
         checkpoints = Path(data_cfg["checkpoint_dir"])

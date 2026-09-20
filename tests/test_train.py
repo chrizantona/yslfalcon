@@ -5,7 +5,8 @@ import torch
 import torch.nn.functional as F
 
 from reid.models import MarginClassifier, ReIDModel, load_backbone
-from reid.train import PKSampler, batch_hard_triplet, class_centres, supervised_contrastive
+from reid.train import (PKSampler, batch_hard_triplet, class_centres, similarity_distillation,
+                        supervised_contrastive)
 
 
 def margin_logits(kind, emb, labels, margin=0.5, scale=30.0):
@@ -112,3 +113,29 @@ def test_class_centres_separate_two_modes_and_stay_unit_length():
     assert nearest[0] != nearest[3]
     few = class_centres(front[:1], 3)  # fewer images than centres: the centre repeats
     assert few.shape == (3, 2) and torch.allclose(few[0], few[1]) and torch.allclose(few[0], few[2])
+
+
+def test_similarity_distillation_is_zero_when_the_student_matches_and_ignores_a_row_shift():
+    torch.manual_seed(0)
+    teacher = F.normalize(torch.randn(6, 4), dim=1)
+    assert similarity_distillation(teacher, teacher, 0.1).item() < 1e-6  # same metric, no loss
+    scaled = teacher * 3.0  # L2 normalisation inside removes the scale, so the metric is unchanged
+    assert similarity_distillation(scaled, teacher, 0.1).item() < 1e-6
+    shuffled = teacher[[1, 0, 2, 3, 4, 5]]  # a different neighbourhood structure costs something
+    assert similarity_distillation(shuffled, teacher, 0.1).item() > 0.01
+
+
+def test_similarity_distillation_matches_the_soft_label_cross_entropy_and_its_gradient():
+    torch.manual_seed(0)
+    teacher = F.normalize(torch.randn(5, 3), dim=1)
+    feat = torch.randn(5, 3, requires_grad=True)
+    loss = similarity_distillation(feat, teacher, 0.2)
+    student = F.normalize(feat, dim=1)
+    eye = torch.eye(5, dtype=torch.bool)
+    z = (student @ student.T / 0.2).masked_fill(eye, float("-inf"))
+    p = (teacher @ teacher.T / 0.2).masked_fill(eye, float("-inf")).softmax(1)
+    entropy = -(p * p.clamp(min=1e-12).log()).sum(1).mean()
+    cross_entropy = -(p * z.log_softmax(1)).sum(1).mean()
+    assert torch.allclose(loss, cross_entropy - entropy, atol=1e-5)  # KL = cross-entropy minus the teacher entropy
+    grad_z = torch.autograd.grad(similarity_distillation(feat, teacher, 0.2), feat, retain_graph=True)[0]
+    assert torch.isfinite(grad_z).all() and grad_z.abs().sum() > 0

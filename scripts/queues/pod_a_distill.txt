@@ -1,0 +1,3 @@
+# Second pod (rougenn), 20.09.2026: the EXP-089 recipe plus similarity distillation from the two-tower ensemble
+# (EXP-090 soup + EXP-121 seed 0). GPU 2, three seeds one after another; the teachers are loaded once per seed.
+EXP-153 configs/exp153_distill_two_towers.yaml 2 2 0
