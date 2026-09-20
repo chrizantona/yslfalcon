@@ -26,14 +26,16 @@ from reid.data import load_csv, load_yaml
 from reid.embed import embed_boxes, pick_device
 from reid.ensemble import mean_embedding
 from reid.evaluate import load_fold
-from reid.metrics import zscore
 
 
 def mutual_edges(embeddings, k, z_threshold):
     """Pairs that list each other among their k nearest and whose similarity clears the z-score threshold."""
     similarity = embeddings @ embeddings.T
+    n = len(similarity)
+    # the row statistics are taken without the diagonal: a self-similarity of 1 skews them, and -inf destroys them
+    others = similarity[~np.eye(n, dtype=bool)].reshape(n, n - 1)
+    z = (similarity - others.mean(1, keepdims=True)) / np.maximum(others.std(1, keepdims=True), 1e-12)
     np.fill_diagonal(similarity, -np.inf)
-    z = zscore(similarity)
     nearest = np.argsort(-similarity, axis=1)[:, :k]
     neighbours = [set(row) for row in nearest]
     return [(i, int(j)) for i, row in enumerate(nearest) for j in row
