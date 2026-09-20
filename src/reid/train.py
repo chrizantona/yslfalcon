@@ -145,6 +145,25 @@ def similarity_distillation(feat, teacher, temperature):
     return F.kl_div(student_sim.log_softmax(1), teacher_sim.softmax(1), reduction="batchmean")
 
 
+class GradientReversal(torch.autograd.Function):
+    """Identity forward, gradient multiplied by -lambda backward (Ganin & Lempitsky, 2015)."""
+
+    @staticmethod
+    def forward(ctx, x, lambd):
+        ctx.lambd = lambd
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, grad):
+        return -ctx.lambd * grad, None
+
+
+def camera_lambda(cfg, epoch):
+    """The adversarial weight, ramped linearly from 0 over the first ramp_epochs so the head is useful before it
+    starts pushing back on the backbone."""
+    return cfg["lambda"] * min(1.0, epoch / max(cfg.get("ramp_epochs", 1), 1))
+
+
 def external_table(data_cfg, name):
     """An external set as a table for CropDataset; its label column carries the row index, which is what the
     distillation needs to look up teacher embeddings. The labels themselves are never used: this stream is unlabelled."""
@@ -311,6 +330,12 @@ def main():
                       interpolate_position=cfg["model"].get("interpolate_positional_embedding", False))
     model = model.to(device)
     groups = optimizer_groups(model, tcfg)
+    camera_cfg, camera_head, camera_codes = tcfg.get("camera_adversarial"), None, None
+    if camera_cfg:  # camera_id is a target of an auxiliary loss here, never an input: inference is unchanged
+        codes = train_df.camera_id.astype("category").cat.codes.to_numpy()
+        camera_codes = torch.as_tensor(codes, device=device)
+        camera_head = torch.nn.Linear(feat_dim, int(codes.max()) + 1).to(device)
+        groups.append({"params": list(camera_head.parameters()), "lr": tcfg["lr_head"]})
     optimizer = torch.optim.AdamW(groups, weight_decay=tcfg["weight_decay"])
 
     P, K = tcfg["vehicles_per_batch"], tcfg["images_per_vehicle"]
@@ -377,7 +402,7 @@ def main():
         sampler.set_epoch(epoch)
         model.train()
         totals, steps, epoch_start = np.zeros(3), 0, time.time()
-        auxiliary_total = distill_total = extra_total = 0.0
+        auxiliary_total = distill_total = extra_total = camera_total = 0.0
         # the sampler is deterministic given (seed, epoch), so iterating it here reproduces the batches the loader
         # is about to yield; distillation needs the row indices to look up its teacher embeddings
         for (x, y), rows in zip(loader, sampler):
@@ -399,6 +424,11 @@ def main():
                 loss_distill = similarity_distillation(feat.float(), teacher[rows], distill["temperature"])
                 distill_total += loss_distill.item()
                 loss = loss + distill["weight"] * loss_distill
+            if camera_head is not None:  # the head learns the camera, the reversed gradient unlearns it in the backbone
+                camera_logits = camera_head(GradientReversal.apply(feat.float(), camera_lambda(camera_cfg, epoch)))
+                loss_camera = id_loss(camera_logits, camera_codes[rows])
+                camera_total += loss_camera.item()
+                loss = loss + loss_camera
             if extra_loader is not None:  # the same loss on unlabelled external images: only the teacher speaks there
                 x_extra, rows_extra = next(extra_loader)
                 with torch.autocast("cuda", dtype=torch.bfloat16):
@@ -440,6 +470,9 @@ def main():
             record["loss_distill"] = distill_total / max(steps, 1)
             if extra_loader is not None:
                 record["loss_distill_extra"] = extra_total / max(steps, 1)
+        if camera_head is not None:
+            record["loss_camera"] = camera_total / max(steps, 1)
+            record["camera_lambda"] = camera_lambda(camera_cfg, epoch)
         afem = getattr(model.backbone, "refinement", None)
         if hasattr(afem, "group_logits"):
             record["afem_residual_scale"] = float(afem.residual_scale.detach())

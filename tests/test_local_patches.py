@@ -51,3 +51,17 @@ def test_combined_cosine_is_the_weighted_sum_and_alpha_zero_is_the_global_rankin
         assert torch.allclose(e @ e.T, expected, atol=1e-6)
     assert torch.equal(combine(g, l, 0.0)[:, 6:], torch.zeros(4, 3))
     assert math.isclose(combine(g, l, 0.2).norm(dim=1)[0].item(), 1.0, rel_tol=1e-6)
+
+
+def test_drop_path_rate_grows_linearly_with_depth_and_is_identity_at_inference():
+    from reid.models import apply_drop_path
+    trunk = VisionTransformer(img_size=32, patch_size=8, embed_dim=16, depth=4, num_heads=2,
+                              global_pool="map", class_token=False, num_classes=0)
+    apply_drop_path(trunk, 0.3)
+    rates = [getattr(block.drop_path1, "drop_prob", 0.0) for block in trunk.blocks]
+    assert rates == [0.0, 0.1, 0.2, 0.3]  # the first block never drops, the last one drops at the configured rate
+    assert all(getattr(b.drop_path2, "drop_prob", 0.0) == r for b, r in zip(trunk.blocks, rates))
+    trunk.eval()  # eval mode: DropPath must not change anything
+    x = torch.randn(2, 3, 32, 32)
+    with torch.no_grad():
+        assert torch.equal(trunk(x), trunk(x))

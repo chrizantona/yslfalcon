@@ -1,0 +1,4 @@
+# Second pod (rougenn), 20.09.2026: stochastic depth in the SigLIP 2 tower, first on the usual 30 epochs and then
+# paired with a doubled schedule. GPU 2, three seeds one after another.
+EXP-155 configs/exp155_droppath.yaml 2 2 0
+EXP-156 configs/exp156_droppath_long.yaml 2 2 0

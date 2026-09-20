@@ -5,8 +5,8 @@ import torch
 import torch.nn.functional as F
 
 from reid.models import MarginClassifier, ReIDModel, load_backbone
-from reid.train import (PKSampler, batch_hard_triplet, class_centres, similarity_distillation,
-                        supervised_contrastive)
+from reid.train import (GradientReversal, PKSampler, batch_hard_triplet, camera_lambda, class_centres,
+                        similarity_distillation, supervised_contrastive)
 
 
 def margin_logits(kind, emb, labels, margin=0.5, scale=30.0):
@@ -139,3 +139,18 @@ def test_similarity_distillation_matches_the_soft_label_cross_entropy_and_its_gr
     assert torch.allclose(loss, cross_entropy - entropy, atol=1e-5)  # KL = cross-entropy minus the teacher entropy
     grad_z = torch.autograd.grad(similarity_distillation(feat, teacher, 0.2), feat, retain_graph=True)[0]
     assert torch.isfinite(grad_z).all() and grad_z.abs().sum() > 0
+
+
+def test_gradient_reversal_passes_values_through_and_flips_the_gradient():
+    x = torch.tensor([[1.0, -2.0]], requires_grad=True)
+    y = GradientReversal.apply(x, 0.3)
+    assert torch.equal(y, x)  # forward is the identity
+    y.sum().backward()
+    assert torch.allclose(x.grad, torch.tensor([[-0.3, -0.3]]))  # backward is multiplied by -lambda
+
+
+def test_camera_lambda_ramps_from_zero_and_then_holds():
+    cfg = {"lambda": 0.3, "ramp_epochs": 10}
+    assert camera_lambda(cfg, 0) == 0.0
+    assert math.isclose(camera_lambda(cfg, 5), 0.15)
+    assert math.isclose(camera_lambda(cfg, 10), 0.3) and math.isclose(camera_lambda(cfg, 30), 0.3)

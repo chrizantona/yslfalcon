@@ -44,6 +44,8 @@ def build_backbone(cfg, external_weights_dir=None, load_pretrained=True):
         mean, std = preprocess.get("mean", OPENAI_DATASET_MEAN), preprocess.get("std", OPENAI_DATASET_STD)
         # timm-based towers (EVA02, SigLIP 2) have no output_dim; their projection ends at the model's embed_dim
         dim = getattr(model.visual, "output_dim", None) or open_clip.get_model_config(cfg["name"])["embed_dim"]
+        if cfg.get("drop_path_rate"):
+            apply_drop_path(model.visual.trunk, cfg["drop_path_rate"])
         return model.visual, dim, mean, std
     if cfg["backbone"] == "timm":
         model = timm.create_model(cfg["name"], pretrained=True, num_classes=0)
@@ -54,6 +56,22 @@ def build_backbone(cfg, external_weights_dir=None, load_pretrained=True):
         data_cfg = resolve_data_config({}, model=model)
         return model, model.num_features, data_cfg["mean"], data_cfg["std"]
     raise ValueError(f"unknown backbone {cfg['backbone']}")
+
+
+def apply_drop_path(trunk, rate):
+    """Stochastic depth on a timm transformer tower: every block drops its residual branches with a probability that
+    grows linearly from 0 at the first block to rate at the last, as timm does when built with drop_path_rate.
+
+    Training only - at inference DropPath is the identity, so weights, speed and the state dict are unchanged."""
+    from timm.layers import DropPath
+    blocks = trunk.blocks
+    for depth, block in enumerate(blocks):
+        p = rate * depth / max(len(blocks) - 1, 1)
+        for name in ("drop_path1", "drop_path2"):
+            if not hasattr(block, name):
+                raise ValueError(f"block {depth} has no {name}: this tower does not support stochastic depth")
+            setattr(block, name, DropPath(p) if p > 0 else nn.Identity())
+    return rate
 
 
 def checkpoint_name(cfg, seed=None):
