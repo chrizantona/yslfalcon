@@ -59,7 +59,8 @@ def test_drop_path_rate_grows_linearly_with_depth_and_is_identity_at_inference()
                               global_pool="map", class_token=False, num_classes=0)
     apply_drop_path(trunk, 0.3)
     rates = [getattr(block.drop_path1, "drop_prob", 0.0) for block in trunk.blocks]
-    assert rates == [0.0, 0.1, 0.2, 0.3]  # the first block never drops, the last one drops at the configured rate
+    # the first block never drops, the last one drops at the configured rate; 0.3 / 3 is not exactly 0.1
+    assert all(math.isclose(r, expected) for r, expected in zip(rates, [0.0, 0.1, 0.2, 0.3]))
     assert all(getattr(b.drop_path2, "drop_prob", 0.0) == r for b, r in zip(trunk.blocks, rates))
     trunk.eval()  # eval mode: DropPath must not change anything
     x = torch.randn(2, 3, 32, 32)
