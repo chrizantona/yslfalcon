@@ -48,7 +48,8 @@ def build_backbone(cfg, external_weights_dir=None, load_pretrained=True):
             apply_drop_path(model.visual.trunk, cfg["drop_path_rate"])
         return model.visual, dim, mean, std
     if cfg["backbone"] == "timm":
-        model = timm.create_model(cfg["name"], pretrained=True, num_classes=0)
+        # load_pretrained is False when a trained state follows: no point fetching public weights to overwrite
+        model = timm.create_model(cfg["name"], pretrained=load_pretrained, num_classes=0)
         if cfg.get("last_stride_1"):  # keep a 2x larger final feature map, as in the ReID bag of tricks
             block = model.layer4[0]
             block.conv2.stride = (1, 1)
