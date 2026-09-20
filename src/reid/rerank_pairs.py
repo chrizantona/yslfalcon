@@ -179,23 +179,24 @@ def cached(path, build):
 
 
 @torch.no_grad()
-def validation_gain(model, banks, frame, embeddings, cfg, device):
-    """What the re-ranker actually does to mAP@10 on held-out vehicles: every image of the fold is a query against
-    the rest of it. This is the target metric, not a proxy, and the fold never touches the dev evaluation - so both
-    the epoch and the blending weight can be chosen here instead of on fold 0."""
+def validation_gain(model, banks, frames, embeddings, cfg, device):
+    """What the re-ranker does to mAP@10 on a held-out fold, scored through the protocol's own query/gallery split.
+
+    Using the fold's raw table instead - every image a query against the rest - is a different task: denser in
+    positives and with a gallery twice the size, and it disagrees with the dev fold for that reason alone."""
     model.eval()
-    similarity = embeddings @ embeddings.T
-    np.fill_diagonal(similarity, -np.inf)
-    pid = pd.factorize(frame.vehicle_id.to_numpy())[0]
-    cam = frame.camera_id.to_numpy()
+    (query_banks, gallery_banks), (query, gallery), (query_emb, gallery_emb) = banks, frames, embeddings
+    similarity = query_emb @ gallery_emb.T
+    q_pid, q_cam = query.vehicle_id.to_numpy(), query.camera_id.to_numpy()
+    g_pid, g_cam = gallery.vehicle_id.to_numpy(), gallery.camera_id.to_numpy()
     picked = np.argsort(-similarity, axis=1, kind="stable")[:, :cfg["window"]]
-    scores = candidate_scores(model, banks[0], banks[0], picked, device)
-    before, _ = reid_eval_top10(similarity, pid, cam, pid, cam)
+    scores = candidate_scores(model, query_banks, gallery_banks, picked, device)
+    before, _ = reid_eval_top10(similarity, q_pid, q_cam, g_pid, g_cam)
     gains = {}
     for weight in cfg["weights"]:
         if weight == 0:
             continue
-        after, _ = reid_eval_top10(reorder(similarity, picked, scores, weight), pid, cam, pid, cam)
+        after, _ = reid_eval_top10(reorder(similarity, picked, scores, weight), q_pid, q_cam, g_pid, g_cam)
         gains[weight] = after["mAP10"] - before["mAP10"]
     best = max(gains, key=gains.get)
     return gains[best], best, {str(k): round(v, 6) for k, v in gains.items()}
@@ -235,8 +236,7 @@ def train(model, sources, validation, cfg, device, seed, log):
             ranked_first = logits.masked_fill(junk, float("-inf")).argmax(1)
             correct += int(positive.gather(1, ranked_first[:, None]).sum())
             seen += len(chosen)
-        gain, weight, all_gains = validation_gain(model, validation[0], validation[1], validation[2],
-                                                  cfg, device)
+        gain, weight, all_gains = validation_gain(model, *validation, cfg, device)
         if gain > best[0]:
             best = (gain, {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}, epoch, weight)
         record = {"epoch": epoch, "loss": total / cfg["steps_per_epoch"], "positive_first": correct / max(seen, 1),
@@ -348,7 +348,6 @@ def main():
         return banks_of(name, frame, mirrored), groups
 
     train_df = folds[folds.fold.isin(tcfg["folds"])].reset_index(drop=True)
-    validation_df = folds[folds.fold == tcfg["validation_fold"]].reset_index(drop=True)
     sources = [source_of("train", train_df)]
     if tcfg.get("external"):
         external = external_table(data_cfg, tcfg["external"])
@@ -356,8 +355,13 @@ def main():
         external = (external.sample(frac=1.0, random_state=0).groupby("vehicle_id", group_keys=False)
                     .head(keep_n).reset_index(drop=True))
         sources.append(source_of("external", external))
-    validation = (banks_of("validation", validation_df, mirrored=False), validation_df,
-                  embeddings_of("validation", validation_df))
+    # the held-out fold is scored through its own protocol split, the same shape the dev fold is scored in
+    validation_query, validation_gallery, _ = load_fold(Path(val_cfg["out_dir"]), tcfg["validation_fold"])
+    validation = ((banks_of("val_query", validation_query, mirrored=False)[0],
+                   banks_of("val_gallery", validation_gallery, mirrored=False)[0]),
+                  (validation_query, validation_gallery),
+                  (normalise(embeddings_of("val_query", validation_query)),
+                   normalise(embeddings_of("val_gallery", validation_gallery))))
 
     query_tokens = banks_of("query", query, mirrored=False)[0]
     gallery_tokens = banks_of("gallery", gallery, mirrored=False)[0]

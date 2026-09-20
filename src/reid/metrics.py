@@ -72,7 +72,7 @@ def zscore(sim):
     return (sim - sim.mean(1, keepdims=True)) / np.maximum(sim.std(1, keepdims=True), 1e-12)
 
 
-def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=None):
+def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=None, grid=None):
     """Candidate mode scored as the organisers do, for a grid of thresholds on the top-1 z-score, or on another
     per-query confidence when one is given (reid.refusal_confidence); the ranking stays the same.
 
@@ -103,7 +103,8 @@ def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=
         return tp, fp, fn, f1, tnr
 
     curve = []
-    for t in np.unique(np.quantile(top_z, np.linspace(0, 1, n_thresholds))):
+    # grid: score these exact thresholds instead of the quantiles - a holdout keeps the threshold fitted elsewhere
+    for t in (np.unique(np.quantile(top_z, np.linspace(0, 1, n_thresholds))) if grid is None else np.atleast_1d(grid)):
         answered = top_z >= t
         tp, fp, fn, f1, tnr = confusion(answered, correct)
         f1_strict = confusion(answered, correct_strict)[3]

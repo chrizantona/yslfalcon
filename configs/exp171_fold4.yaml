@@ -1,0 +1,29 @@
+exp_id: EXP-171
+description: the four pre-declared candidates scored once on the untouched holdout fold 4; every constant is the one chosen on fold 0 and nothing is fitted here
+eval_fold: 4                 # the holdout; this is its first and only use before the final confirmation
+candidates:
+  EXP-054:                   # the formal candidate: soup of the EXP-053 seeds
+    config: configs/exp054_soup_exp053_seeds.yaml
+    checkpoint: 95aa27ed552c43a1ad9c3d853390fa18.pt
+    threshold: 7.331743      # carried from fold 0
+  EXP-090:                   # the best soup of the SupCon + triplet recipe
+    config: configs/exp090_soup_exp089_seeds.yaml
+    checkpoint: 73e50afa87f9459184d3e96cdca786d8.pt
+    threshold: 7.598496
+  EXP-165:                   # soup of the DropPath 0.05 seeds with alpha-QE on top
+    config: configs/exp164_droppath_soup.yaml
+    checkpoint: 62b5cc1c7578e9f5430afb75351851dd.pt
+    threshold: 7.460813
+    alpha_qe: {k: 1, alpha: 3.0}    # k and alpha chosen in EXP-104, unchanged since
+  EXP-170:                   # the same, plus the pairwise re-ranker over the top-20
+    config: configs/exp164_droppath_soup.yaml
+    checkpoint: 62b5cc1c7578e9f5430afb75351851dd.pt
+    threshold: 7.460868
+    alpha_qe: {k: 1, alpha: 3.0}
+    reranker:
+      window: 20
+      weight: 0.25           # chosen on fold 0 among four fixed values; carried over unchanged
+      checkpoints:           # the three EXP-170 seeds, scored separately and averaged
+        - 0fc66bdcb2928e3aef4dc2358155d256.pt
+        - d1f3b73726863bf637499cddae700aad.pt
+        - 758978f07e395d088c2d61ee629b3a48.pt
