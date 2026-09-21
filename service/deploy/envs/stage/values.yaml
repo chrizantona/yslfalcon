@@ -1,0 +1,3 @@
+envs:
+  FALCON_COOKIE_SECURE: true
+# Set exact stage origin and immutable image tag in the deployment environment.

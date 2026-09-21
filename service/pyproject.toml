@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=78"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yslfalcon-service"
+version = "0.1.0"
+description = "Versioned vehicle visual search workspace and inference service"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.141.1",
+  "uvicorn==0.53.0",
+  "SQLAlchemy==2.0.54",
+  "psycopg[binary]==3.3.6",
+  "pydantic-settings==2.15.0",
+  "numpy==2.5.3",
+  "Pillow==12.3.0",
+  "python-multipart==0.0.32",
+  "httpx==0.28.1",
+  "reportlab==4.5.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1", "ruff==0.16.8", "pip-audit==2.10.1"]
+ann = ["faiss-cpu==1.15.1"]
+
+[project.scripts]
+falcon-batch = "falcon_service.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["backend"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 110
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

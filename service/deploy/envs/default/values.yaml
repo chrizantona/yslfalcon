@@ -1,0 +1,42 @@
+# Deployment inventory, not a Helm chart. Secret values must never appear here.
+service:
+  name: yslfalcon-service
+  version: 0.1.0
+  publicPort: 8090
+  internalApiPort: 8000
+  internalRuntimePort: 8001
+  model: explicit-preview-stub
+infrastructure:
+  database: PostgreSQL 17
+  queue: PostgreSQL leased jobs
+  artifacts: shared persistent volume
+  gpuRequired: false
+envs:
+  FALCON_DATABASE_URL: database DSN, supplied with secret credentials
+  FALCON_STORAGE_ROOT: /data
+  FALCON_ENGINE_MODE: remote
+  FALCON_RUNTIME_URL: http://runtime:8001
+  FALCON_ENCODER: preview
+  FALCON_WEB_PORT: 8090
+  FALCON_IMAGE_TAG: release-specific image tag
+  FALCON_ALLOWED_ORIGINS: exact JSON array of browser origins
+  FALCON_COOKIE_SECURE: true when behind HTTPS; false for supplied localhost HTTP
+  FALCON_MAX_UPLOAD_BYTES: 20971520
+  FALCON_MAX_REQUEST_BYTES: 268435456
+  FALCON_MAX_IMPORT_FILES: 500
+  FALCON_JOB_LEASE_SECONDS: 120
+  FALCON_JOB_MAX_ATTEMPTS: 3
+  FALCON_WORKER_POLL_SECONDS: 1
+  FALCON_SESSION_HOURS: 12
+reservedEnvNames:
+  - FALCON_MODEL_MANIFEST
+  - FALCON_MODEL_DEVICE
+  - FALCON_CALIBRATION_PATH
+vaultSecretEnvs:
+  - FALCON_AUTH_TOKENS
+  - FALCON_RUNTIME_TOKEN
+  - FALCON_DB_PASSWORD
+notes:
+  - Repository model integration is deliberately disabled.
+  - Size CPU RAM and disk from measurements for the chosen workload.
+  - No production hostname, secret or cloud account is included.
