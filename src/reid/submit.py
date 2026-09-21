@@ -76,7 +76,7 @@ def main():
     np.save(out / "embeddings.npy", np.concatenate([query_emb, gallery_emb]))
     submission, candidates = build_submission(query_emb, gallery_emb, query.image_id.to_numpy(),
                                               gallery.image_id.to_numpy(), threshold, cfg["refusal"]["max_candidates"])
-    submission.to_csv(out / "submission.csv", index=False)
+    submission.to_csv(out / "submission.csv", index=False, header=False)  # the organisers' format has no header
     candidates.to_csv(out / "candidates.csv", index=False)
 
     answered = candidates.query_id.nunique()
