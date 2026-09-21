@@ -90,6 +90,8 @@ def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=
     decisive = order[rows, np.argmax(~junk, axis=1)]
     correct = g_pid[decisive] == q_pid
     correct_strict = same[:, 0] & ~junk[:, 0]
+    # the organisers' evaluate.py: the top candidate is right whenever it is the same vehicle, junk included
+    correct_official = same[:, 0]
     has_pair = ((g_pid[None, :] == q_pid[:, None]) & (g_cam[None, :] != q_cam[:, None])).any(1)
     top_z = z[rows, order[:, 0]] if confidence is None else np.asarray(confidence)
 
@@ -108,15 +110,18 @@ def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=
         answered = top_z >= t
         tp, fp, fn, f1, tnr = confusion(answered, correct)
         f1_strict = confusion(answered, correct_strict)[3]
+        f1_official = confusion(answered, correct_official)[3]
         curve.append({"threshold": float(t), "score": 0.7 * f1 + 0.3 * tnr, "F1": f1, "TNR": tnr,
                       "precision": tp / max(tp + fp, 1), "recall": tp / max(tp + fn, 1), "answered": answered.mean(),
-                      "F1_strict": f1_strict, "score_strict": 0.7 * f1_strict + 0.3 * tnr})
+                      "F1_strict": f1_strict, "score_strict": 0.7 * f1_strict + 0.3 * tnr,
+                      "F1_official": f1_official, "score_official": 0.7 * f1_official + 0.3 * tnr})
     return pd.DataFrame(curve)
 
 
-def pick_threshold(curve):
-    """The row with the best organisers' score 0.7 F1 + 0.3 TNR (the higher threshold on ties)."""
-    return curve.sort_values(["score", "threshold"], kind="stable").iloc[-1]
+def pick_threshold(curve, column="score"):
+    """The row with the best refusal score (the higher threshold on ties); column="score_official" scores the top
+    candidate as the organisers' evaluate.py does."""
+    return curve.sort_values([column, "threshold"], kind="stable").iloc[-1]
 
 
 def paired_bootstrap(ap_base, ap_new, vehicle_ids, n_boot=2000, seed=0):

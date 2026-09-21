@@ -67,6 +67,37 @@ def ours(similarity, confidence, threshold, query, gallery):
             "TNR": float(row["TNR"]), "F1_strict": float(row["F1_strict"])}
 
 
+def realistic(spec, query, gallery, data_cfg, device):
+    """(similarity, confidence, query_emb, gallery_emb) of one candidate against a single gallery, as at test time:
+    alpha-QE, when the candidate has it, expands over that same gallery and the re-ranker reorders its top window."""
+    images_dir = Path(data_cfg["dataset_dir"]) / "images"
+    model_cfg = load_yaml(spec["config"])["model"]
+    encoder, _, mean, std = load_trained_encoder(model_cfg, Path(data_cfg["checkpoint_dir"]) / spec["checkpoint"],
+                                                 data_cfg.get("external_weights_dir"))
+    encoder = encoder.eval().to(device)
+    query_emb = normalise(embeddings(encoder, query, images_dir, model_cfg, data_cfg, mean, std, device))
+    gallery_emb = normalise(embeddings(encoder, gallery, images_dir, model_cfg, data_cfg, mean, std, device))
+    if spec.get("alpha_qe"):
+        query_emb, gallery_emb = alpha_qe(query_emb, gallery_emb, spec["alpha_qe"]["k"],
+                                          spec["alpha_qe"]["alpha"])
+    similarity = query_emb @ gallery_emb.T
+    confidence = zscore(similarity).max(1)          # the encoder's top-1 z-score, unchanged by the re-ranker
+    if spec.get("reranker"):
+        crops, hw = data_cfg["crops_dir"], model_cfg["input_hw"]
+        q_tok = token_bank(encoder[0], plain_loader(query, crops, hw, mean, std, 64), device)
+        g_tok = token_bank(encoder[0], plain_loader(gallery, crops, hw, mean, std, 64), device)
+        saved = torch.load(Path(data_cfg["checkpoint_dir"]) / spec["reranker"]["checkpoint"], map_location=device)
+        model = PairReranker(q_tok.shape[-1], saved["config"]["width"], saved["config"]["blocks"],
+                             saved["config"]["heads"], saved["config"].get("dropout", 0.0)).to(device)
+        model.load_state_dict(saved["state_dict"])
+        picked = np.argsort(-similarity, axis=1, kind="stable")[:, :spec["reranker"]["window"]]
+        similarity = reorder(similarity, picked, candidate_scores(model, q_tok, g_tok, picked, device),
+                             spec["reranker"]["weight"])
+    del encoder
+    torch.cuda.empty_cache()
+    return similarity, confidence, query_emb, gallery_emb
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-config", required=True)
@@ -79,35 +110,13 @@ def main():
     query, gallery_full, no_match = load_fold(Path(val_cfg["out_dir"]), cfg["eval_fold"])
     keep = ~gallery_full.vehicle_id.isin(no_match).to_numpy()
     gallery = gallery_full[keep].reset_index(drop=True)                     # one gallery, as in the real test
-    images_dir = Path(data_cfg["dataset_dir"]) / "images"
     root = Path("artifacts") / cfg["exp_id"]
     print(json.dumps({"fold": cfg["eval_fold"], "queries": len(query), "gallery": len(gallery),
                       "queries_without_pair": int(query.vehicle_id.isin(no_match).sum())}), flush=True)
 
     results = {}
     for name, spec in cfg["candidates"].items():
-        model_cfg = load_yaml(spec["config"])["model"]
-        encoder, _, mean, std = load_trained_encoder(model_cfg, Path(data_cfg["checkpoint_dir"]) / spec["checkpoint"],
-                                                     data_cfg.get("external_weights_dir"))
-        encoder = encoder.eval().to(device)
-        query_emb = normalise(embeddings(encoder, query, images_dir, model_cfg, data_cfg, mean, std, device))
-        gallery_emb = normalise(embeddings(encoder, gallery, images_dir, model_cfg, data_cfg, mean, std, device))
-        if spec.get("alpha_qe"):
-            query_emb, gallery_emb = alpha_qe(query_emb, gallery_emb, spec["alpha_qe"]["k"],
-                                              spec["alpha_qe"]["alpha"])
-        similarity = query_emb @ gallery_emb.T
-        confidence = zscore(similarity).max(1)          # the encoder's top-1 z-score, unchanged by the re-ranker
-        if spec.get("reranker"):
-            crops, hw = data_cfg["crops_dir"], model_cfg["input_hw"]
-            q_tok = token_bank(encoder[0], plain_loader(query, crops, hw, mean, std, 64), device)
-            g_tok = token_bank(encoder[0], plain_loader(gallery, crops, hw, mean, std, 64), device)
-            saved = torch.load(Path(data_cfg["checkpoint_dir"]) / spec["reranker"]["checkpoint"], map_location=device)
-            model = PairReranker(q_tok.shape[-1], saved["config"]["width"], saved["config"]["blocks"],
-                                 saved["config"]["heads"], saved["config"].get("dropout", 0.0)).to(device)
-            model.load_state_dict(saved["state_dict"])
-            picked = np.argsort(-similarity, axis=1, kind="stable")[:, :spec["reranker"]["window"]]
-            similarity = reorder(similarity, picked, candidate_scores(model, q_tok, g_tok, picked, device),
-                                 spec["reranker"]["weight"])
+        similarity, confidence, query_emb, gallery_emb = realistic(spec, query, gallery, data_cfg, device)
         out = root / name
         official_files(out, query, gallery, similarity, confidence, spec["threshold"], query_emb, gallery_emb)
         official = run_official(Path(args.evaluate), out)
@@ -120,8 +129,6 @@ def main():
                                        "TNR": round(tnr, 6), "refusal": round(0.7 * f1 + 0.3 * tnr, 6),
                                        "PR_AUC": round(official["candidates"]["PR-AUC"], 6)},
                           "ours_same_files": {k: round(v, 6) for k, v in mine.items()}}), flush=True)
-        del encoder
-        torch.cuda.empty_cache()
     (root / "summary.json").write_text(json.dumps(results, indent=2) + "\n")
 
 
