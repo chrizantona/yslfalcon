@@ -1,6 +1,6 @@
 # Shared setup for pod jobs (sourced, not run): stage bookkeeping, dataset unpacking, venv, tests.
 # Everything the job downloads stays inside the run dir, so deleting the run dir leaves only the dataset on the pod.
-DATA_CFG=configs/data.yaml
+DATA_CFG=${DATA_CFG:-configs/data.yaml}  # configs/data_sam.yaml: the masked copy of the dataset
 VAL_CFG=configs/val_v2.yaml
 DATA_ZIP=${DATA_ZIP:-/workspace/lct2026_data/dataset.zip}
 PY=${PREPARED_ENV:-$PWD/.venv}/bin/python
