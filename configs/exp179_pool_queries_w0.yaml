@@ -1,6 +1,6 @@
 exp_id: EXP-179
 parent: EXP-161
-description: EXP-161 with four queries in the tower's attention pooling instead of one (outputs averaged), each with its own offset after the q projection, and a penalty on the overlap of their attention maps; offsets only - the control of the package: without the penalty the queries are expected to stay near-copies
+description: EXP-161 with four queries in the tower's attention pooling instead of one (outputs averaged), each with its own offset after the q projection, and a penalty on the overlap of their attention maps; offsets only - the control of the package - without the penalty the queries are expected to stay near-copies
 seeds: [0, 1, 2]
 checkpoint_name: 5db7f68ec8b75652e8be02bcb1fa3d5c_seed{seed}.pt
 model:
