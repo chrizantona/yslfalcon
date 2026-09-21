@@ -28,43 +28,49 @@ def prepare_import(
 ) -> Job:
     encoder = runtime.require()
     with db.transaction() as session:
-        gallery = scoped(session, Gallery, gallery_id, workspace)
-        # UPDATE obtains the row lock on PostgreSQL and SQLite; increment and snapshot
-        # creation belong to the same transaction, preventing duplicate numbers.
-        number = (
-            session.execute(
-                update(Gallery)
-                .where(Gallery.id == gallery.id)
-                .values(next_version=Gallery.next_version + 1)
-                .returning(Gallery.next_version)
-            ).scalar_one()
-            - 1
-        )
-        version = GalleryVersion(
-            id=str(uuid4()),
-            workspace=workspace,
-            gallery_id=gallery.id,
-            number=number,
-            model_id=encoder.model_id,
-            status="preparing",
-            count=0,
-        )
-        session.add(version)
-        session.flush()
-        job = Job(
-            id=str(uuid4()),
-            workspace=workspace,
-            kind="import",
-            payload={
-                "gallery_id": gallery.id,
-                "version_id": version.id,
-                "model_id": encoder.model_id,
-                "files": files,
-            },
-        )
-        session.add(job)
-        session.flush()
-        return job
+        return create_import_job(session, encoder.model_id, gallery_id, workspace, files)
+
+
+def create_import_job(
+    session: Session, model_id: str, gallery_id: str, workspace: str, files: list[dict]
+) -> Job:
+    """Create one immutable snapshot within the caller's publication transaction."""
+    gallery = scoped(session, Gallery, gallery_id, workspace)
+    # UPDATE holds a row/write lock on both PostgreSQL and SQLite.
+    number = (
+        session.execute(
+            update(Gallery)
+            .where(Gallery.id == gallery.id)
+            .values(next_version=Gallery.next_version + 1)
+            .returning(Gallery.next_version)
+        ).scalar_one()
+        - 1
+    )
+    version = GalleryVersion(
+        id=str(uuid4()),
+        workspace=workspace,
+        gallery_id=gallery.id,
+        number=number,
+        model_id=model_id,
+        status="preparing",
+        count=0,
+    )
+    session.add(version)
+    session.flush()
+    job = Job(
+        id=str(uuid4()),
+        workspace=workspace,
+        kind="import",
+        payload={
+            "gallery_id": gallery.id,
+            "version_id": version.id,
+            "model_id": model_id,
+            "files": files,
+        },
+    )
+    session.add(job)
+    session.flush()
+    return job
 
 
 def activate(

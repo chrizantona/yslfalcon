@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from .db import now
 from .errors import ServiceError
 from .models import BrowserSession
+from .response_schemas import IdentityResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 ROLE_LEVEL = {"viewer": 0, "operator": 1, "admin": 2}
@@ -99,7 +100,7 @@ class Login(BaseModel):
     token: str = Field(min_length=1, max_length=4096)
 
 
-@router.post("/session")
+@router.post("/session", response_model=IdentityResponse)
 def login(body: Login, request: Request, response: Response):
     check_origin(request)
     identity = identity_for_token(request, body.token)
@@ -150,7 +151,7 @@ def logout(request: Request, response: Response, _: Principal = Depends(principa
     response.delete_cookie("falcon_csrf", path="/")
 
 
-@router.get("/me")
+@router.get("/me", response_model=IdentityResponse)
 def me(request: Request, identity: Principal = Depends(principal)):
     return {
         "role": identity.role,

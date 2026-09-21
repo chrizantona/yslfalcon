@@ -54,10 +54,33 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def image_inventory(images: dict[str, str], platform: str) -> dict[str, dict[str, str]]:
+    """Reject mixed/wrong architectures before producing a delivery labelled for a host."""
+    inventory = {}
+    for name in sorted(set(images.values())):
+        details = json.loads(subprocess.check_output(["docker", "image", "inspect", name], text=True))[0]
+        actual = f"{details['Os']}/{details['Architecture']}"
+        if actual != platform:
+            raise ValueError(
+                f"Image {name} has platform {actual}; requested {platform}. Rebuild/pull it first."
+            )
+        inventory[name] = {"id": details["Id"], "platform": actual}
+    return inventory
+
+
+def compose_override(images: dict[str, str], platform: str) -> dict:
+    services = {name: {"image": value, "platform": platform} for name, value in images.items()}
+    # Docker does not publish host ports for an internal-only container. Only the
+    # fixed Nginx gateway joins ingress; API, runtime, workers and DB stay isolated.
+    services["web"]["networks"] = ["default", "ingress"]
+    return {"services": services, "networks": {"default": {"internal": True}, "ingress": {}}}
+
+
 def main() -> None:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=root / "delivery/falcon-offline")
+    parser.add_argument("--platform", choices=("linux/amd64", "linux/arm64"), default="linux/amd64")
     args = parser.parse_args()
     target = args.output.resolve()
     if target.exists():
@@ -72,6 +95,10 @@ def main() -> None:
     images = {name: value["image"] for name, value in configuration["services"].items()}
     # Keep only image names from Compose; its expanded environment contains secrets.
     del configuration
+    try:
+        inventory = image_inventory(images, args.platform)
+    except ValueError as exc:
+        parser.error(str(exc))
     files = list(source_files(root))
     target.mkdir(parents=True)
     source = target / "source"
@@ -80,9 +107,18 @@ def main() -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, destination)
     subprocess.run(
-        ["docker", "save", "--output", str(target / "images.tar"), *sorted(set(images.values()))], check=True
+        [
+            "docker",
+            "save",
+            "--platform",
+            args.platform,
+            "--output",
+            str(target / "images.tar"),
+            *sorted(set(images.values())),
+        ],
+        check=True,
     )
-    override = {"services": {name: {"image": value} for name, value in images.items()}}
+    override = compose_override(images, args.platform)
     (target / "images.compose.json").write_text(json.dumps(override, indent=2) + "\n")
     start = target / "start.sh"
     start.write_text(
@@ -95,7 +131,18 @@ def main() -> None:
     start.chmod(0o755)
     hashes = {str(path.relative_to(target)): digest(path) for path in target.rglob("*") if path.is_file()}
     (target / "manifest.json").write_text(
-        json.dumps({"schema_version": 1, "images": images, "files": hashes}, indent=2) + "\n"
+        json.dumps(
+            {
+                "schema_version": 2,
+                "platform": args.platform,
+                "network": "internal_backend_with_web_ingress",
+                "images": images,
+                "image_inventory": inventory,
+                "files": hashes,
+            },
+            indent=2,
+        )
+        + "\n"
     )
     print(f"Offline bundle created: {target}")
     print("Contains the service stub only. No credentials, uploaded images or trained weights included.")

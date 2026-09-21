@@ -13,6 +13,7 @@ from .config import Settings
 from .db import Database, now
 from .errors import ServiceError
 from .exports import make_passport, render_export
+from .features import FeatureStore
 from .leases import heartbeat
 from .models import Export, GalleryVersion, Job, Observation, Search
 from .runtime import EncoderRuntime
@@ -131,12 +132,16 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
                 "status": "ready",
                 "manifest_hash": version.manifest_hash,
             }
-    observations, hashes = [], []
+    observations, artifacts, hashes = [], [], []
     files = job.payload["files"]
     for ordinal, item in enumerate(files):
         image = store.read(item["image_key"])
         with runtime.lock:
             feature = encoder.encode(image, tuple(item["bbox"]))
+        artifact = FeatureStore.prepare(feature, job.workspace)
+        if artifact.model_id != encoder.model_id or artifact.dimension != encoder.dimension:
+            raise ServiceError("feature_model_mismatch", "Признаки не соответствуют версии модели", 503)
+        artifacts.append(artifact)
         observations.append(
             Observation(
                 id=str(uuid4()),
@@ -145,7 +150,7 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
                 ordinal=ordinal,
                 external_id=item.get("external_id"),
                 image_key=item["image_key"],
-                feature_key=store.put_feature(feature),
+                feature_key=artifact.key,
                 bbox=item["bbox"],
                 width=item["width"],
                 height=item["height"],
@@ -165,6 +170,7 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
         version = scoped(session, GalleryVersion, version.id, job.workspace)
         if version.status != "preparing":
             raise ServiceError("invalid_version_state", "Состояние версии изменилось", 409)
+        session.add_all(artifacts)
         session.add_all(observations)
         version.status, version.count, version.manifest_hash = "ready", len(observations), manifest_hash
     return {

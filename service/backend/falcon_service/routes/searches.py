@@ -13,13 +13,14 @@ from ..errors import ServiceError, image_validation_message
 from ..jobs import enqueue
 from ..models import Review, Search
 from ..presenters import job_view, review_view
+from ..response_schemas import JobResponse, ReviewResponse, SearchList, SearchResponse
 from ..schemas import CreateExplanation, CreateExport, CreateReview
 from ..search import execute_search, reserve_search, search_view
 
 router = APIRouter(prefix="/searches", tags=["Searches"])
 
 
-@router.get("")
+@router.get("", response_model=SearchList)
 def searches(
     request: Request,
     limit: int = Query(default=100, ge=1, le=500),
@@ -68,7 +69,7 @@ def _search(state, workspace, gallery_id, data, bbox, top_n, key):
     return execute_search(state.db, state.store, state.runtime, state.settings, workspace, search_id)
 
 
-@router.post("")
+@router.post("", response_model=SearchResponse)
 async def create_search(
     request: Request,
     image: UploadFile = File(...),
@@ -91,13 +92,13 @@ async def create_search(
     )
 
 
-@router.get("/{search_id}")
+@router.get("/{search_id}", response_model=SearchResponse)
 def get_search(search_id: str, request: Request, identity: Principal = Depends(principal)):
     with request.app.state.db.transaction() as session:
         return search_view(session, scoped(session, Search, search_id, identity.workspace))
 
 
-@router.post("/{search_id}/replays")
+@router.post("/{search_id}/replays", response_model=SearchResponse)
 def replay_search(
     search_id: str,
     request: Request,
@@ -137,7 +138,7 @@ def _completed_search(session, search_id, workspace, observation_id=None):
     return row
 
 
-@router.post("/{search_id}/reviews", status_code=201)
+@router.post("/{search_id}/reviews", status_code=201, response_model=ReviewResponse)
 def create_review(
     search_id: str,
     body: CreateReview,
@@ -160,7 +161,7 @@ def create_review(
         return review_view(review)
 
 
-@router.post("/{search_id}/explanations", status_code=202)
+@router.post("/{search_id}/explanations", status_code=202, response_model=JobResponse)
 def create_explanation(
     search_id: str,
     body: CreateExplanation,
@@ -182,7 +183,7 @@ def create_explanation(
     )
 
 
-@router.post("/{search_id}/exports", status_code=202)
+@router.post("/{search_id}/exports", status_code=202, response_model=JobResponse)
 def create_export(
     search_id: str,
     body: CreateExport,

@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from .inference import PreviewEncoder, rank_gallery
+from .submission_check import validate_artifacts, write_manifest
 
 
 def _records(path, image_root):
@@ -57,7 +58,13 @@ def preview_export(query_csv, gallery_csv, images_dir, output):
     destination.mkdir(parents=True, exist_ok=True)
     if any(
         (destination / name).exists()
-        for name in ("submission.csv", "candidates.csv", "embeddings.npy", "preview.json")
+        for name in (
+            "submission.csv",
+            "candidates.csv",
+            "embeddings.npy",
+            "preview.json",
+            "artifact_manifest.json",
+        )
     ):
         raise ValueError("Output already contains artifacts; use a new directory")
     with (destination / "submission.csv").open("w", newline="") as stream:
@@ -80,6 +87,7 @@ def preview_export(query_csv, gallery_csv, images_dir, output):
         "warning": "Contract rehearsal only. No trained vehicle model or calibration is connected.",
     }
     (destination / "preview.json").write_text(json.dumps(report, indent=2) + "\n")
+    write_manifest(destination, Path(query_csv), Path(gallery_csv), encoder.model_id)
     return report
 
 
@@ -93,9 +101,18 @@ def main():
     export.add_argument("--gallery-csv", required=True)
     export.add_argument("--images-dir", required=True)
     export.add_argument("--output", required=True)
+    validate = subparsers.add_parser(
+        "validate-artifacts", help="Check formats and integrity, never ReID quality"
+    )
+    validate.add_argument("--query-csv", required=True)
+    validate.add_argument("--gallery-csv", required=True)
+    validate.add_argument("--output", required=True)
     args = parser.parse_args()
     try:
-        report = preview_export(args.query_csv, args.gallery_csv, args.images_dir, args.output)
+        if args.command == "preview-export":
+            report = preview_export(args.query_csv, args.gallery_csv, args.images_dir, args.output)
+        else:
+            report = validate_artifacts(args.query_csv, args.gallery_csv, args.output)
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
     print(json.dumps(report, ensure_ascii=False, indent=2))

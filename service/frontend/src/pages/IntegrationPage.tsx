@@ -13,15 +13,20 @@ export function IntegrationPage({ session }: { session: Session }) {
         title="Интеграция"
         description="Тот же поиск и те же результаты — из вашей системы."
         action={
-          <a
-            className="button button-default"
-            href="/api/v1/openapi.json"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Icon name="code" size={17} />
-            OpenAPI JSON
-          </a>
+          <div className="inline-items">
+            <a className="button button-default" href="/docs" target="_blank" rel="noreferrer">
+              Описание API
+            </a>
+            <a
+              className="button button-default"
+              href="/api/v1/openapi.json"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Icon name="code" size={17} />
+              OpenAPI JSON
+            </a>
+          </div>
         }
       />
       <section className="panel integration-endpoint">
@@ -71,6 +76,22 @@ export function IntegrationPage({ session }: { session: Session }) {
             ['GET', '/capabilities', 'Возможности и режим вычислительного модуля'],
             ['POST', '/galleries', 'Создать галерею наблюдений'],
             ['POST', '/galleries/{id}/imports', 'Подготовить версию из изображений'],
+            ['POST', '/galleries/{id}/import-sessions', 'Начать загрузку полной галереи по CSV'],
+            [
+              'GET',
+              '/galleries/{id}/import-sessions/{session}',
+              'Проверить прогресс и недостающие файлы',
+            ],
+            [
+              'POST',
+              '/galleries/{id}/import-sessions/{session}/files',
+              'Передать часть изображений',
+            ],
+            [
+              'POST',
+              '/galleries/{id}/import-sessions/{session}/finalize',
+              'Подготовить одну полную версию',
+            ],
             [
               'POST',
               '/galleries/{id}/versions/{version}/activate',

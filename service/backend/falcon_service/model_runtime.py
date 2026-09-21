@@ -6,13 +6,21 @@ import secrets
 import threading
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Security, UploadFile
 from fastapi.responses import Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.concurrency import run_in_threadpool
 
 from .inference import PreviewEncoder
 from .inference.images import MAX_IMAGE_BYTES
 from .inference.wire import MAX_WIRE_BYTES, pack_features, unpack_features
+from .runtime_schemas import (
+    RERANK_REQUEST,
+    RUNTIME_ERRORS,
+    RuntimeCapabilities,
+    RuntimeLiveResponse,
+    feature_response,
+)
 
 
 def create_app(encoder=None, token=None):
@@ -38,14 +46,12 @@ def create_app(encoder=None, token=None):
         lifespan=lifespan,
         docs_url=None,
         redoc_url=None,
+        responses=RUNTIME_ERRORS,
     )
+    bearer = HTTPBearer(auto_error=False, scheme_name="RuntimeBearer")
 
-    def authenticate(authorization: str | None = Header(default=None)):
-        supplied = (
-            authorization.removeprefix("Bearer ")
-            if authorization and authorization.startswith("Bearer ")
-            else ""
-        )
+    def authenticate(authorization: HTTPAuthorizationCredentials | None = Security(bearer)):
+        supplied = authorization.credentials if authorization and authorization.scheme == "Bearer" else ""
         if not state["token"] or not secrets.compare_digest(supplied.encode(), state["token"].encode()):
             raise HTTPException(401, "Runtime authentication required")
 
@@ -57,11 +63,13 @@ def create_app(encoder=None, token=None):
         finally:
             capacity.release()
 
-    @app.get("/health/live")
+    @app.get("/health/live", response_model=RuntimeLiveResponse)
     def live():
         return {"status": "ok"}
 
-    @app.get("/internal/v1/capabilities", dependencies=[Depends(authenticate)])
+    @app.get(
+        "/internal/v1/capabilities", dependencies=[Depends(authenticate)], response_model=RuntimeCapabilities
+    )
     def capabilities():
         current = state["encoder"]
         return {
@@ -73,7 +81,12 @@ def create_app(encoder=None, token=None):
             "real_model_connected": False,
         }
 
-    @app.post("/internal/v1/encode", dependencies=[Depends(authenticate)])
+    @app.post(
+        "/internal/v1/encode",
+        dependencies=[Depends(authenticate)],
+        response_class=Response,
+        responses=feature_response("One normalized embedding (N=1) for the validated image crop."),
+    )
     async def encode(image: UploadFile = File(...), bbox: str | None = Form(default=None)):
         data = await image.read(MAX_IMAGE_BYTES + 1)
         await image.close()
@@ -84,7 +97,13 @@ def create_app(encoder=None, token=None):
         except (ValueError, TypeError) as exc:
             raise HTTPException(422, str(exc)) from exc
 
-    @app.post("/internal/v1/rerank", dependencies=[Depends(authenticate)])
+    @app.post(
+        "/internal/v1/rerank",
+        dependencies=[Depends(authenticate)],
+        response_class=Response,
+        responses=feature_response("The query feature (N=1) plus scores float32[candidate_count]."),
+        openapi_extra=RERANK_REQUEST,
+    )
     async def rerank(request: Request):
         chunks, length = [], 0
         async for chunk in request.stream():

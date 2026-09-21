@@ -4,6 +4,7 @@ import type {
   Explanation,
   Gallery,
   GalleryVersion,
+  ImportSession,
   Job,
   ModelInfo,
   PageResult,
@@ -85,6 +86,28 @@ export const api = {
     if (manifest) body.append('manifest', await manifest.text());
     return request<Job>(`/galleries/${id(galleryId)}/imports`, { method: 'POST', body });
   },
+  importSessions: (galleryId: string) =>
+    request<{ items: ImportSession[] }>(`/galleries/${id(galleryId)}/import-sessions`),
+  importSession: (galleryId: string, sessionId: string) =>
+    request<ImportSession>(`/galleries/${id(galleryId)}/import-sessions/${id(sessionId)}`),
+  createImportSession: (galleryId: string, manifestCsv: string, operationKey: string) =>
+    request<ImportSession>(`/galleries/${id(galleryId)}/import-sessions`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': operationKey },
+      body: json({ manifest_csv: manifestCsv }),
+    }),
+  uploadImportFiles(galleryId: string, sessionId: string, files: File[]) {
+    const body = new FormData();
+    files.forEach((file) => body.append('files', file));
+    return request<ImportSession>(
+      `/galleries/${id(galleryId)}/import-sessions/${id(sessionId)}/files`,
+      { method: 'POST', body },
+    );
+  },
+  finalizeImport: (galleryId: string, sessionId: string) =>
+    request<Job>(`/galleries/${id(galleryId)}/import-sessions/${id(sessionId)}/finalize`, {
+      method: 'POST',
+    }),
   activate: (galleryId: string, version: string, activeVersion: string | null) =>
     request<Gallery>(`/galleries/${id(galleryId)}/versions/${id(version)}/activate`, {
       method: 'POST',

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../api';
+import { StagedImport } from '../components/StagedImport';
 import {
   Badge,
   Button,
@@ -226,7 +227,9 @@ function GalleryDetail({
       return;
     }
     if (capabilities && incoming.length > capabilities.limits.max_import_files) {
-      setError(`Один импорт: не более ${capabilities.limits.max_import_files} файлов.`);
+      setError(
+        `Небольшой импорт: не более ${capabilities.limits.max_import_files} файлов. Для полной выборки используйте загрузку по CSV выше.`,
+      );
       return;
     }
     if (capabilities && incoming.some((file) => file.size > capabilities.limits.max_upload_bytes)) {
@@ -237,6 +240,16 @@ function GalleryDetail({
     }
     if (new Set(incoming.map((file) => file.name)).size !== incoming.length) {
       setError('Имена файлов должны быть уникальны в пределах импорта.');
+      return;
+    }
+    if (
+      capabilities &&
+      incoming.reduce((sum, file) => sum + file.size + 2048, 1024 * 1024) >
+        capabilities.limits.max_request_bytes
+    ) {
+      setError(
+        'Выбранный набор не помещается в один запрос. Используйте загрузку по CSV частями выше.',
+      );
       return;
     }
     setFiles(incoming);
@@ -381,95 +394,108 @@ function GalleryDetail({
         )}
       </section>
       {canManage && (
-        <section className="panel">
-          <SectionTitle
-            title="Подготовить новую версию"
-            caption="Импорт полностью заменяет состав галереи после активации"
-          />
-          <input
-            ref={fileInput}
-            className="visually-hidden"
-            type="file"
-            multiple
-            accept="image/jpeg,image/png"
-            aria-label="Изображения для импорта"
-            onChange={(event) => {
-              chooseFiles(Array.from(event.target.files || []));
-              event.target.value = '';
-            }}
-          />
-          <button
-            className="import-dropzone"
-            onClick={() => fileInput.current?.click()}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              chooseFiles(Array.from(event.dataTransfer.files));
-            }}
-          >
-            <Icon name="upload" size={26} />
-            <strong>
-              {files.length
-                ? `Выбрано файлов: ${files.length}`
-                : 'Выберите изображения для галереи'}
-            </strong>
-            <span>
-              {files.length
-                ? `${formatBytes(totalSize)} · нажмите, чтобы заменить набор`
-                : 'JPEG и PNG · можно перетащить несколько файлов'}
-            </span>
-          </button>
-          {files.length > 0 && (
-            <div className="file-list">
-              {files.slice(0, 8).map((file) => (
-                <span key={file.name}>
-                  <Icon name="image" size={13} />
-                  {file.name}
-                </span>
-              ))}
-              {files.length > 8 && <span>и ещё {files.length - 8}</span>}
-            </div>
-          )}
-          <div className="manifest-field">
-            <label htmlFor="manifest-file">
-              Манифест рамок <span className="optional">необязательно</span>
-            </label>
+        <StagedImport
+          galleryId={gallery.id}
+          capabilities={capabilities}
+          onComplete={() => {
+            versions.reload();
+            onChange();
+          }}
+        />
+      )}
+      {canManage && (
+        <details className="manual-import">
+          <summary>Небольшой набор без CSV · изображения и необязательный JSON</summary>
+          <section className="panel">
+            <SectionTitle
+              title="Подготовить новую версию"
+              caption="Импорт полностью заменяет состав галереи после активации"
+            />
             <input
-              id="manifest-file"
+              ref={fileInput}
+              className="visually-hidden"
               type="file"
-              accept="application/json,.json"
+              multiple
+              accept="image/jpeg,image/png"
+              aria-label="Изображения для импорта"
               onChange={(event) => {
-                void loadManifest(event.target.files?.[0]);
+                chooseFiles(Array.from(event.target.files || []));
+                event.target.value = '';
               }}
             />
-            {manifest && (
-              <p className="field-hint">
-                {manifest.name}: {manifestEntries} записей. Координаты и соответствие файлам
-                проверит сервер.
-              </p>
-            )}
-            <p className="field-hint">
-              Без манифеста каждый файл используется целиком. Формат:{' '}
-              <code>{'{"car.jpg":{"bbox":[10,20,300,180]}}'}</code>
-            </p>
-          </div>
-          {error && <Message tone="error">{error}</Message>}
-          <div className="import-footer">
-            <p>
-              <Icon name="shield" size={15} />
-              Действующая версия продолжит обслуживать поиск
-            </p>
-            <Button
-              tone="primary"
-              icon="upload"
-              busy={busy}
-              disabled={!files.length || job?.status === 'pending' || job?.status === 'running'}
-              onClick={upload}
+            <button
+              className="import-dropzone"
+              onClick={() => fileInput.current?.click()}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                chooseFiles(Array.from(event.dataTransfer.files));
+              }}
             >
-              Начать импорт
-            </Button>
-          </div>
-        </section>
+              <Icon name="upload" size={26} />
+              <strong>
+                {files.length
+                  ? `Выбрано файлов: ${files.length}`
+                  : 'Выберите изображения для галереи'}
+              </strong>
+              <span>
+                {files.length
+                  ? `${formatBytes(totalSize)} · нажмите, чтобы заменить набор`
+                  : 'JPEG и PNG · можно перетащить несколько файлов'}
+              </span>
+            </button>
+            {files.length > 0 && (
+              <div className="file-list">
+                {files.slice(0, 8).map((file) => (
+                  <span key={file.name}>
+                    <Icon name="image" size={13} />
+                    {file.name}
+                  </span>
+                ))}
+                {files.length > 8 && <span>и ещё {files.length - 8}</span>}
+              </div>
+            )}
+            <div className="manifest-field">
+              <label htmlFor="manifest-file">
+                Манифест рамок <span className="optional">необязательно</span>
+              </label>
+              <input
+                id="manifest-file"
+                type="file"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  void loadManifest(event.target.files?.[0]);
+                }}
+              />
+              {manifest && (
+                <p className="field-hint">
+                  {manifest.name}: {manifestEntries} записей. Координаты и соответствие файлам
+                  проверит сервер.
+                </p>
+              )}
+              <p className="field-hint">
+                Без манифеста каждый файл используется целиком. Формат:{' '}
+                <code>{'{"car.jpg":{"bbox":[10,20,300,180]}}'}</code>
+              </p>
+            </div>
+            {error && <Message tone="error">{error}</Message>}
+            <div className="import-footer">
+              <p>
+                <Icon name="shield" size={15} />
+                Действующая версия продолжит обслуживать поиск
+              </p>
+              <Button
+                tone="primary"
+                icon="upload"
+                busy={busy}
+                disabled={!files.length || job?.status === 'pending' || job?.status === 'running'}
+                onClick={upload}
+              >
+                Начать импорт
+              </Button>
+            </div>
+          </section>
+        </details>
       )}
       {job && (
         <JobProgress

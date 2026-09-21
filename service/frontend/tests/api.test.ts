@@ -104,3 +104,24 @@ test('missing explanation maps stay unavailable', () => {
     explanationFromJob({ result: { query_map: [[0]], candidate_map: [[0]] } } as unknown as Job),
   );
 });
+test('staged import preserves the manifest and create key, then uploads files and finalizes explicitly', async () => {
+  const csv = 'image_id,x,y,w,h\nvehicle,10,20,300,180';
+  await api.createImportSession('gallery-1', csv, 'stable-import-key');
+  await api.createImportSession('gallery-1', csv, 'stable-import-key');
+  assert.deepEqual(JSON.parse(calls[0].options.body as string), { manifest_csv: csv });
+  for (const call of calls)
+    assert.equal(new Headers(call.options.headers).get('Idempotency-Key'), 'stable-import-key');
+  await api.importSessions('gallery-1');
+  await api.importSession('gallery-1', 'import-1');
+  await api.uploadImportFiles('gallery-1', 'import-1', [new File(['image'], 'vehicle.jpg')]);
+  const body = calls[4].options.body as FormData;
+  assert.equal(body.getAll('files').length, 1);
+  assert.equal(new Headers(calls[4].options.headers).has('Content-Type'), false);
+  assert.equal(
+    calls.some((call) => call.url.endsWith('/finalize')),
+    false,
+  );
+  await api.finalizeImport('gallery-1', 'import-1');
+  assert.equal(calls[5].url, '/api/v1/galleries/gallery-1/import-sessions/import-1/finalize');
+  assert.equal(calls[5].options.method, 'POST');
+});

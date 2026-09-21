@@ -3,21 +3,38 @@
 import json
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, Query, Request, UploadFile
 from sqlalchemy import func, select
 from starlette.concurrency import run_in_threadpool
 
 from ..auth import Principal, principal, require_role
 from ..catalog import activate, prepare_import, scoped
 from ..errors import ServiceError, image_validation_message
-from ..models import Gallery, GalleryVersion
+from ..imports import (
+    CreateImportSession,
+    create_session,
+    finalize_session,
+    import_session,
+    limits,
+    session_view,
+    upload_chunk,
+)
+from ..models import Gallery, GalleryVersion, ImportSession
 from ..presenters import gallery_view, job_view, version_view
+from ..response_schemas import (
+    GalleryList,
+    GalleryResponse,
+    GalleryVersionList,
+    ImportSessionList,
+    ImportSessionResponse,
+    JobResponse,
+)
 from ..schemas import ActivateVersion, CreateGallery
 
 router = APIRouter(prefix="/galleries", tags=["Galleries"])
 
 
-@router.get("")
+@router.get("", response_model=GalleryList)
 def galleries(
     request: Request,
     limit: int = Query(default=100, ge=1, le=500),
@@ -43,7 +60,7 @@ def galleries(
         return {"items": items, "total": total, "next_offset": next_offset if next_offset < total else None}
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=GalleryResponse)
 def create_gallery(
     body: CreateGallery, request: Request, identity: Principal = Depends(require_role("admin"))
 ):
@@ -56,7 +73,7 @@ def create_gallery(
         return gallery_view(row)
 
 
-@router.get("/{gallery_id}")
+@router.get("/{gallery_id}", response_model=GalleryResponse)
 def get_gallery(gallery_id: str, request: Request, identity: Principal = Depends(principal)):
     with request.app.state.db.transaction() as session:
         row = scoped(session, Gallery, gallery_id, identity.workspace)
@@ -64,7 +81,7 @@ def get_gallery(gallery_id: str, request: Request, identity: Principal = Depends
         return gallery_view(row, version.count if version else 0)
 
 
-@router.get("/{gallery_id}/versions")
+@router.get("/{gallery_id}/versions", response_model=GalleryVersionList)
 def versions(gallery_id: str, request: Request, identity: Principal = Depends(principal)):
     with request.app.state.db.transaction() as session:
         gallery = scoped(session, Gallery, gallery_id, identity.workspace)
@@ -118,7 +135,7 @@ def _prepare_images(state, uploaded: list[tuple[str, bytes]], manifest: dict) ->
     return validated
 
 
-@router.post("/{gallery_id}/imports", status_code=202)
+@router.post("/{gallery_id}/imports", status_code=202, response_model=JobResponse)
 async def import_images(
     gallery_id: str,
     request: Request,
@@ -155,7 +172,7 @@ async def import_images(
     return job_view(job)
 
 
-@router.post("/{gallery_id}/versions/{version_id}/activate")
+@router.post("/{gallery_id}/versions/{version_id}/activate", response_model=GalleryResponse)
 def activate_version(
     gallery_id: str,
     version_id: str,
@@ -174,3 +191,98 @@ def activate_version(
         compare=True,
     )
     return gallery_view(row, count)
+
+
+@router.post("/{gallery_id}/import-sessions", status_code=201, response_model=ImportSessionResponse)
+def start_import_session(
+    gallery_id: str,
+    body: CreateImportSession,
+    request: Request,
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=1, max_length=128),
+    identity: Principal = Depends(require_role("admin")),
+):
+    """Validate an official CSV and start or resume a durable upload session."""
+    state = request.app.state
+    return create_session(
+        state.db, state.settings, gallery_id, identity.workspace, idempotency_key, body.manifest_csv
+    )
+
+
+@router.get("/{gallery_id}/import-sessions", response_model=ImportSessionList)
+def list_import_sessions(
+    gallery_id: str, request: Request, identity: Principal = Depends(require_role("admin"))
+):
+    state = request.app.state
+    with state.db.transaction() as session:
+        scoped(session, Gallery, gallery_id, identity.workspace)
+        rows = session.scalars(
+            select(ImportSession)
+            .where(ImportSession.gallery_id == gallery_id, ImportSession.workspace == identity.workspace)
+            .order_by(ImportSession.created_at.desc(), ImportSession.id.desc())
+        )
+        return {"items": [session_view(session, row, state.settings) for row in rows]}
+
+
+@router.get("/{gallery_id}/import-sessions/{session_id}", response_model=ImportSessionResponse)
+def get_import_session(
+    gallery_id: str,
+    session_id: str,
+    request: Request,
+    identity: Principal = Depends(require_role("admin")),
+):
+    state = request.app.state
+    with state.db.transaction() as session:
+        row = import_session(session, session_id, gallery_id, identity.workspace)
+        return session_view(session, row, state.settings)
+
+
+@router.post("/{gallery_id}/import-sessions/{session_id}/files", response_model=ImportSessionResponse)
+async def upload_import_chunk(
+    gallery_id: str,
+    session_id: str,
+    request: Request,
+    files: list[UploadFile] = File(...),
+    identity: Principal = Depends(require_role("admin")),
+):
+    """Validate the whole bounded chunk before acknowledging any of its images."""
+    state = request.app.state
+    with state.db.transaction() as session:
+        import_session(session, session_id, gallery_id, identity.workspace)
+    maximum = limits(state.settings)["max_chunk_files"]
+    if not files or len(files) > maximum:
+        raise ServiceError("import_limit", f"Одна порция принимает от 1 до {maximum} файлов", 413)
+    uploaded, total = [], 0
+    try:
+        for file in files:
+            data = await file.read(state.settings.max_upload_bytes + 1)
+            total += len(data)
+            if len(data) > state.settings.max_upload_bytes or total > state.settings.max_request_bytes:
+                raise ServiceError("upload_too_large", "Порция превышает допустимый размер", 413)
+            uploaded.append((file.filename or "", data))
+    finally:
+        for file in files:
+            await file.close()
+    return await run_in_threadpool(
+        upload_chunk,
+        state.db,
+        state.store,
+        state.settings,
+        gallery_id,
+        identity.workspace,
+        session_id,
+        uploaded,
+    )
+
+
+@router.post(
+    "/{gallery_id}/import-sessions/{session_id}/finalize", status_code=202, response_model=JobResponse
+)
+def finalize_import_session(
+    gallery_id: str,
+    session_id: str,
+    request: Request,
+    identity: Principal = Depends(require_role("admin")),
+):
+    """Freeze one complete manifest into one job; a repeated call returns that job."""
+    state = request.app.state
+    return job_view(finalize_session(state.db, state.runtime, gallery_id, identity.workspace, session_id))

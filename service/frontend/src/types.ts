@@ -39,6 +39,23 @@ export interface GalleryVersion {
   model_id: string;
   created_at: string;
 }
+export interface ImportSession {
+  id: string;
+  gallery_id: string;
+  status: 'uploading' | 'finalized';
+  expected_count: number;
+  uploaded_count: number;
+  missing_image_ids: string[];
+  received_image_ids: string[];
+  validation: {
+    ready: boolean;
+    issues: { code: string; message: string; image_id: string | null }[];
+  };
+  job_id: string | null;
+  version_id: string | null;
+  created_at: string;
+  limits: { max_chunk_files: number; max_chunk_bytes: number; max_upload_bytes: number };
+}
 export interface Job {
   id: string;
   kind: string;

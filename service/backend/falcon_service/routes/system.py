@@ -12,16 +12,26 @@ from ..catalog import scoped
 from ..errors import ServiceError
 from ..models import Job, Search
 from ..presenters import job_view
+from ..response_schemas import (
+    CalibrationList,
+    CapabilitiesResponse,
+    JobList,
+    JobResponse,
+    LiveResponse,
+    ModelList,
+    ReadyResponse,
+    SystemResponse,
+)
 
 router = APIRouter(tags=["Operations"])
 
 
-@router.get("/health/live")
+@router.get("/health/live", response_model=LiveResponse)
 def live():
     return {"status": "alive", "version": __version__}
 
 
-@router.get("/health/ready")
+@router.get("/health/ready", response_model=ReadyResponse)
 def ready(request: Request):
     state = request.app.state
     try:
@@ -35,7 +45,7 @@ def ready(request: Request):
     return {"status": "ready", "mode": state.runtime.capabilities()["mode"]}
 
 
-@router.get("/capabilities")
+@router.get("/capabilities", response_model=CapabilitiesResponse)
 def capabilities(request: Request, _: Principal = Depends(principal)):
     state = request.app.state
     return {
@@ -59,7 +69,7 @@ def capabilities(request: Request, _: Principal = Depends(principal)):
     }
 
 
-@router.get("/models")
+@router.get("/models", response_model=ModelList)
 def models(request: Request, _: Principal = Depends(principal)):
     engine = request.app.state.runtime.capabilities()
     return {
@@ -76,7 +86,7 @@ def models(request: Request, _: Principal = Depends(principal)):
     }
 
 
-@router.get("/calibrations")
+@router.get("/calibrations", response_model=CalibrationList)
 def calibrations(request: Request, _: Principal = Depends(principal)):
     policy = request.app.state.runtime.policy
     return {
@@ -85,7 +95,7 @@ def calibrations(request: Request, _: Principal = Depends(principal)):
     }
 
 
-@router.get("/system")
+@router.get("/system", response_model=SystemResponse)
 def system(request: Request, identity: Principal = Depends(principal)):
     state = request.app.state
     engine = state.runtime.capabilities()
@@ -128,7 +138,7 @@ def system(request: Request, identity: Principal = Depends(principal)):
     }
 
 
-@router.get("/jobs")
+@router.get("/jobs", response_model=JobList)
 def jobs(
     request: Request,
     limit: int = Query(default=100, ge=1, le=500),
@@ -151,7 +161,7 @@ def jobs(
         return {"items": items, "total": total, "next_offset": next_offset if next_offset < total else None}
 
 
-@router.get("/jobs/{job_id}")
+@router.get("/jobs/{job_id}", response_model=JobResponse)
 def get_job(job_id: str, request: Request, identity: Principal = Depends(principal)):
     with request.app.state.db.transaction() as session:
         return job_view(scoped(session, Job, job_id, identity.workspace))

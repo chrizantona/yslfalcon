@@ -13,6 +13,7 @@ from .catalog import fingerprint, scoped
 from .config import Settings
 from .db import Database, now, timestamp
 from .errors import ServiceError
+from .features import FeatureStore
 from .leases import heartbeat
 from .models import Gallery, GalleryVersion, Observation, Review, Search
 from .presenters import review_view
@@ -174,7 +175,7 @@ def execute_search(
             if not observations or len(observations) != version.count:
                 raise ServiceError("gallery_incomplete", "Снимок галереи неполон; поиск остановлен", 503)
             image = store.read(row.query["image_key"])
-            features = [store.read_feature(item.feature_key) for item in observations]
+            features = FeatureStore(db, store).read_many(workspace, observations, row.model_id)
             loaded = time.perf_counter()
             with runtime.lock:
                 query = encoder.encode(image, tuple(row.query["bbox"]))

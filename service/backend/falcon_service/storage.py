@@ -3,6 +3,7 @@
 import io
 import os
 import re
+import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -56,9 +57,23 @@ class ArtifactStore:
         return self.put(data.getvalue(), "features", "npz")
 
     def read_feature(self, key: str) -> "FeatureBundle":
+        """Read a pre-migration cache safely; new snapshots persist vectors in SQL."""
         from .inference import FeatureBundle
+        from .inference.wire import MAX_WIRE_BYTES
 
-        with np.load(io.BytesIO(self.read(key)), allow_pickle=False) as stored:
+        data = self.read(key)
+        if len(data) > MAX_WIRE_BYTES:
+            raise ValueError("Legacy feature archive exceeds allowed size")
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                if (
+                    len(archive.infolist()) > 3
+                    or sum(item.file_size for item in archive.infolist()) > MAX_WIRE_BYTES
+                ):
+                    raise ValueError("Legacy feature archive expands beyond allowed limits")
+        except zipfile.BadZipFile as exc:
+            raise ValueError("Invalid legacy feature archive") from exc
+        with np.load(io.BytesIO(data), allow_pickle=False) as stored:
             return FeatureBundle(
                 embedding=stored["embedding"],
                 tokens=stored["tokens"] if "tokens" in stored.files else None,
