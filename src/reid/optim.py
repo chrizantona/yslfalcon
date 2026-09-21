@@ -33,6 +33,9 @@ def optimizer_groups(model, cfg):
         module = getattr(model, name, None)
         if module is not None:
             head.extend(p for p in module.parameters() if p.requires_grad)
+    # the query offsets of a multi-query pool start from scratch: at the backbone rate they would move ~3% in a run
+    offsets = [p for name, p in model.backbone.named_parameters() if name.endswith("query_offsets")]
+    head.extend(offsets)
     decay = float(cfg.get("layer_decay", 1.0))
     if not 0 < decay <= 1:
         raise ValueError("layer_decay must be in (0, 1]")
@@ -42,7 +45,8 @@ def optimizer_groups(model, cfg):
         return model.backbone.optimizer_groups(cfg) + [{"params": head, "lr": cfg["lr_head"], "branch": "reid_heads"}]
     if decay == 1:
         return [
-            {"params": [p for p in model.backbone.parameters() if p.requires_grad], "lr": cfg["lr_backbone"]},
+            {"params": [p for p in model.backbone.parameters() if p.requires_grad and all(p is not o for o in offsets)],
+             "lr": cfg["lr_backbone"]},
             {"params": head, "lr": cfg["lr_head"]},
         ]
     if hasattr(model.backbone, "layer_groups") or (hasattr(model.backbone, "trunk")

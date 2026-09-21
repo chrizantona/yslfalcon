@@ -30,7 +30,7 @@ from reid.data import load_yaml, to_model_input
 from reid.embed import embed_boxes
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
 from reid.external import load_table, source_names
-from reid.models import ReIDModel, MarginClassifier, build_backbone, load_backbone, checkpoint_name
+from reid.models import ReIDModel, MarginClassifier, MultiQueryPool, build_backbone, load_backbone, checkpoint_name
 from reid.optim import optimizer_groups
 from reid.afem_models import KINDS as AFEM_KINDS, build_extended_model
 
@@ -467,6 +467,8 @@ def main():
     if metric_loss["type"] not in ("triplet", "supcon", "supcon+triplet"):
         raise ValueError(f"unknown metric loss {metric_loss['type']}")
 
+    pool = getattr(getattr(model.backbone, "trunk", None), "attn_pool", None)
+    multi_query_pool = pool if isinstance(pool, MultiQueryPool) else None
     images_dir = Path(data_cfg["dataset_dir"]) / "images"
 
     def embed(df):
@@ -521,7 +523,7 @@ def main():
             sampler.set_neighbours(lookalike_vehicles(model.classifier, sorted(classes), hard_cfg["pool"]))
         model.train()
         totals, steps, epoch_start = np.zeros(3), 0, time.time()
-        auxiliary_total = distill_total = extra_total = camera_total = 0.0
+        auxiliary_total = distill_total = extra_total = camera_total = overlap_total = 0.0
         # the sampler is deterministic given (seed, epoch), so iterating it here reproduces the batches the loader
         # is about to yield; distillation needs the row indices to look up its teacher embeddings
         for (x, y), rows in zip(loader, sampler):
@@ -556,6 +558,9 @@ def main():
                                                      distill["temperature"])
                 extra_total += loss_extra.item()
                 loss = loss + distill["extra"].get("weight", distill["weight"]) * loss_extra
+            if multi_query_pool is not None:  # queries whose attention maps overlap are penalised
+                overlap_total += multi_query_pool.overlap.item()
+                loss = loss + tcfg["pool_diversity"] * multi_query_pool.overlap
             if len(outputs) == 4:
                 app_feat, app_logits = outputs[2:]
                 if metric_loss["type"] != "supcon":
@@ -589,6 +594,8 @@ def main():
             record["loss_distill"] = distill_total / max(steps, 1)
             if extra_loader is not None:
                 record["loss_distill_extra"] = extra_total / max(steps, 1)
+        if multi_query_pool is not None:
+            record["pool_overlap"] = overlap_total / max(steps, 1)
         if camera_head is not None:
             record["loss_camera"] = camera_total / max(steps, 1)
             record["camera_lambda"] = camera_lambda(camera_cfg, epoch)
