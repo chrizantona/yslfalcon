@@ -13,6 +13,7 @@ import {
 } from './components/ui';
 import { errorMessage } from './domain';
 import { useResource } from './hooks';
+import { usePageRoute } from './usePageRoute';
 import { GalleriesPage } from './pages/GalleriesPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { IntegrationPage } from './pages/IntegrationPage';
@@ -66,14 +67,8 @@ function ConnectionState({
 }
 function ServiceShell({ session }: { session: Session }) {
   const capabilities = useResource(api.capabilities);
-  const [path, setPath] = useState(window.location.hash.slice(1) || 'search');
-  useEffect(() => {
-    const update = () => {
-      setPath(window.location.hash.slice(1) || 'search');
-    };
-    window.addEventListener('hashchange', update);
-    return () => window.removeEventListener('hashchange', update);
-  }, []);
+  const workspace = useRef<HTMLDivElement>(null);
+  const path = usePageRoute(workspace);
   const navigate = (next: string) => {
     window.location.hash = next;
   };
@@ -130,7 +125,7 @@ function ServiceShell({ session }: { session: Session }) {
       </header>
       <PageNavigation page={page} />
       <div className="studio-body">
-        <div className="studio-workspace">
+        <div className="studio-workspace" ref={workspace}>
           <main id="main-content" tabIndex={-1}>
             <div className="model-banner">
               <Icon name="activity" size={16} />

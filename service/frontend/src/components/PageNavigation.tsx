@@ -1,11 +1,6 @@
 import type { Page } from '../types';
 import { Icon } from './ui';
-
-const mainPages: { id: Page; label: string }[] = [
-  { id: 'galleries', label: 'Галереи' },
-  { id: 'search', label: 'Поиск' },
-  { id: 'history', label: 'История' },
-];
+import { mainPages } from '../navigation';
 
 export function PageNavigation({ page }: { page: Page }) {
   const pageIndex = mainPages.findIndex((item) => item.id === page);

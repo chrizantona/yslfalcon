@@ -713,6 +713,75 @@ small {
   flex-direction: column;
   min-width: 0;
 }
+/* Roll browser snapshots around a shared depth axis; live pages stay untransformed. */
+:root[data-page-roll] {
+  view-transition-name: none;
+  --page-roll-direction: 1;
+}
+:root[data-page-roll='previous'] {
+  --page-roll-direction: -1;
+}
+:root[data-page-roll] .studio-workspace {
+  view-transition-name: falcon-workspace;
+}
+:root[data-page-roll]::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(falcon-workspace) {
+  /* Retain native position interpolation when shorter pages clamp the scroll offset. */
+  animation-duration: 620ms;
+  animation-timing-function: cubic-bezier(0.22, 0.68, 0.15, 1);
+}
+::view-transition-image-pair(falcon-workspace) {
+  perspective: 1600px;
+  perspective-origin: 50% var(--page-roll-origin, 320px);
+  isolation: auto;
+}
+::view-transition-old(falcon-workspace),
+::view-transition-new(falcon-workspace) {
+  width: 100%;
+  height: auto;
+  mix-blend-mode: normal;
+  backface-visibility: hidden;
+  transform-origin: 50% var(--page-roll-origin, 320px) calc(-1 * var(--page-roll-radius, 640px));
+  animation-duration: 620ms;
+  animation-timing-function: cubic-bezier(0.22, 0.68, 0.15, 1);
+  animation-fill-mode: both;
+}
+::view-transition-old(falcon-workspace) {
+  animation-name: page-roll-out;
+}
+::view-transition-new(falcon-workspace) {
+  animation-name: page-roll-in;
+}
+@keyframes page-roll-out {
+  from {
+    opacity: 1;
+    transform: rotateY(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: rotateY(calc(-56deg * var(--page-roll-direction)));
+  }
+}
+@keyframes page-roll-in {
+  from {
+    opacity: 0;
+    transform: rotateY(calc(56deg * var(--page-roll-direction)));
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(falcon-workspace),
+  ::view-transition-old(falcon-workspace),
+  ::view-transition-new(falcon-workspace) {
+    animation: none;
+  }
+}
+
 .local-status {
   display: inline-flex;
   align-items: center;
