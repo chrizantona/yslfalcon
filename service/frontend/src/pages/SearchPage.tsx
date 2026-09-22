@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { CropEditor, type ImageInput } from '../components/CropEditor';
 import { Comparison } from '../components/Comparison';
+import { ResultsSurface } from '../components/ResultsSurface';
 import {
   Badge,
   Button,
@@ -258,7 +259,7 @@ export function SearchPage({
             </p>
           </div>
         </section>
-        <section className="results-area" aria-live="polite">
+        <ResultsSurface>
           {!result && (
             <div className="search-canvas-header">
               <div>
@@ -499,7 +500,7 @@ export function SearchPage({
               </div>
             </div>
           )}
-        </section>
+        </ResultsSurface>
       </div>
       {result && selected && (
         <Comparison
