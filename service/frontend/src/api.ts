@@ -17,6 +17,24 @@ import type {
 
 const base = '/api/v1';
 let csrfToken = '';
+let sessionGeneration = 0;
+let sessionRequest: Promise<Session> | null = null;
+const isSessionRoute = (path: string) => path.startsWith('/auth/');
+function currentCsrfToken(): string {
+  if (typeof document === 'undefined') return csrfToken;
+  const cookie = document.cookie
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith('falcon_csrf='));
+  if (!cookie) return '';
+  try {
+    const value = decodeURIComponent(cookie.slice('falcon_csrf='.length));
+    // Browser cookies are shared by tabs; an absent or malformed cookie must not revive cached credentials.
+    return /[\u0000-\u0020\u007f-\uffff]/.test(value) ? '' : value;
+  } catch {
+    return '';
+  }
+}
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -30,12 +48,16 @@ export class ApiError extends Error {
   }
 }
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const generation = sessionGeneration;
   const headers = new Headers(options.headers);
   if (options.body && !(options.body instanceof FormData))
     headers.set('Content-Type', 'application/json');
   const method = options.method || 'GET';
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfToken)
-    headers.set('X-CSRF-Token', csrfToken);
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const currentToken = currentCsrfToken();
+    if (currentToken) headers.set('X-CSRF-Token', currentToken);
+    else headers.delete('X-CSRF-Token');
+  }
   const response = await fetch(`${base}${path}`, {
     ...options,
     headers,
@@ -43,7 +65,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    if (response.status === 401 && path !== '/auth/session' && path !== '/auth/me')
+    if (
+      response.status === 401 &&
+      !isSessionRoute(path) &&
+      generation === sessionGeneration &&
+      typeof window !== 'undefined'
+    )
       window.dispatchEvent(new Event('falcon:unauthorized'));
     throw new ApiError(
       body.error?.message || body.detail || `Ошибка запроса (${response.status})`,
@@ -52,6 +79,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       body.request_id,
     );
   }
+  if (!isSessionRoute(path) && generation === sessionGeneration && typeof window !== 'undefined')
+    window.dispatchEvent(new Event('falcon:connected'));
   return response.status === 204 ? (undefined as T) : response.json();
 }
 const json = (value: unknown) => JSON.stringify(value);
@@ -60,19 +89,31 @@ export const api = {
   async session() {
     const session = await request<Session>('/auth/me');
     csrfToken = session.csrf_token;
+    sessionGeneration += 1;
     return session;
   },
-  async login(token: string) {
-    const session = await request<Session>('/auth/session', {
-      method: 'POST',
-      body: json({ token }),
-    });
+  async localSession() {
+    const session = await request<Session>('/auth/local-session', { method: 'POST' });
     csrfToken = session.csrf_token;
+    sessionGeneration += 1;
     return session;
   },
-  async logout() {
-    await request<void>('/auth/session', { method: 'DELETE' });
-    csrfToken = '';
+  bootstrapSession(): Promise<Session> {
+    // StrictMode and concurrent expired requests share one bounded recovery attempt.
+    if (!sessionRequest) {
+      sessionRequest = api
+        .session()
+        .catch((cause: unknown) => {
+          if (!(cause instanceof ApiError) || cause.status !== 401) throw cause;
+          csrfToken = '';
+          sessionGeneration += 1;
+          return api.localSession();
+        })
+        .finally(() => {
+          sessionRequest = null;
+        });
+    }
+    return sessionRequest;
   },
   capabilities: () => request<Capabilities>('/capabilities'),
   galleries: (offset = 0) => request<PageResult<Gallery>>(`/galleries?limit=100&offset=${offset}`),

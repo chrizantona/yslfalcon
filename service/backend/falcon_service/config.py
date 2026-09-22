@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     calibration_path: Path | None = None
     allowed_origins: list[str] = Field(default_factory=lambda: ["http://localhost:8080"])
     cookie_secure: bool = True
+    local_auto_login: bool = False
     session_hours: int = Field(default=12, ge=1, le=168)
     max_upload_bytes: int = Field(default=20 * 1024 * 1024, ge=1024)
     max_request_bytes: int = Field(default=256 * 1024 * 1024, ge=1024)

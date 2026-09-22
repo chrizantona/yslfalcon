@@ -1,11 +1,18 @@
-import { Badge, CopyButton, Icon, Message, PageHeading, SectionTitle } from '../components/ui';
-import { shortId } from '../domain';
-import type { Session } from '../types';
+import { Badge, CopyButton, Icon, PageHeading, SectionTitle } from '../components/ui';
 
-export function IntegrationPage({ session }: { session: Session }) {
+export function IntegrationPage() {
   const endpoint = `${window.location.origin}/api/v1`;
-  const auth = `curl '${endpoint}/capabilities' \\\n  -H "Authorization: Bearer $FALCON_TOKEN"`;
-  const search = `curl '${endpoint}/searches' \\\n  -H "Authorization: Bearer $FALCON_TOKEN" \\\n  -H 'Idempotency-Key: replace-with-unique-request-id' \\\n  -F 'image=@vehicle.jpg' \\\n  -F 'bbox=[10,20,300,180]' \\\n  -F 'gallery_id=YOUR_GALLERY_ID' \\\n  -F 'top_n=10'`;
+  const health = `curl '${endpoint}/health/ready'`;
+  const search = JSON.stringify(
+    {
+      image: 'vehicle.jpg',
+      bbox: [10, 20, 300, 180],
+      gallery_id: 'YOUR_GALLERY_ID',
+      top_n: 10,
+    },
+    null,
+    2,
+  );
   return (
     <>
       <PageHeading
@@ -36,10 +43,7 @@ export function IntegrationPage({ session }: { session: Session }) {
         <div>
           <span className="field-label">Адрес API</span>
           <code>{endpoint}</code>
-          <p>
-            Пространство: {session.workspace || shortId(session.workspace_id)} · запросы выполняются
-            с правами токена
-          </p>
+          <p>Форматы запросов, ответы и примеры для вашей системы.</p>
         </div>
         <CopyButton text={endpoint} />
       </section>
@@ -47,23 +51,23 @@ export function IntegrationPage({ session }: { session: Session }) {
         <section className="panel code-panel">
           <SectionTitle
             title="1. Проверить подключение"
-            caption="Сохраните токен в переменной FALCON_TOKEN на своей машине"
-            action={<CopyButton text={auth} />}
+            caption="Готовность сервиса к обработке запросов"
+            action={<CopyButton text={health} />}
           />
-          <pre>{auth}</pre>
-          <p>
-            Используйте личный токен доступа. Не добавляйте его в URL, код приложения или историю
-            репозитория.
-          </p>
+          <pre>{health}</pre>
+          <p>Проверка показывает, доступны ли база данных, хранилище и вычислительный модуль.</p>
         </section>
         <section className="panel code-panel">
           <SectionTitle
-            title="2. Выполнить поиск"
-            caption="Активная галерея, изображение и рамка в пикселях"
+            title="2. Передать изображение"
+            caption="Поля multipart-запроса POST /searches"
             action={<CopyButton text={search} />}
           />
           <pre>{search}</pre>
-          <p>Повтор того же запроса с тем же Idempotency-Key возвращает сохранённый результат.</p>
+          <p>
+            Файл передаётся полем image; bbox — рамка в пикселях. Полный пример вызова находится в
+            описании API. Повтор с тем же Idempotency-Key возвращает сохранённый результат.
+          </p>
         </section>
       </div>
       <section className="panel">
@@ -111,11 +115,6 @@ export function IntegrationPage({ session }: { session: Session }) {
           ))}
         </div>
       </section>
-      <Message>
-        Браузер использует защищённую сессию и CSRF-токен. Внешние клиенты — заголовок
-        Authorization. Загруженные изображения и результаты доступны только в пределах вашего
-        рабочего пространства.
-      </Message>
     </>
   );
 }

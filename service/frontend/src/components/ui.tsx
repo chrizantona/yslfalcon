@@ -36,7 +36,6 @@ export type IconName =
   | 'refresh'
   | 'download'
   | 'image'
-  | 'logout'
   | 'expand'
   | 'eye'
   | 'alert'
@@ -107,11 +106,6 @@ const paths: Record<IconName, ReactNode> = {
       <rect x="3" y="3" width="18" height="18" rx="3" />
       <circle cx="8" cy="8" r="1" />
       <path d="m3 17 5-5 4 4 3-3 6 6" />
-    </>
-  ),
-  logout: (
-    <>
-      <path d="M9 3H4v18h5M9 12h12m-4-4 4 4-4 4" />
     </>
   ),
   expand: (

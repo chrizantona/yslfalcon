@@ -4,6 +4,7 @@ import hashlib
 import secrets
 from dataclasses import dataclass
 from datetime import timedelta
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Request, Response, Security
 from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
@@ -21,7 +22,7 @@ session_scheme = APIKeyCookie(
     name="falcon_session",
     auto_error=False,
     scheme_name="SessionCookie",
-    description="HttpOnly session from /api/v1/auth/session. Mutating cookie requests also require an allowed Origin and X-CSRF-Token.",
+    description="HttpOnly session from /api/v1/auth/local-session or /api/v1/auth/session. Mutating cookie requests also require an allowed Origin and X-CSRF-Token.",
 )
 
 
@@ -100,12 +101,8 @@ class Login(BaseModel):
     token: str = Field(min_length=1, max_length=4096)
 
 
-@router.post("/session", response_model=IdentityResponse)
-def login(body: Login, request: Request, response: Response):
-    check_origin(request)
-    identity = identity_for_token(request, body.token)
-    if identity is None:
-        raise ServiceError("unauthorized", "Неверный токен доступа", 401)
+def create_browser_session(request: Request, response: Response, token: str, identity: Principal):
+    """Issue the same revocable session for API login and automatic local access."""
     session_token, csrf_token = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     settings = request.app.state.settings
     with request.app.state.db.transaction() as session:
@@ -117,7 +114,7 @@ def login(body: Login, request: Request, response: Response):
         session.add(
             BrowserSession(
                 token_hash=digest(session_token),
-                credential_hash=digest(body.token),
+                credential_hash=digest(token),
                 csrf_hash=digest(csrf_token),
                 expires_at=now() + timedelta(hours=settings.session_hours),
             )
@@ -137,6 +134,44 @@ def login(body: Login, request: Request, response: Response):
         "workspace_id": identity.workspace,
         "csrf_token": csrf_token,
     }
+
+
+@router.post("/session", response_model=IdentityResponse)
+def login(body: Login, request: Request, response: Response):
+    check_origin(request)
+    identity = identity_for_token(request, body.token)
+    if identity is None:
+        raise ServiceError("unauthorized", "Неверный токен доступа", 401)
+    return create_browser_session(request, response, body.token, identity)
+
+
+@router.post("/local-session", response_model=IdentityResponse)
+def local_session(request: Request, response: Response):
+    """Open the localhost UI without a credential form; disabled outside the local profile."""
+    settings = request.app.state.settings
+    if not settings.local_auto_login:
+        raise ServiceError("local_access_disabled", "Локальный доступ отключён", 404)
+    check_origin(request)
+    loopback_hosts = {"localhost", "127.0.0.1", "::1"}
+    if (
+        request.url.hostname not in loopback_hosts
+        or urlsplit(request.headers["origin"]).hostname not in loopback_hosts
+    ):
+        raise ServiceError("origin_forbidden", "Локальный доступ разрешён только через localhost", 403)
+    # This is the workspace created by init_env, preserving existing user data.
+    # Never select a different organization's credential as an automatic fallback.
+    token = next(
+        (
+            key
+            for key, value in settings.auth_tokens.items()
+            if value["workspace"] == "local" and value["role"] == "admin"
+        ),
+        None,
+    )
+    if token is None:
+        raise ServiceError("local_access_unavailable", "Локальный доступ не настроен", 503)
+    identity = identity_for_token(request, token)
+    return create_browser_session(request, response, token, identity)
 
 
 @router.delete("/session", status_code=204)

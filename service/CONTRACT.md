@@ -1,6 +1,6 @@
 # Service implementation contract
 
-This file describes the service boundaries. Public API lives under `/api/v1`; internal runtime under `/internal/v1`. All timestamps are UTC ISO-8601; IDs are opaque strings; business data is scoped to the authenticated workspace. Images are uploads, never arbitrary URLs. Public errors use `{error: {code, message}, request_id}` and return the same ID in `X-Request-ID`; a safe supplied request ID is preserved. Auth uses `Authorization: Bearer <token>` or an HttpOnly session cookie from login. Cookie mutations also require an allowed `Origin` and `X-CSRF-Token`.
+This file describes the service boundaries. Public API lives under `/api/v1`; internal runtime under `/internal/v1`. All timestamps are UTC ISO-8601; IDs are opaque strings; business data is scoped to the authenticated workspace. Images are uploads, never arbitrary URLs. Public errors use `{error: {code, message}, request_id}` and return the same ID in `X-Request-ID`; a safe supplied request ID is preserved. Auth uses `Authorization: Bearer <token>` or an HttpOnly session cookie. Cookie mutations also require an allowed `Origin` and `X-CSRF-Token`.
 
 The exact request/response models, status codes and security schemes are published in `/api/v1/openapi.json` and the local `/docs` reference. Shapes below summarize those models; [response_schemas.py](backend/falcon_service/response_schemas.py) is their implementation. The internal runtime uses its separate typed `{detail: ...}` error contract from [runtime_schemas.py](backend/falcon_service/runtime_schemas.py).
 
@@ -22,7 +22,9 @@ Module `falcon_service.inference` exports:
 
 ## Public HTTP contract
 
-`POST /api/v1/auth/session {token}` sets HttpOnly SameSite cookie; DELETE clears it. GET `/api/v1/auth/me` returns role/workspace. Bearer works for integrations; roles viewer/operator/admin. Health live unauthenticated; business endpoints authenticated.
+`POST /api/v1/auth/local-session` takes no body and creates the local browser session automatically. It requires `FALCON_LOCAL_AUTO_LOGIN=true`, an allowed loopback Origin and loopback Host, and a configured admin credential in the internal `local` workspace. It never returns that credential or selects another workspace. Compose enables this for its loopback-bound UI; standalone API defaults to disabled. Existing sessions and data are reused; the browser has no login form or workspace selector.
+
+`POST /api/v1/auth/session {token}` remains available for explicit credential exchange; DELETE clears the session. GET `/api/v1/auth/me` returns role/workspace and CSRF token. Both session creation paths set HttpOnly SameSite cookies. Bearer works for integrations; roles viewer/operator/admin. Health live unauthenticated; business endpoints authenticated.
 
 - GET `/capabilities`: engine mode/model_id/dimension, profiles, limits, service version.
 - GET `/system`: dependencies, jobs counts, model status, timing summaries (real measured values only).

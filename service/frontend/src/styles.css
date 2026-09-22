@@ -540,43 +540,6 @@ small {
   color: var(--muted);
   margin-top: 3px;
 }
-.workspace-label {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0 17px 24px;
-  padding: 11px 9px;
-  border: 1px solid #e2e3e6;
-  background: #fafafa;
-  border-radius: 8px;
-}
-.workspace-avatar {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  background: #ebedf1;
-  color: var(--secondary);
-  border-radius: 6px;
-}
-.workspace-label > div {
-  min-width: 0;
-}
-.workspace-label strong {
-  display: block;
-  max-width: 141px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
-  font-weight: 550;
-}
-.workspace-label div > span {
-  display: block;
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 2px;
-}
 .sidebar nav {
   padding: 0 12px;
 }
@@ -658,41 +621,7 @@ small {
   margin-left: auto;
   color: var(--muted);
 }
-.user-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding-top: 18px;
-}
-.user-avatar {
-  width: 29px;
-  height: 29px;
-  border: 1px solid #dedfe3;
-  border-radius: 50%;
-  color: var(--muted);
-  background: #ebedef;
-  font-size: 11px;
-  display: grid;
-  place-items: center;
-}
-.user-row strong {
-  display: block;
-  font-size: 11px;
-  font-weight: 550;
-}
-.user-row div > span {
-  display: block;
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.user-row .button {
-  margin-left: auto;
-  padding: 5px;
-  color: var(--muted);
-  min-height: 30px;
-}
-.workspace-main {
+.service-main {
   flex: 1;
   margin-left: 230px;
   min-width: 0;
@@ -776,7 +705,7 @@ small {
   flex-shrink: 0;
   font-size: 11px;
 }
-.workspace-footer {
+.service-footer {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -2641,157 +2570,9 @@ td .button {
 }
 
 /* Entry point */
-.login-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #fcfcfb;
-}
-.login-shell > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 30px 43px;
-}
-.login-shell > header > span {
-  font-size: 11px;
-  color: var(--muted);
-  letter-spacing: 1.3px;
-}
-.login-main {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 25px 22px 55px;
-}
-.login-art {
-  width: 144px;
-  height: 120px;
-  position: relative;
-  margin-bottom: 28px;
-}
-.login-orbit {
-  position: absolute;
-  border: 1px solid #e9edf3;
-  border-radius: 50%;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-.orbit-one {
-  width: 105px;
-  height: 105px;
-}
-.orbit-two {
-  width: 143px;
-  height: 143px;
-}
-.login-focus {
-  position: absolute;
-  width: 69px;
-  height: 69px;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 17px;
-  background: #f6f8fb;
-  border: 1px solid #e2e7ee;
-  color: var(--muted);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 3px 7px #4c668006;
-}
-.orbit-point {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #e0e7f0;
-  position: absolute;
-}
-.point-one {
-  left: 14px;
-  top: 44px;
-}
-.point-two {
-  right: 10px;
-  bottom: 35px;
-}
-.login-main .eyebrow {
-  font-size: 11px;
-  letter-spacing: 1.8px;
-  color: var(--muted);
-  margin-bottom: 14px;
-}
-.login-main h1 {
-  font-size: 34px;
-  font-weight: 530;
-  line-height: 1.43;
-  color: var(--accent);
-  letter-spacing: -1.4px;
-}
-.login-main h1 > span {
-  color: var(--muted);
-}
-.login-description {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.9;
-  margin-top: 17px;
-}
-.login-form {
-  width: min(352px, 100%);
-  margin-top: 31px;
-  text-align: left;
-}
-.login-form > label {
-  display: block;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-.login-form > input {
-  min-height: 45px;
-  font-size: 11px;
-  border-color: #e1e6ed;
-}
-.login-form > .button {
-  width: 100%;
-  margin-top: 12px;
-  min-height: 43px;
-  font-size: 13px;
-  font-weight: 500;
-  justify-content: space-between;
-  padding-left: 16px;
-  padding-right: 15px;
-}
-.login-form > p {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 15px;
-}
-.login-shell > footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 43px;
-  border-top: 1px solid #eff0f2;
-  font-size: 11px;
-  color: var(--muted);
-}
-.login-shell > footer .badge {
-  font-size: 11px;
-  background: #f5f4f0;
-  color: var(--warning);
-}
 .startup-screen {
+  padding: 40px 24px;
+  gap: 32px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -2815,7 +2596,7 @@ td .button {
   .sidebar {
     width: 212px;
   }
-  .workspace-main {
+  .service-main {
     margin-left: 212px;
   }
   .sidebar-brand {
@@ -2909,16 +2690,8 @@ td .button {
     font-size: 11px;
     letter-spacing: -0.3px;
   }
-  .workspace-main {
+  .service-main {
     margin-left: 190px;
-  }
-  .workspace-label {
-    margin-left: 12px;
-    margin-right: 12px;
-  }
-  .workspace-label strong {
-    font-size: 11px;
-    max-width: 107px;
   }
   .nav-group {
     font-size: 11px;
@@ -2933,15 +2706,6 @@ td .button {
   }
   .sidebar-bottom {
     padding: 20px 12px 12px;
-  }
-  .user-row {
-    gap: 6px;
-  }
-  .user-row strong {
-    font-size: 11px;
-  }
-  .user-row div > span {
-    font-size: 11px;
   }
   #main-content {
     padding-left: 20px;
@@ -3057,10 +2821,6 @@ td .button {
   .nav-group {
     font-size: 11px;
   }
-  .workspace-label strong {
-    font-size: 11px;
-    max-width: 145px;
-  }
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
@@ -3068,7 +2828,7 @@ td .button {
     background: #15223540;
     border: 0;
   }
-  .workspace-main {
+  .service-main {
     margin-left: 0;
   }
   .mobile-menu {
@@ -3140,7 +2900,7 @@ td .button {
   .empty-model-note {
     font-size: 11px;
   }
-  .workspace-footer {
+  .service-footer {
     font-size: 11px;
   }
   .candidate-grid {
@@ -3222,17 +2982,6 @@ td .button {
   }
   .integration-endpoint > div > code {
     font-size: 12px;
-  }
-  .login-shell > header,
-  .login-shell > footer {
-    padding-left: 23px;
-    padding-right: 23px;
-  }
-  .login-shell > header > span {
-    font-size: 11px;
-  }
-  .login-main h1 {
-    font-size: 30px;
   }
 }
 @media (max-width: 590px) {
@@ -3397,19 +3146,9 @@ td .button {
   .dependency-list > div {
     gap: 9px;
   }
-  .workspace-footer {
+  .service-footer {
     flex-direction: column;
     gap: 5px;
-  }
-  .login-main {
-    padding-top: 45px;
-  }
-  .login-main h1 {
-    font-size: 28px;
-  }
-  .login-shell > footer {
-    flex-direction: column;
-    gap: 12px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3432,4 +3171,37 @@ td .button {
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 11px;
+}
+
+.connection-problem {
+  width: min(420px, calc(100vw - 48px));
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.connection-problem h1 {
+  font-size: 24px;
+  letter-spacing: -0.7px;
+  font-weight: 550;
+}
+.connection-problem > p {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 36ch;
+}
+.connection-problem details {
+  width: 100%;
+  color: var(--secondary);
+  font-size: 12px;
+}
+.connection-problem summary {
+  cursor: pointer;
+}
+.connection-problem details p {
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  background: var(--subtle);
+  overflow-wrap: anywhere;
 }

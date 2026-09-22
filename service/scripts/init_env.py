@@ -26,6 +26,7 @@ def initialize(directory: Path, port: int = 8090) -> bool:
             [f"http://localhost:{port}", f"http://127.0.0.1:{port}"], separators=(",", ":")
         ),
         "FALCON_COOKIE_SECURE": "false",
+        "FALCON_LOCAL_AUTO_LOGIN": "true",
     }
     local_dir = directory / ".local"
     local_dir.mkdir(mode=0o700, exist_ok=True)
@@ -50,7 +51,7 @@ def main() -> None:
         parser.error("port must be between 1024 and 65535")
     created = initialize(args.directory.resolve(), args.port)
     print("Local configuration created." if created else "Existing configuration preserved.")
-    print(f"Login token file: {args.directory / '.local' / 'access-token.txt'}")
+    print(f"API integration token file: {args.directory / '.local' / 'access-token.txt'}")
 
 
 if __name__ == "__main__":

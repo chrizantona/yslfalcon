@@ -1,7 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { api, ApiError } from './api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api } from './api';
 import {
-  Badge,
   Brand,
   Button,
   Icon,
@@ -21,97 +20,52 @@ import { SearchPage } from './pages/SearchPage';
 import type { Page, Session } from './types';
 
 const navigation: { id: Page; label: string; icon: IconName; group?: string }[] = [
-  { id: 'search', label: 'Визуальный поиск', icon: 'search', group: 'РАБОЧЕЕ ПРОСТРАНСТВО' },
+  { id: 'search', label: 'Визуальный поиск', icon: 'search', group: 'ПОИСК И ДАННЫЕ' },
   { id: 'galleries', label: 'Галереи', icon: 'layers' },
   { id: 'history', label: 'История', icon: 'history' },
   { id: 'quality', label: 'Модель и качество', icon: 'target', group: 'УПРАВЛЕНИЕ' },
   { id: 'integration', label: 'Интеграция', icon: 'code' },
   { id: 'system', label: 'Состояние сервиса', icon: 'activity' },
 ];
-function Login({
-  onLogin,
-  connectionError,
+function ConnectionState({
+  checking,
+  error,
+  onRetry,
 }: {
-  onLogin: (session: Session) => void;
-  connectionError: string | null;
+  checking: boolean;
+  error: string | null;
+  onRetry: () => void;
 }) {
-  const [token, setToken] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setBusy(true);
-    setError('');
-    try {
-      onLogin(await api.login(token.trim()));
-      setToken('');
-    } catch (cause) {
-      setError(errorMessage(cause));
-    } finally {
-      setBusy(false);
-    }
-  };
   return (
-    <div className="login-shell">
-      <header>
-        <Brand />
-        <span>РАБОЧЕЕ ПРОСТРАНСТВО</span>
-      </header>
-      <main className="login-main">
-        <div className="login-art" aria-hidden="true">
-          <div className="login-orbit orbit-one" />
-          <div className="login-orbit orbit-two" />
-          <div className="login-focus">
-            <Icon name="target" size={42} />
-          </div>
-          <span className="orbit-point point-one" />
-          <span className="orbit-point point-two" />
-        </div>
-        <p className="eyebrow">ВИЗУАЛЬНЫЙ ПОИСК АВТОМОБИЛЕЙ</p>
-        <h1>
-          Внимание к деталям.
-          <br />
-          <span>Уверенность в процессе.</span>
-        </h1>
-        <p className="login-description">
-          Изображения, сравнения и решения
-          <br />в одном защищённом пространстве.
-        </p>
-        <form className="login-form" onSubmit={submit}>
-          <label htmlFor="access-token">Токен доступа</label>
-          <input
-            id="access-token"
-            type="password"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-            autoComplete="current-password"
-            spellCheck={false}
-            placeholder="Введите токен рабочего пространства"
-            required
-          />
-          {(error || connectionError) && <Message tone="error">{error || connectionError}</Message>}
-          <Button tone="primary" busy={busy} disabled={!token.trim()} type="submit">
-            Войти в пространство
-            <Icon name="arrow" size={17} />
+    <div className="startup-screen">
+      <Brand />
+      {checking ? (
+        <Loading label="Подключаем сервис…" />
+      ) : (
+        <main className="connection-problem">
+          <span className="outline-icon">
+            <Icon name="activity" size={28} />
+          </span>
+          <h1>Не удалось подключиться</h1>
+          <p>Проверьте, что сервис запущен, и повторите подключение.</p>
+          {error && (
+            <details>
+              <summary>Подробности</summary>
+              <p role="alert">{error}</p>
+            </details>
+          )}
+          <Button tone="primary" icon="refresh" onClick={onRetry}>
+            Повторить подключение
           </Button>
-          <p>
-            <Icon name="shield" size={14} />
-            Токен выдаёт администратор сервиса
-          </p>
-        </form>
-      </main>
-      <footer>
-        <span>Фалькон · Сервис визуального поиска</span>
-        <Badge>Модель ещё не подключена</Badge>
-      </footer>
+        </main>
+      )}
     </div>
   );
 }
-function Workspace({ session, onLogout }: { session: Session; onLogout: () => void }) {
+function ServiceShell({ session }: { session: Session }) {
   const capabilities = useResource(api.capabilities);
   const [path, setPath] = useState(window.location.hash.slice(1) || 'search');
   const [mobileMenu, setMobileMenu] = useState(false);
-  const [logoutError, setLogoutError] = useState('');
   useEffect(() => {
     const update = () => {
       setPath(window.location.hash.slice(1) || 'search');
@@ -127,14 +81,6 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
     ? (path.split('/')[0] as Page)
     : 'search';
   const searchId = page === 'search' ? path.split('/')[1] : undefined;
-  const logout = async () => {
-    try {
-      await api.logout();
-      onLogout();
-    } catch (cause) {
-      setLogoutError(errorMessage(cause));
-    }
-  };
   return (
     <div className="app-shell">
       <a
@@ -157,15 +103,6 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
       <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}>
         <div className="sidebar-brand">
           <Brand />
-        </div>
-        <div className="workspace-label">
-          <span className="workspace-avatar">
-            <Icon name="layers" size={17} />
-          </span>
-          <div>
-            <strong>{session.workspace || 'Рабочее пространство'}</strong>
-            <span>Локальный контур</span>
-          </div>
         </div>
         <nav aria-label="Главное меню">
           {navigation.map((item) => (
@@ -194,30 +131,9 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
               <Icon name="chevron" size={15} />
             </a>
           </div>
-          <div className="user-row">
-            <span className="user-avatar">
-              {session.role === 'admin' ? 'А' : session.role === 'operator' ? 'О' : 'Н'}
-            </span>
-            <div>
-              <strong>
-                {
-                  { admin: 'Администратор', operator: 'Оператор', viewer: 'Наблюдатель' }[
-                    session.role
-                  ]
-                }
-              </strong>
-              <span>Защищённая сессия</span>
-            </div>
-            <Button
-              tone="ghost"
-              icon="logout"
-              aria-label="Выйти из рабочего пространства"
-              onClick={logout}
-            />
-          </div>
         </div>
       </aside>
-      <div className="workspace-main">
+      <div className="service-main">
         <header className="topbar">
           <div className="inline-items">
             <Button
@@ -227,7 +143,7 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
               aria-label="Открыть меню"
               onClick={() => setMobileMenu(true)}
             />
-            <span className="breadcrumb">Рабочее пространство</span>
+            <span className="breadcrumb">Фалькон</span>
             <Icon name="chevron" size={13} />
             <span>{navigation.find((item) => item.id === page)?.label}</span>
           </div>
@@ -256,7 +172,6 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
               {capabilities.error}
             </Message>
           )}
-          {logoutError && <Message tone="error">{logoutError}</Message>}
           {page === 'search' && (
             <SearchPage
               searchId={searchId}
@@ -270,9 +185,9 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
           )}
           {page === 'history' && <HistoryPage navigate={navigate} />}
           {page === 'quality' && <QualityPage capabilities={capabilities.data} />}
-          {page === 'integration' && <IntegrationPage session={session} />}
+          {page === 'integration' && <IntegrationPage />}
           {page === 'system' && <SystemPage />}
-          <footer className="workspace-footer">
+          <footer className="service-footer">
             <span>Фалькон · Визуальный поиск</span>
             <span>Изображения и результаты в вашем контуре</span>
           </footer>
@@ -285,35 +200,60 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    api
-      .session()
-      .then(setSession)
-      .catch((cause) => {
-        if (!(cause instanceof ApiError && cause.status === 401)) setError(errorMessage(cause));
-      })
-      .finally(() => setChecking(false));
-    const unauthorized = () => setSession(null);
-    window.addEventListener('falcon:unauthorized', unauthorized);
-    return () => window.removeEventListener('falcon:unauthorized', unauthorized);
+  const active = useRef(false);
+  const connecting = useRef(false);
+  const canRecover = useRef(true);
+  const connect = useCallback(async () => {
+    if (connecting.current) return;
+    connecting.current = true;
+    setChecking(true);
+    setError(null);
+    setSession(null);
+    try {
+      const next = await api.bootstrapSession();
+      if (active.current) setSession(next);
+    } catch (cause) {
+      if (active.current) setError(errorMessage(cause));
+    } finally {
+      connecting.current = false;
+      if (active.current) setChecking(false);
+    }
   }, []);
+  useEffect(() => {
+    active.current = true;
+    void connect();
+    const unauthorized = () => {
+      if (connecting.current) return;
+      if (!canRecover.current) {
+        setSession(null);
+        setError('Подключение не восстановилось. Повторите попытку после проверки сервиса.');
+        return;
+      }
+      canRecover.current = false;
+      void connect();
+    };
+    // Allow another automatic recovery only after a protected operation actually succeeds.
+    const connected = () => {
+      if (!connecting.current) canRecover.current = true;
+    };
+    window.addEventListener('falcon:unauthorized', unauthorized);
+    window.addEventListener('falcon:connected', connected);
+    return () => {
+      active.current = false;
+      window.removeEventListener('falcon:unauthorized', unauthorized);
+      window.removeEventListener('falcon:connected', connected);
+    };
+  }, [connect]);
+  const retry = () => {
+    canRecover.current = true;
+    void connect();
+  };
   return (
     <ToastProvider>
-      {checking ? (
-        <div className="startup-screen">
-          <Brand />
-          <Loading label="Подключаем рабочее пространство…" />
-        </div>
-      ) : session ? (
-        <Workspace session={session} onLogout={() => setSession(null)} />
+      {session && !checking ? (
+        <ServiceShell session={session} />
       ) : (
-        <Login
-          onLogin={(value) => {
-            setSession(value);
-            setError(null);
-          }}
-          connectionError={error}
-        />
+        <ConnectionState checking={checking} error={error} onRetry={retry} />
       )}
     </ToastProvider>
   );

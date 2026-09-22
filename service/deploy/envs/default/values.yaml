@@ -21,6 +21,7 @@ envs:
   FALCON_IMAGE_TAG: release-specific image tag
   FALCON_ALLOWED_ORIGINS: exact JSON array of browser origins
   FALCON_COOKIE_SECURE: true when behind HTTPS; false for supplied localhost HTTP
+  FALCON_LOCAL_AUTO_LOGIN: true only for the loopback-bound local UI; false for a network deployment
   FALCON_MAX_UPLOAD_BYTES: 20971520
   FALCON_MAX_REQUEST_BYTES: 268435456
   FALCON_MAX_IMPORT_FILES: 500
