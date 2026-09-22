@@ -18,6 +18,11 @@ flock 8
 $PY -m reid.crops --data-config "$DATA_CFG" > logs/crops.log 2>&1
 flock -u 8
 
+if grep -q '^  background:' "$CONFIG"; then
+  stage background  # masks of the training crops and the bank of backgrounds; existing files are skipped
+  $PY -m reid.background --data-config "$DATA_CFG" --val-config "$VAL_CFG" --config "$CONFIG" > logs/background.log 2>&1
+fi
+
 if grep -q '^  source:' "$CONFIG"; then
   stage external  # pretraining set from data.yaml unpacked into /dev/shm; unpacking is skipped when already done
   $PY -m reid.external --data-config "$DATA_CFG" --config "$CONFIG" > logs/external.log 2>&1

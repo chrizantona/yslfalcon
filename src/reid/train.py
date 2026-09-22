@@ -31,6 +31,7 @@ from reid.embed import embed_boxes
 from reid.evaluate import evaluate_fold, load_fold, save_fold_results
 from reid.external import load_table, source_names
 from reid.models import ReIDModel, MarginClassifier, MultiQueryPool, build_backbone, load_backbone, checkpoint_name
+from reid.background import paste
 from reid.optim import optimizer_groups
 from reid.afem_models import KINDS as AFEM_KINDS, build_extended_model
 
@@ -38,9 +39,11 @@ from reid.afem_models import KINDS as AFEM_KINDS, build_extended_model
 class CropDataset(Dataset):
     """Training crops with flip, pad-and-crop, random erasing and optional colour jitter; returns (image, class index).
 
-    cfg.color_jitter: {p, brightness, contrast, saturation, hue} - torchvision ColorJitter with probability p."""
+    cfg.color_jitter: {p, brightness, contrast, saturation, hue} - torchvision ColorJitter with probability p.
+    background: {p, masks_dir, bank_dir} - with probability p the vehicle, cut out by its mask, is put over a random
+    window of the background bank (reid.background) before everything else."""
 
-    def __init__(self, df, crops_dir, input_hw, mean, std, cfg):
+    def __init__(self, df, crops_dir, input_hw, mean, std, cfg, background=None):
         dirs = df.crops_dir if "crops_dir" in df else [crops_dir] * len(df)  # external sets carry a dir per row
         self.paths = [str(Path(d) / f"{image_id}.jpg") for d, image_id in zip(dirs, df.image_id)]
         self.labels = df.label.to_numpy()
@@ -56,12 +59,19 @@ class CropDataset(Dataset):
         jitter = dict(cfg.get("color_jitter") or {})
         p = jitter.pop("p", 0.0)
         self.jitter = v2.RandomApply([v2.ColorJitter(**jitter)], p=p) if jitter else None
+        self.background = background
+        if background:
+            self.mask_paths = [str(Path(background["masks_dir"]) / f"{image_id}.png") for image_id in df.image_id]
+            self.bank = sorted(str(path) for path in Path(background["bank_dir"]).glob("*.jpg"))
 
     def __len__(self):
         return len(self.paths)
 
     def __getitem__(self, i):
         image = cv2.imread(self.paths[i])
+        if self.background and random.random() < self.background["p"]:
+            mask = cv2.imread(self.mask_paths[i], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255
+            image = paste(image, cv2.GaussianBlur(mask, (0, 0), 1.5), cv2.imread(random.choice(self.bank)))
         if self.jitter is not None:  # on the RGB uint8 image, before normalisation
             rgb = torch.from_numpy(np.ascontiguousarray(image[:, :, ::-1])).permute(2, 0, 1)
             image = np.ascontiguousarray(self.jitter(rgb).permute(1, 2, 0).numpy()[:, :, ::-1])
@@ -456,7 +466,11 @@ def main():
     P, K = tcfg["vehicles_per_batch"], tcfg["images_per_vehicle"]
     hard_cfg = tcfg.get("hard_identity")
     sampler = PKSampler(train_df, P, K, seed, hard_share=hard_cfg["share"] if hard_cfg else 0.0)
-    dataset = CropDataset(train_df, crops_dir, cfg["model"]["input_hw"], mean, std, tcfg)
+    background = None
+    if tcfg.get("background"):  # the vehicle over a random street scene; imprinting and evaluation see plain crops
+        background = {"p": tcfg["background"]["p"], "masks_dir": data_cfg["masks_dir"],
+                      "bank_dir": data_cfg["backgrounds_dir"]}
+    dataset = CropDataset(train_df, crops_dir, cfg["model"]["input_hw"], mean, std, tcfg, background)
     loader = DataLoader(dataset, batch_sampler=sampler, num_workers=tcfg["num_workers"], pin_memory=True,
                         persistent_workers=True, worker_init_fn=_worker_init,
                         generator=torch.Generator().manual_seed(seed))
