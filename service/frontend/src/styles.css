@@ -953,7 +953,13 @@ small {
   flex-shrink: 0;
   color: var(--upload-ink);
 }
+.upload-artwork-anchor-image,
+.upload-artwork-anchor-files {
+  width: 160px;
+  height: 144px;
+}
 .upload-artwork {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
@@ -970,6 +976,21 @@ small {
 }
 .upload-artwork-plus {
   stroke: var(--upload-ink);
+}
+.upload-artwork-raster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: grayscale(1);
+}
+.upload-artwork-add {
+  position: absolute;
+  right: 2px;
+  bottom: 4px;
+  width: 26px;
+  height: 26px;
+  color: var(--upload-ink);
 }
 .upload-copy {
   display: grid;
@@ -1020,6 +1041,15 @@ small {
 .upload-prompt-compact .upload-artwork-anchor {
   width: 64px;
   height: 60px;
+}
+.upload-prompt-compact .upload-artwork-anchor-image,
+.upload-prompt-compact .upload-artwork-anchor-files {
+  width: 88px;
+  height: 80px;
+}
+.upload-prompt-compact .upload-artwork-add {
+  width: 20px;
+  height: 20px;
 }
 .upload-prompt-compact .upload-copy {
   gap: 6px;
@@ -3204,8 +3234,12 @@ td .button {
     gap: 14px;
   }
   .staged-file-picker .upload-artwork-anchor {
-    width: 64px;
-    height: 60px;
+    width: 88px;
+    height: 80px;
+  }
+  .staged-file-picker .upload-artwork-add {
+    width: 20px;
+    height: 20px;
   }
   .staged-file-picker .upload-copy > strong {
     font-size: 17px;
