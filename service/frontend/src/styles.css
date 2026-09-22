@@ -74,6 +74,56 @@
   background: var(--accent);
   color: var(--on-accent);
 }
+/* Conceal only unrevealed glyphs; layout, semantics and React text stay intact. */
+::highlight(falcon-typewriter-hidden) {
+  color: transparent;
+  text-shadow: none;
+  text-decoration-color: transparent;
+}
+/* Original shadows survive Highlight overlays, so suppress them while typing. */
+[data-hover-typewriter],
+[data-hover-typewriter] * {
+  text-shadow: none !important;
+}
+[data-hover-typewriter] {
+  transition-property: background, border-color, color, transform, opacity !important;
+}
+.hover-typewriter-caret,
+.hover-typewriter-tooltip {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+}
+.hover-typewriter-caret {
+  width: 1.5px;
+  background: currentColor;
+  animation: typewriter-caret 800ms step-end infinite;
+}
+.hover-typewriter-tooltip {
+  padding: 6px 10px;
+  color: var(--text);
+  background: var(--canvas);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@keyframes typewriter-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hover-typewriter-caret {
+    animation: none;
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;

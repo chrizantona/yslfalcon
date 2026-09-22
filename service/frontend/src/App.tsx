@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from './api';
 import { VehicleBackdrop } from './components/VehicleBackdrop';
+import { installHoverTypewriter } from './visuals/hoverTypewriter';
 import {
   Brand,
   Button,
@@ -201,6 +202,10 @@ function ServiceShell({
   );
 }
 export default function App() {
+  const appFrame = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (appFrame.current) return installHoverTypewriter(appFrame.current);
+  }, []);
   const [staticBackdrop] = useState(
     () => new URLSearchParams(window.location.search).get('backdrop') === 'static',
   );
@@ -268,7 +273,7 @@ export default function App() {
     </button>
   ) : null;
   return (
-    <div className="app-frame">
+    <div className="app-frame" ref={appFrame}>
       <VehicleBackdrop
         staticVariant={staticBackdrop}
         paused={backdropPaused}
