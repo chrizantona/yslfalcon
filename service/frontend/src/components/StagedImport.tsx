@@ -5,6 +5,7 @@ import { useResource } from '../hooks';
 import { matchImportFiles, parseGalleryCsv, transferImportFiles } from '../imports';
 import type { Capabilities, ImportSession, Job } from '../types';
 import { Badge, Button, Icon, JobProgress, Message, SectionTitle, useToast } from './ui';
+import { UploadPrompt } from './UploadArtwork';
 
 export function StagedImport({
   galleryId,
@@ -30,6 +31,7 @@ export function StagedImport({
   const alive = useRef(true);
   const key = useRef('');
   if (!key.current) key.current = createOperationKey();
+  const csvInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -253,12 +255,30 @@ export function StagedImport({
         <div className="staged-csv-field">
           <label htmlFor={`csv-${galleryId}`}>CSV с рамками автомобилей</label>
           <input
+            ref={csvInput}
             id={`csv-${galleryId}`}
+            className="visually-hidden"
+            tabIndex={-1}
             type="file"
             accept=".csv,text/csv"
             disabled={busy}
             onChange={(event) => void loadManifest(event.target.files?.[0])}
           />
+          <button
+            type="button"
+            className="upload-file-trigger"
+            disabled={busy}
+            onClick={() => csvInput.current?.click()}
+          >
+            <UploadPrompt
+              kind="document"
+              compact
+              disabled={busy}
+              title={manifestName ? 'Заменить CSV' : 'Добавьте список наблюдений'}
+              description={manifestName || 'Выберите CSV с координатами автомобилей'}
+              meta="CSV · до 2 МБ"
+            />
+          </button>
           <p className="field-hint">
             Колонки <code>image_id,x,y,w,h</code>, координаты в пикселях исходного кадра. image_id —
             имя файла или имя без расширения. CSV до 2 МБ.
@@ -279,6 +299,7 @@ export function StagedImport({
       <input
         ref={fileInput}
         className="visually-hidden"
+        tabIndex={-1}
         type="file"
         multiple
         accept="image/jpeg,image/png"
@@ -293,6 +314,7 @@ export function StagedImport({
       <input
         ref={folderInput}
         className="visually-hidden"
+        tabIndex={-1}
         type="file"
         multiple
         disabled={busy || finalized}
@@ -305,25 +327,29 @@ export function StagedImport({
       />
       {!finalized && (
         <div className="staged-file-picker">
-          <div className="staged-file-icon">
-            <Icon name="image" size={25} />
-          </div>
-          <div>
-            <strong>
-              {files.length ? `Выбрано файлов: ${files.length}` : 'Выберите папку с изображениями'}
-            </strong>
-            <p>
-              {files.length
-                ? `${formatBytes(files.reduce((sum, file) => sum + file.size, 0))} · будут отправлены только недостающие изображения из CSV`
-                : session
-                  ? 'После перезагрузки выберите ту же папку. Уже принятые файлы повторно не отправляются.'
-                  : 'Можно выбрать весь каталог: файлы вне списка CSV не попадут в версию.'}
-            </p>
-          </div>
+          <button
+            type="button"
+            className="upload-file-trigger staged-folder-trigger"
+            disabled={busy}
+            onClick={() => folderInput.current?.click()}
+          >
+            <UploadPrompt
+              kind="files"
+              disabled={busy}
+              title={
+                files.length ? `Выбрано файлов: ${files.length}` : 'Добавьте изображения галереи'
+              }
+              description={
+                files.length
+                  ? `${formatBytes(files.reduce((sum, file) => sum + file.size, 0))} · будут отправлены только недостающие изображения из CSV`
+                  : session
+                    ? 'Выберите ту же папку. Уже принятые файлы повторно не отправляются.'
+                    : 'Изображения вне списка CSV не попадут в версию.'
+              }
+              meta="Нажмите, чтобы выбрать папку · JPEG, PNG"
+            />
+          </button>
           <div className="staged-file-actions">
-            <Button disabled={busy} icon="upload" onClick={() => folderInput.current?.click()}>
-              Выбрать папку
-            </Button>
             <Button disabled={busy} tone="ghost" onClick={() => fileInput.current?.click()}>
               Выбрать файлы
             </Button>

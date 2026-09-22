@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../api';
 import { StagedImport } from '../components/StagedImport';
+import { UploadPrompt } from '../components/UploadArtwork';
 import {
   Badge,
   Button,
@@ -214,6 +215,7 @@ function GalleryDetail({
   const [activating, setActivating] = useState<string | null>(null);
   const [confirmVersion, setConfirmVersion] = useState<GalleryVersion | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const manifestInput = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
   useEffect(() => {
@@ -414,6 +416,7 @@ function GalleryDetail({
             <input
               ref={fileInput}
               className="visually-hidden"
+              tabIndex={-1}
               type="file"
               multiple
               accept="image/jpeg,image/png"
@@ -424,6 +427,7 @@ function GalleryDetail({
               }}
             />
             <button
+              type="button"
               className="import-dropzone"
               onClick={() => fileInput.current?.click()}
               onDragOver={(event) => event.preventDefault()}
@@ -432,17 +436,18 @@ function GalleryDetail({
                 chooseFiles(Array.from(event.dataTransfer.files));
               }}
             >
-              <Icon name="upload" size={26} />
-              <strong>
-                {files.length
-                  ? `Выбрано файлов: ${files.length}`
-                  : 'Выберите изображения для галереи'}
-              </strong>
-              <span>
-                {files.length
-                  ? `${formatBytes(totalSize)} · нажмите, чтобы заменить набор`
-                  : 'JPEG и PNG · можно перетащить несколько файлов'}
-              </span>
+              <UploadPrompt
+                kind="files"
+                title={
+                  files.length ? `Выбрано файлов: ${files.length}` : 'Добавьте изображения галереи'
+                }
+                description={
+                  files.length
+                    ? `${formatBytes(totalSize)} · нажмите, чтобы заменить набор`
+                    : 'Перетащите несколько файлов или выберите на устройстве'
+                }
+                meta="JPEG, PNG"
+              />
             </button>
             {files.length > 0 && (
               <div className="file-list">
@@ -460,13 +465,29 @@ function GalleryDetail({
                 Манифест рамок <span className="optional">необязательно</span>
               </label>
               <input
+                ref={manifestInput}
                 id="manifest-file"
+                className="visually-hidden"
+                tabIndex={-1}
                 type="file"
                 accept="application/json,.json"
                 onChange={(event) => {
                   void loadManifest(event.target.files?.[0]);
                 }}
               />
+              <button
+                type="button"
+                className="upload-file-trigger"
+                onClick={() => manifestInput.current?.click()}
+              >
+                <UploadPrompt
+                  kind="document"
+                  compact
+                  title={manifest ? 'Заменить манифест' : 'Добавьте манифест рамок'}
+                  description={manifest?.name || 'JSON с координатами автомобилей'}
+                  meta="JSON · необязательно"
+                />
+              </button>
               {manifest && (
                 <p className="field-hint">
                   {manifest.name}: {manifestEntries} записей. Координаты и соответствие файлам

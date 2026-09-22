@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { bboxFromPoints, formatBytes, validBBox } from '../domain';
 import type { BBox } from '../types';
-import { Button, Icon, Message } from './ui';
+import { Button, Message } from './ui';
+import { UploadPrompt } from './UploadArtwork';
 
 export interface ImageInput {
   file: File;
@@ -88,6 +89,7 @@ export function CropEditor({
         type="file"
         accept="image/jpeg,image/png"
         className="visually-hidden"
+        tabIndex={-1}
         aria-label="Загрузить изображение запроса"
         onChange={(event) => {
           chooseFile(event.target.files?.[0]);
@@ -195,6 +197,7 @@ export function CropEditor({
         </>
       ) : (
         <button
+          type="button"
           className={`upload-zone ${dragging ? 'is-dragging' : ''}`}
           onClick={() => input.current?.click()}
           onDragOver={(event) => {
@@ -208,27 +211,17 @@ export function CropEditor({
             chooseFile(event.dataTransfer.files[0]);
           }}
         >
-          <div className="upload-illustration" aria-hidden="true">
-            <div className="illustration-frame back" />
-            <div className="illustration-frame">
-              <Icon name="image" size={38} />
-              <span />
-              <i />
-              <i />
-              <i />
-              <i />
-            </div>
-            <div className="illustration-add">
-              <Icon name="plus" size={18} />
-            </div>
-          </div>
-          <strong>Добавьте изображение</strong>
-          <span>
-            Перетащите файл сюда
-            <br />
-            или выберите на устройстве
-          </span>
-          <small>JPEG, PNG{maxBytes ? ` · до ${formatBytes(maxBytes)}` : ''}</small>
+          <UploadPrompt
+            title="Добавьте изображение"
+            description={
+              <>
+                Перетащите файл сюда
+                <br />
+                или выберите на устройстве
+              </>
+            }
+            meta={`JPEG, PNG${maxBytes ? ` · до ${formatBytes(maxBytes)}` : ''}`}
+          />
         </button>
       )}
       {error && <Message tone="error">{error}</Message>}

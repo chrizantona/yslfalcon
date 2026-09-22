@@ -95,17 +95,17 @@ function ServiceShell({ session }: { session: Session }) {
         <a href="#search" className="studio-brand" aria-label="Фалькон — открыть поиск">
           <Brand />
         </a>
-        <nav className="studio-navigation" aria-label="Основные разделы">
+        <nav className="studio-tools" aria-label="Настройки и интеграция">
           {navigation
-            .filter((item) => item.group === 'main')
+            .filter((item) => item.group === 'tools')
             .map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
-                className={`studio-nav-item${page === item.id ? ' active' : ''}`}
+                className={`studio-tool${page === item.id ? ' active' : ''}`}
                 aria-current={page === item.id ? 'page' : undefined}
               >
-                <Icon name={item.icon} size={18} />
+                <Icon name={item.icon} size={16} />
                 <span>{item.label}</span>
               </a>
             ))}
@@ -126,70 +126,79 @@ function ServiceShell({ session }: { session: Session }) {
           </a>
         </div>
       </header>
-      <div className="studio-toolbar">
-        <div className="studio-context">
-          <Icon name="layers" size={16} />
-          <span>Автомобили</span>
-          <span className="studio-divider">/</span>
-          <span>{navigation.find((item) => item.id === page)?.label}</span>
-        </div>
-        <nav className="studio-tools" aria-label="Настройки и интеграция">
-          {navigation
-            .filter((item) => item.group === 'tools')
-            .map((item) => (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                className={`studio-tool${page === item.id ? ' active' : ''}`}
-                aria-current={page === item.id ? 'page' : undefined}
-              >
-                <Icon name={item.icon} size={16} />
-                <span>{item.label}</span>
+      <div className="studio-body">
+        <aside className="studio-sidebar">
+          <nav className="studio-navigation" aria-label="Основные разделы">
+            {navigation
+              .filter((item) => item.group === 'main')
+              .map((item) => (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  className={`studio-nav-item${page === item.id ? ' active' : ''}`}
+                  aria-current={page === item.id ? 'page' : undefined}
+                >
+                  <Icon name={item.icon} size={18} />
+                  <span>{item.label}</span>
+                </a>
+              ))}
+          </nav>
+        </aside>
+        <div className="studio-workspace">
+          <div className="studio-toolbar">
+            <div className="studio-context">
+              <Icon name="layers" size={16} />
+              <span>Автомобили</span>
+              <span className="studio-divider">/</span>
+              <span>{navigation.find((item) => item.id === page)?.label}</span>
+            </div>
+            <a href="#quality" className="studio-mode">
+              <i />
+              Модель-заглушка
+            </a>
+          </div>
+          <main id="main-content" tabIndex={-1}>
+            <div className="model-banner">
+              <Icon name="activity" size={16} />
+              <p>
+                <strong>Модель ещё не подключена.</strong> Работает техническая заглушка; результаты
+                не подтверждают идентичность автомобилей.
+              </p>
+              <a href="#quality">
+                Подробнее
+                <Icon name="chevron" size={13} />
               </a>
-            ))}
-        </nav>
-        <a href="#quality" className="studio-mode">
-          <i />
-          Модель-заглушка
-        </a>
-      </div>
-      <main id="main-content" tabIndex={-1}>
-        <div className="model-banner">
-          <Icon name="activity" size={16} />
-          <p>
-            <strong>Модель ещё не подключена.</strong> Работает техническая заглушка; результаты не
-            подтверждают идентичность автомобилей.
-          </p>
-          <a href="#quality">
-            Подробнее
-            <Icon name="chevron" size={13} />
-          </a>
+            </div>
+            {capabilities.error && (
+              <Message
+                tone="error"
+                action={<Button onClick={capabilities.reload}>Повторить</Button>}
+              >
+                {capabilities.error}
+              </Message>
+            )}
+            {page === 'search' && (
+              <SearchPage
+                searchId={searchId}
+                capabilities={capabilities.data}
+                session={session}
+                navigate={navigate}
+              />
+            )}
+            {page === 'galleries' && (
+              <GalleriesPage session={session} capabilities={capabilities.data} />
+            )}
+            {page === 'history' && <HistoryPage navigate={navigate} />}
+            {page === 'quality' && <QualityPage capabilities={capabilities.data} />}
+            {page === 'integration' && <IntegrationPage />}
+            {page === 'system' && <SystemPage />}
+            <footer className="service-footer">
+              <span>Фалькон · Визуальный поиск</span>
+              <span>Изображения и результаты в вашем контуре</span>
+            </footer>
+          </main>
         </div>
-        {capabilities.error && (
-          <Message tone="error" action={<Button onClick={capabilities.reload}>Повторить</Button>}>
-            {capabilities.error}
-          </Message>
-        )}
-        {page === 'search' && (
-          <SearchPage
-            searchId={searchId}
-            capabilities={capabilities.data}
-            session={session}
-            navigate={navigate}
-          />
-        )}
-        {page === 'galleries' && (
-          <GalleriesPage session={session} capabilities={capabilities.data} />
-        )}
-        {page === 'history' && <HistoryPage navigate={navigate} />}
-        {page === 'quality' && <QualityPage capabilities={capabilities.data} />}
-        {page === 'integration' && <IntegrationPage />}
-        {page === 'system' && <SystemPage />}
-        <footer className="service-footer">
-          <span>Фалькон · Визуальный поиск</span>
-          <span>Изображения и результаты в вашем контуре</span>
-        </footer>
-      </main>
+      </div>
     </div>
   );
 }
