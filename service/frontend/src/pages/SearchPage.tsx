@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { CropEditor, type ImageInput } from '../components/CropEditor';
 import { Comparison } from '../components/Comparison';
+import { CandidateCountWheel } from '../components/CandidateCountWheel';
 import { ResultsSurface } from '../components/ResultsSurface';
 import {
   Badge,
@@ -274,20 +275,7 @@ export function SearchPage({
               {needsGallery && (
                 <p className="field-hint">Для поиска нужна активная версия галереи.</p>
               )}
-              <div className="topn-row">
-                <label htmlFor="top-n">Кандидатов в выдаче</label>
-                <select
-                  id="top-n"
-                  value={topN}
-                  onChange={(event) => setTopN(Number(event.target.value))}
-                >
-                  {[5, 10, 20, 50].map((count) => (
-                    <option key={count} value={count}>
-                      {count}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CandidateCountWheel id="top-n" value={topN} onChange={setTopN} />
               <Button
                 tone="primary"
                 icon="search"
