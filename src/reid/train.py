@@ -468,8 +468,11 @@ def main():
     sampler = PKSampler(train_df, P, K, seed, hard_share=hard_cfg["share"] if hard_cfg else 0.0)
     background = None
     if tcfg.get("background"):  # the vehicle over a random street scene; imprinting and evaluation see plain crops
-        background = {"p": tcfg["background"]["p"], "masks_dir": data_cfg["masks_dir"],
-                      "bank_dir": data_cfg["backgrounds_dir"]}
+        masks_dir = data_cfg["masks_dir"]
+        if tcfg.get("source"):  # pretraining on an external set: its own SAM masks (reid.sam_masks --external)
+            (source,) = source_names(tcfg)
+            masks_dir = data_cfg["external"][source]["masks_dir"]
+        background = {"p": tcfg["background"]["p"], "masks_dir": masks_dir, "bank_dir": data_cfg["backgrounds_dir"]}
     dataset = CropDataset(train_df, crops_dir, cfg["model"]["input_hw"], mean, std, tcfg, background)
     loader = DataLoader(dataset, batch_sampler=sampler, num_workers=tcfg["num_workers"], pin_memory=True,
                         persistent_workers=True, worker_init_fn=_worker_init,

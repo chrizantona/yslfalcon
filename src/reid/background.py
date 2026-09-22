@@ -7,6 +7,9 @@ background of a camera. Two things are prepared once, from files that already ex
   ordinary one is not;
 - a bank of backgrounds, random windows of full frames of the training folds only, so no evaluation scene leaks in.
 
+For pretraining on an external set (train.source) the masks come from reid.sam_masks --external and are only checked
+here; the bank is still cut from our training folds, background.bank_folds.
+
 Usage: PYTHONPATH=src python -m reid.background --data-config configs/data.yaml --val-config configs/val_v2.yaml \
            --config configs/exp185_background_swap.yaml
 """
@@ -20,6 +23,7 @@ import numpy as np
 import pandas as pd
 
 from reid.data import load_yaml
+from reid.external import load_table, source_names
 from reid.sam_masks import FILL
 
 
@@ -53,13 +57,34 @@ def main():
     parser.add_argument("--config", required=True)
     args = parser.parse_args()
     data_cfg, val_cfg, cfg = (load_yaml(p) for p in (args.data_config, args.val_config, args.config))
-    spec, folds = cfg["train"]["background"], cfg["train"]["folds"]
+    tcfg = cfg["train"]
+    spec = tcfg["background"]
+    folds = spec.get("bank_folds", tcfg.get("folds"))
     table = pd.read_csv(Path(val_cfg["out_dir"]) / "folds.csv")
     table = table[table.fold.isin(folds)]
-
-    masks_dir, bank_dir = Path(data_cfg["masks_dir"]), Path(data_cfg["backgrounds_dir"])
-    masks_dir.mkdir(parents=True, exist_ok=True)
+    bank_dir = Path(data_cfg["backgrounds_dir"])
     bank_dir.mkdir(parents=True, exist_ok=True)
+    if tcfg.get("source"):
+        check_external_masks(data_cfg, source_names(tcfg))
+    else:
+        derive_masks(data_cfg, table)
+    make_bank(data_cfg, spec, table, folds, bank_dir)
+
+
+def check_external_masks(data_cfg, sources):
+    for source in sources:
+        spec = data_cfg["external"][source]
+        ids = load_table(spec["dir"], spec.get("table", "train.csv")).image_id
+        missing = [i for i in ids if not (Path(spec["masks_dir"]) / f"{i}.png").exists()]
+        if missing:
+            raise FileNotFoundError(f"{len(missing)} of {len(ids)} crops of {source} have no mask in "
+                                    f"{spec['masks_dir']}: run reid.sam_masks --external {source} first")
+        print(f"{source}: masks for all {len(ids)} crops", flush=True)
+
+
+def derive_masks(data_cfg, table):
+    masks_dir = Path(data_cfg["masks_dir"])
+    masks_dir.mkdir(parents=True, exist_ok=True)
     crops, masked_crops = Path(data_cfg["crops_dir"]), Path(data_cfg["masked_crops_dir"])
     shares = []
     for image_id in table.image_id:
@@ -77,6 +102,8 @@ def main():
         print(f"{len(shares)} masks, vehicle share of the crop: median {np.median(shares):.2f}, "
               f"under 0.3: {np.sum(np.asarray(shares) < 0.3)}", flush=True)
 
+
+def make_bank(data_cfg, spec, table, folds, bank_dir):
     rng = random.Random(0)
     frames = sorted(table.image_id)
     images_dir = Path(data_cfg["dataset_dir"]) / "images"
