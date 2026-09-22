@@ -75,10 +75,8 @@ function ImageViewer({ src, label, map }: { src: string; label: string; map?: nu
                     key={`${x}-${y}`}
                     title={`Δ cosine ${value.toFixed(5)}`}
                     style={{
-                      background:
-                        value >= 0
-                          ? `rgba(246, 116, 54, ${heatOpacity(value, maximum)})`
-                          : `rgba(54, 139, 203, ${heatOpacity(value, maximum)})`,
+                      background: value >= 0 ? 'var(--heat-positive)' : 'var(--heat-negative)',
+                      opacity: heatOpacity(value, maximum),
                     }}
                   />
                 )),
