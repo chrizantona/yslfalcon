@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import { VehicleBackdrop } from './components/VehicleBackdrop';
 import { installHoverTypewriter } from './visuals/hoverTypewriter';
 import {
   Brand,
@@ -33,12 +32,10 @@ function ConnectionState({
   checking,
   error,
   onRetry,
-  backdropControl,
 }: {
   checking: boolean;
   error: string | null;
   onRetry: () => void;
-  backdropControl: ReactNode;
 }) {
   return (
     <div className="startup-screen">
@@ -63,17 +60,10 @@ function ConnectionState({
           </Button>
         </main>
       )}
-      {backdropControl}
     </div>
   );
 }
-function ServiceShell({
-  session,
-  backdropControl,
-}: {
-  session: Session;
-  backdropControl: ReactNode;
-}) {
+function ServiceShell({ session }: { session: Session }) {
   const capabilities = useResource(api.capabilities);
   const [path, setPath] = useState(window.location.hash.slice(1) || 'search');
   useEffect(() => {
@@ -193,7 +183,6 @@ function ServiceShell({
             <footer className="service-footer">
               <span>Фалькон · Визуальный поиск</span>
               <span>Изображения и результаты в вашем контуре</span>
-              {backdropControl}
             </footer>
           </main>
         </div>
@@ -206,11 +195,6 @@ export default function App() {
   useEffect(() => {
     if (appFrame.current) return installHoverTypewriter(appFrame.current);
   }, []);
-  const [staticBackdrop] = useState(
-    () => new URLSearchParams(window.location.search).get('backdrop') === 'static',
-  );
-  const [backdropPaused, setBackdropPaused] = useState(false);
-  const [motionAvailable, setMotionAvailable] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -262,33 +246,13 @@ export default function App() {
     canRecover.current = true;
     void connect();
   };
-  const backdropControl = motionAvailable ? (
-    <button
-      type="button"
-      className="backdrop-toggle"
-      aria-pressed={backdropPaused}
-      onClick={() => setBackdropPaused((value) => !value)}
-    >
-      {backdropPaused ? 'Продолжить вращение' : 'Пауза фона'}
-    </button>
-  ) : null;
   return (
     <div className="app-frame" ref={appFrame}>
-      <VehicleBackdrop
-        staticVariant={staticBackdrop}
-        paused={backdropPaused}
-        onMotionAvailable={setMotionAvailable}
-      />
       <ToastProvider>
         {session && !checking ? (
-          <ServiceShell session={session} backdropControl={backdropControl} />
+          <ServiceShell session={session} />
         ) : (
-          <ConnectionState
-            checking={checking}
-            error={error}
-            onRetry={retry}
-            backdropControl={backdropControl}
-          />
+          <ConnectionState checking={checking} error={error} onRetry={retry} />
         )}
       </ToastProvider>
     </div>

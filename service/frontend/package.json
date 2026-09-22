@@ -17,14 +17,12 @@
   },
   "dependencies": {
     "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "three": "0.186.0"
+    "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@types/three": "0.186.0",
     "@vitejs/plugin-react": "6.0.2",
     "prettier": "3.9.8",
     "typescript": "5.9.3",

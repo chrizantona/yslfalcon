@@ -590,47 +590,11 @@ small {
   flex-shrink: 0;
 }
 
-/* The fixed decorative layer has its own blur; controls and photos stay sharp. */
 .app-frame {
   position: relative;
   isolation: isolate;
   min-height: 100vh;
 }
-.vehicle-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-}
-.vehicle-backdrop-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  filter: blur(clamp(7px, 0.8vw, 13px));
-  opacity: 0.17;
-}
-.vehicle-backdrop-canvas[hidden] {
-  display: none;
-}
-.vehicle-backdrop-static {
-  background: url('/images/vehicle-backdrop.png') center / cover no-repeat;
-  opacity: 0.2;
-}
-.backdrop-toggle {
-  min-height: 44px;
-  padding: 8px 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  white-space: nowrap;
-}
-.backdrop-toggle:hover,
-.backdrop-toggle:focus-visible {
-  color: var(--text);
-}
-
 /* Studio shell: persistent side navigation, open work surfaces. */
 .app-shell {
   display: flex;
@@ -2739,15 +2703,6 @@ td .button {
   min-height: 100vh;
   align-items: center;
   justify-content: center;
-}
-
-/* Portrait screens keep entire side profiles instead of cropping the wide image. */
-@media (max-aspect-ratio: 1/1) {
-  .vehicle-backdrop-static {
-    background-size: 100% auto;
-    background-position: center top;
-    background-repeat: repeat-y;
-  }
 }
 
 /* Responsive studio: the side rail remains available at every width. */
