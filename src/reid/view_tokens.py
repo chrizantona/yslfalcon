@@ -24,6 +24,7 @@ from reid.embed import pick_device
 from reid.evaluate import load_fold
 from reid.inference import load_trained_encoder
 from reid.metrics import paired_bootstrap
+from reid.official_check import realistic
 from reid.rerank_pairs import plain_loader
 from reid.view_penalty import VIEWS, fit_view_head, score, view_probs
 
@@ -76,7 +77,13 @@ def main():
     for fold in cfg["folds"]:
         query, gallery_full, no_match = load_fold(protocol, fold)
         gallery = gallery_full[~gallery_full.vehicle_id.isin(no_match)].reset_index(drop=True)  # one gallery, as at test
-        cached = np.load(Path(cfg["cache_dir"]) / f"fold{fold}.npz")          # EXP-190: same rows, same encoder
+        cache = Path(cfg["cache_dir"]) / f"fold{fold}.npz"                    # EXP-190 saved these for the EXP-164 soup
+        if not cache.exists():                                                # another encoder: embed the fold once
+            _, confidence, q_emb, g_emb = realistic({k: v for k, v in spec.items() if k != "threshold"},
+                                                    query, gallery, data_cfg, device)
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            np.savez(cache, q_emb=q_emb, g_emb=g_emb, confidence=confidence)
+        cached = np.load(cache)
         similarity, confidence = cached["q_emb"] @ cached["g_emb"].T, cached["confidence"]
         q_x, g_x = features(query), features(gallery)
         clip_q, clip_g = views.reindex(query.image_id).to_numpy(), views.reindex(gallery.image_id).to_numpy()
