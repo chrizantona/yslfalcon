@@ -582,22 +582,28 @@ small {
   min-width: 0;
 }
 .studio-sidebar {
-  padding: 22px 14px;
+  padding: 16px 8px;
   background: var(--canvas);
 }
 .studio-navigation {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  height: calc(100vh - 100px);
+  height: calc(100dvh - 100px);
+  min-height: 240px;
   position: sticky;
-  top: 22px;
+  top: 16px;
 }
 .studio-nav-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
-  min-height: 46px;
-  padding: 10px 9px;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  padding: 12px 10px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -605,6 +611,17 @@ small {
   font-size: 14px;
   font-weight: 600;
   transition: color 140ms;
+}
+.studio-nav-item > svg {
+  flex: 0 1 116px;
+  width: 116px;
+  height: 116px;
+  max-width: 100%;
+  min-height: 0;
+  stroke-width: 1.25;
+}
+.studio-nav-item > span {
+  flex-shrink: 0;
 }
 .studio-nav-item:hover,
 .studio-nav-item:focus-visible,
@@ -2721,12 +2738,14 @@ td .button {
     min-height: 660px;
   }
 }
+@media (max-height: 480px) {
+  .studio-navigation {
+    position: static;
+  }
+}
 @media (max-width: 1120px) {
   .studio-body {
     grid-template-columns: 168px minmax(0, 1fr);
-  }
-  .studio-sidebar {
-    padding-inline: 10px;
   }
   .studio-header-meta {
     gap: 18px;
@@ -2888,19 +2907,22 @@ td .button {
     grid-template-columns: 76px minmax(0, 1fr);
   }
   .studio-sidebar {
-    padding: 18px 6px;
+    padding: 12px 6px;
   }
   .studio-navigation {
-    gap: 14px;
-    top: 18px;
+    height: calc(100vh - 140px);
+    height: calc(100dvh - 140px);
+    top: 12px;
   }
   .studio-nav-item {
-    flex-direction: column;
-    justify-content: center;
-    gap: 7px;
-    min-height: 62px;
-    padding: 8px 2px;
+    gap: 8px;
+    padding: 10px 2px;
     font-size: 11px;
+  }
+  .studio-nav-item > svg {
+    flex-basis: 48px;
+    width: 48px;
+    height: 48px;
   }
   .studio-header > .studio-tools {
     grid-column: 1 / -1;
