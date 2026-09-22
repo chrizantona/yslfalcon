@@ -1,0 +1,17 @@
+exp_id: EXP-190
+parent: EXP-178
+description: a penalty on candidates shot from the query's own viewpoint on top of the final configuration (EXP-164 + re-ranker, no alpha-QE, single gallery) - delta chosen on fold 0, scored once on fold 4 with the refusal threshold carried
+fit_fold: 0
+check_fold: 4               # declared look at the holdout: one number per variant, nothing fitted on it
+candidate:                  # the final configuration of EXP-178
+  config: configs/exp164_droppath_soup.yaml
+  checkpoint: 62b5cc1c7578e9f5430afb75351851dd.pt
+  threshold: 7.2429         # plateau centre of EXP-178
+  reranker: {window: 20, weight: 0.25, checkpoint: 0fc66bdcb2928e3aef4dc2358155d256.pt}
+head:                       # softmax regression from our embedding to the CLIP view labels
+  folds: [1, 2, 3]
+  epochs: 300
+  lr: 0.01
+  weight_decay: 1.0e-4
+variants: [clip_hard, head_hard, head_soft]
+deltas: [0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.12, 0.15]
