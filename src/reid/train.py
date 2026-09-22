@@ -32,6 +32,7 @@ from reid.evaluate import evaluate_fold, load_fold, save_fold_results
 from reid.external import load_table, source_names
 from reid.models import ReIDModel, MarginClassifier, MultiQueryPool, build_backbone, load_backbone, checkpoint_name
 from reid.background import paste
+from reid.photometric import night_cast
 from reid.optim import optimizer_groups
 from reid.afem_models import KINDS as AFEM_KINDS, build_extended_model
 
@@ -41,7 +42,9 @@ class CropDataset(Dataset):
 
     cfg.color_jitter: {p, brightness, contrast, saturation, hue} - torchvision ColorJitter with probability p.
     background: {p, masks_dir, bank_dir} - with probability p the vehicle, cut out by its mask, is put over a random
-    window of the background bank (reid.background) before everything else."""
+    window of the background bank (reid.background) before everything else.
+    cfg.night: {p, gamma, strength} - with probability p the crop is turned into a sodium-lit night frame
+    (reid.photometric), gamma and strength drawn from their ranges."""
 
     def __init__(self, df, crops_dir, input_hw, mean, std, cfg, background=None):
         dirs = df.crops_dir if "crops_dir" in df else [crops_dir] * len(df)  # external sets carry a dir per row
@@ -59,6 +62,7 @@ class CropDataset(Dataset):
         jitter = dict(cfg.get("color_jitter") or {})
         p = jitter.pop("p", 0.0)
         self.jitter = v2.RandomApply([v2.ColorJitter(**jitter)], p=p) if jitter else None
+        self.night = cfg.get("night")
         self.background = background
         if background:
             self.mask_paths = [str(Path(background["masks_dir"]) / f"{image_id}.png") for image_id in df.image_id]
@@ -72,6 +76,8 @@ class CropDataset(Dataset):
         if self.background and random.random() < self.background["p"]:
             mask = cv2.imread(self.mask_paths[i], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255
             image = paste(image, cv2.GaussianBlur(mask, (0, 0), 1.5), cv2.imread(random.choice(self.bank)))
+        if self.night and random.random() < self.night["p"]:
+            image = night_cast(image, random.uniform(*self.night["gamma"]), random.uniform(*self.night["strength"]))
         if self.jitter is not None:  # on the RGB uint8 image, before normalisation
             rgb = torch.from_numpy(np.ascontiguousarray(image[:, :, ::-1])).permute(2, 0, 1)
             image = np.ascontiguousarray(self.jitter(rgb).permute(1, 2, 0).numpy()[:, :, ::-1])
