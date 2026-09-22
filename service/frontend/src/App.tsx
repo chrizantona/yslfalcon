@@ -138,7 +138,6 @@ function ServiceShell({ session }: { session: Session }) {
                   className={`studio-nav-item${page === item.id ? ' active' : ''}`}
                   aria-current={page === item.id ? 'page' : undefined}
                 >
-                  <Icon name={item.icon} size={18} />
                   <span>{item.label}</span>
                 </a>
               ))}
