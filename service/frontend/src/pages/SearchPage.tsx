@@ -139,9 +139,9 @@ export function SearchPage({
   return (
     <>
       <PageHeading
-        eyebrow="РАБОЧЕЕ МЕСТО"
+        eyebrow="ПОИСК ПО ИЗОБРАЖЕНИЮ"
         title="Визуальный поиск"
-        description="От одного изображения — к проверяемому результату."
+        description="Выберите кадр, выделите автомобиль и сравните детали."
         action={
           result && (
             <Button icon="plus" onClick={() => navigate('search')}>
@@ -249,7 +249,7 @@ export function SearchPage({
               }
               onClick={search}
             >
-              {searching ? 'Обрабатываем запрос…' : 'Найти похожие изображения'}
+              {searching ? 'Обрабатываем запрос…' : 'Найти похожие'}
             </Button>
             {!canOperate && <p className="field-hint">Для нового поиска нужна роль оператора.</p>}
             <p className="privacy-note">
@@ -259,6 +259,15 @@ export function SearchPage({
           </div>
         </section>
         <section className="results-area" aria-live="polite">
+          {!result && (
+            <div className="search-canvas-header">
+              <div>
+                <span className="canvas-indicator" />
+                <strong>Результаты поиска</strong>
+              </div>
+              <small>Выдача по галерее</small>
+            </div>
+          )}
           {error && <Message tone="error">{error}</Message>}
           {loadingResult ? (
             <div className="panel">
@@ -439,6 +448,7 @@ export function SearchPage({
             </>
           ) : (
             <div className="search-empty panel">
+              <span className="canvas-kicker">ОТ КАДРА К ДЕТАЛЯМ</span>
               <div className="search-empty-art" aria-hidden="true">
                 <div className="art-scan">
                   <svg viewBox="0 0 180 100">
@@ -456,7 +466,11 @@ export function SearchPage({
                 <div className="art-side side-two" />
                 <div className="art-connector" />
               </div>
-              <h2>Всё начинается со снимка</h2>
+              <h2>
+                Найдите автомобиль.
+                <br />
+                <span>Сравните детали.</span>
+              </h2>
               <p>
                 Добавьте изображение автомобиля и выберите галерею.
                 <br />
@@ -478,9 +492,9 @@ export function SearchPage({
               <div className="empty-model-note">
                 <Icon name="activity" size={17} />
                 <span>
-                  Сервис готов к работе с данными.
+                  Каждый поиск сохраняется в истории.
                   <br />
-                  <strong>Модель поиска ещё не подключена.</strong>
+                  <strong>К сравнению можно вернуться в любой момент.</strong>
                 </span>
               </div>
             </div>

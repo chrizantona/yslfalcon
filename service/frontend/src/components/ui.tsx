@@ -177,7 +177,7 @@ export function Brand({ compact = false }: { compact?: boolean }) {
       <span className="brand-mark">
         <svg width="29" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <path d="m3 5 12 4 14-4-10 11-4 13-3-12L3 5Z" fill="currentColor" />
-          <path d="m13 12 8-2-6 9-2-7Z" fill="#101722" />
+          <path d="m13 12 8-2-6 9-2-7Z" fill="var(--canvas)" />
         </svg>
       </span>
       {!compact && (

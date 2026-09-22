@@ -1,25 +1,29 @@
-# Visual direction
+# Визуальная система «Фалькон»
 
-The service uses a restrained desktop workspace: a compact sidebar, a stable toolbar, quiet surface changes and large source images. Application actions and real results take visual precedence over instrumentation. The direction is an independent professional image workspace, not an imitation of an operating system.
+Обновлено 22 сентября 2026 по [референсу Higgsfield, выбранному пользователем](https://higgsfield.ai/ai/video?model=genjutsu). Композиция строится вокруг изображений: горизонтальная навигация, компактная панель запроса слева, широкая область кандидатов справа. На небольшом экране запрос и результаты располагаются последовательно.
 
-## References
+## Композиция и цвет
 
-- [Untitled UI — free Figma UI kit](https://www.untitledui.com/free-figma-ui-kit) — reference for consistent typography, component proportions, spacing and sidebar layouts. Its paid components and source files are not included.
-- [File manager — Untitled UI, Jordan Hughes](https://dribbble.com/shots/25583251-File-manager-Untitled-UI) — visual reference for navigation, content hierarchy and an orderly image/file workspace.
-- [Figma dashboard templates](https://www.figma.com/templates/dashboard-designs/) — explored dashboard layout references; the product does not copy decorative analytics or irrelevant counters from these examples.
-- [Apple Design Resources](https://developer.apple.com/design/resources/) — an additional reference for desktop hierarchy and interaction, not a required visual style.
-- [Figma: Apple's UI kit](https://help.figma.com/hc/en-us/articles/24037833895831-Get-started-with-Apple-s-UI-kit) — reference for consistent component and typography systems.
-- [Onest](https://github.com/google/fonts/tree/main/ofl/onest) — primary variable typeface with Cyrillic, SIL Open Font License.
-- [IBM Plex Mono](https://github.com/google/fonts/tree/main/ofl/ibmplexmono) — compact identifiers and technical values, SIL Open Font License.
+- Почти чёрный фон, графитовые панели и чуть более светлые поля. Иерархию задают расстояния, тонкие границы и разница светлоты.
+- Лазурно-голубой заменяет кислотно-зелёный акцент референса. Он отмечает основное действие, активный раздел, рамку автомобиля и клавиатурный фокус. Большие поверхности остаются нейтральными.
+- Поиск, галереи и история находятся в верхней навигации; состояние модели и интеграция — во второй строке. Навигация остаётся доступной с клавиатуры и на узком экране.
+- Рабочие изображения сохраняют пропорции. Пустая область результата содержит схематичную векторную иллюстрацию и следующие шаги; фотографии и результаты не выдумываются.
+- Тёмная тема распространяется на все шесть разделов, диалоги сравнения, импорт, таблицы, уведомления и ошибки. Цвета заданы семантическими CSS-переменными, включая отдельный цвет текста основной кнопки.
 
-Font files and licenses are supplied under `frontend/public/fonts/`, so runtime does not contact Google Fonts or a CDN. SF Pro is not redistributed. The interface is an original implementation for this product; no claim is made that a Figma file was imported or that Apple endorses it.
+## Типографика и локальные ресурсы
 
-Onest was chosen for the Russian-language interface and its distinctive but quiet shapes. IBM Plex Mono is limited to identifiers and technical values. Keeping two complementary families avoids a disconnected mixture of headline and interface styles.
+[Manrope](https://github.com/google/fonts/tree/main/ofl/manrope) — основной вариативный гротеск с кириллицей, веса 200–800. [IBM Plex Mono](https://github.com/google/fonts/tree/main/ofl/ibmplexmono) используется для идентификаторов, координат и технических значений. Рабочий текст, подписи и кнопки рассчитаны на плотный интерфейс; заголовки не вытесняют изображения.
 
-## Product rules
+Manrope выбран как кириллическая адаптация характера референса. Это не утверждение о точном шрифте Higgsfield. Источник: [официальный TTF Google Fonts](https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/Manrope%5Bwght%5D.ttf); SHA-256 `3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6`. Шрифты и лицензии SIL OFL находятся в `frontend/public/fonts/`. Во время работы сервис не обращается к внешним шрифтовым CDN.
 
-- The source image remains visible during comparison. Images preserve their aspect ratios.
-- Typographic hierarchy, alignment and whitespace do most of the work; a single accent identifies the primary action.
-- Important states use text and icons as well as color. Focus is visible; dialogs can be closed with a keyboard; animations respect reduced motion.
-- A model stub remains explicitly visible. Similarity values in this mode are not identity probabilities.
-- Empty states guide the next real action. No invented counters, example vehicles or decorative model-performance charts.
+## Что проверено в референсе
+
+Публичная страница подтвердила верхнюю навигацию Higgsfield. Точное текущее оформление Genjutsu проверить не удалось: интерактивный браузер недоступен, прямые запросы страницы и CSS получили 403. Для композиции также изучен [публичный исторический снимок video workspace](https://note.com/creative_edge/n/n91b776e20b9d) с интерфейсом Seedance и карточками от 10 апреля 2026. Это источник общих принципов, а не точных текущих размеров или шрифта Genjutsu.
+
+Код интерфейса, логотип и иллюстрация реализованы для «Фалькона». Медиа, шрифты и исходники Higgsfield в продукт не включены. Ранее изученные Figma/Apple-референсы и светлая концепция заменены этим направлением; старый PDF с предложениями для жюри сохраняет прежнюю визуальную концепцию.
+
+## Поведение и доступность
+
+Состояния различаются текстом и иконками, а не только цветом. Сохраняются видимый фокус, управление диалогами с клавиатуры, числовой ввод BBox и `prefers-reduced-motion`. Семантические предупреждения и ошибки используют отдельные цвета. Техническая заглушка явно обозначена; сходство не представляется вероятностью идентификации.
+
+Проверки сборки и HTTP не заменяют визуальную приёмку. Фактически выполненные проверки и ограничения указаны в [VALIDATION.md](VALIDATION.md).

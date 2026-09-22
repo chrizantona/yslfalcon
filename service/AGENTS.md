@@ -16,7 +16,7 @@ This directory implements the operator service. The research code outside it rem
 - Use explicit structured errors; never turn infrastructure failure into a model refusal.
 - Prefer vertical user scenarios and tests through public interfaces over private-method mocks and generic frameworks.
 - TypeScript strict mode; avoid `any`, swallowed errors, duplicated domain types and decorative abstractions. React components express user tasks; API transport stays in one module.
-- Interface follows a restrained desktop visual system: local Onest + IBM Plex Mono, clear typography, light neutral surfaces, consistent spacing, keyboard focus and reduced-motion support.
+- Interface follows a restrained desktop visual system: local Manrope + IBM Plex Mono, clear typography, neutral charcoal surfaces with an azure primary accent and horizontal navigation, consistent spacing, keyboard focus and reduced-motion support.
 - Keep all runtime assets local. No CDN fonts, cloud model downloads or telemetry services.
 
 ## Checks

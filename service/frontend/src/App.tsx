@@ -19,13 +19,13 @@ import { SystemPage } from './pages/SystemPage';
 import { SearchPage } from './pages/SearchPage';
 import type { Page, Session } from './types';
 
-const navigation: { id: Page; label: string; icon: IconName; group?: string }[] = [
-  { id: 'search', label: 'Визуальный поиск', icon: 'search', group: 'ПОИСК И ДАННЫЕ' },
-  { id: 'galleries', label: 'Галереи', icon: 'layers' },
-  { id: 'history', label: 'История', icon: 'history' },
-  { id: 'quality', label: 'Модель и качество', icon: 'target', group: 'УПРАВЛЕНИЕ' },
-  { id: 'integration', label: 'Интеграция', icon: 'code' },
-  { id: 'system', label: 'Состояние сервиса', icon: 'activity' },
+const navigation: { id: Page; label: string; icon: IconName; group: 'main' | 'tools' }[] = [
+  { id: 'search', label: 'Поиск', icon: 'search', group: 'main' },
+  { id: 'galleries', label: 'Галереи', icon: 'layers', group: 'main' },
+  { id: 'history', label: 'История', icon: 'history', group: 'main' },
+  { id: 'quality', label: 'Модель', icon: 'target', group: 'tools' },
+  { id: 'integration', label: 'Интеграция', icon: 'code', group: 'tools' },
+  { id: 'system', label: 'Состояние', icon: 'activity', group: 'tools' },
 ];
 function ConnectionState({
   checking,
@@ -65,11 +65,9 @@ function ConnectionState({
 function ServiceShell({ session }: { session: Session }) {
   const capabilities = useResource(api.capabilities);
   const [path, setPath] = useState(window.location.hash.slice(1) || 'search');
-  const [mobileMenu, setMobileMenu] = useState(false);
   useEffect(() => {
     const update = () => {
       setPath(window.location.hash.slice(1) || 'search');
-      setMobileMenu(false);
     };
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
@@ -93,106 +91,105 @@ function ServiceShell({ session }: { session: Session }) {
       >
         Перейти к содержимому
       </a>
-      {mobileMenu && (
-        <button
-          className="sidebar-backdrop"
-          aria-label="Закрыть меню"
-          onClick={() => setMobileMenu(false)}
-        />
-      )}
-      <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}>
-        <div className="sidebar-brand">
+      <header className="studio-header">
+        <a href="#search" className="studio-brand" aria-label="Фалькон — открыть поиск">
           <Brand />
-        </div>
-        <nav aria-label="Главное меню">
-          {navigation.map((item) => (
-            <div key={item.id}>
-              {item.group && <p className="nav-group">{item.group}</p>}
+        </a>
+        <nav className="studio-navigation" aria-label="Основные разделы">
+          {navigation
+            .filter((item) => item.group === 'main')
+            .map((item) => (
               <a
+                key={item.id}
                 href={`#${item.id}`}
-                className={page === item.id ? 'nav-item active' : 'nav-item'}
+                className={`studio-nav-item${page === item.id ? ' active' : ''}`}
                 aria-current={page === item.id ? 'page' : undefined}
               >
-                <Icon name={item.icon} size={19} />
+                <Icon name={item.icon} size={18} />
                 <span>{item.label}</span>
-                {page === item.id && <i />}
               </a>
-            </div>
-          ))}
+            ))}
         </nav>
-        <div className="sidebar-bottom">
-          <div className="sidebar-model">
-            <span className="status-dot dot-warning" />
-            <div>
-              <strong>Модель-заглушка</strong>
-              <span>Ожидает подключения</span>
-            </div>
-            <a href="#quality" aria-label="Открыть состояние модели">
-              <Icon name="chevron" size={15} />
-            </a>
-          </div>
+        <div className="studio-header-meta">
+          <span className="local-status">
+            <i />
+            Локальный сервис
+          </span>
+          <a
+            href="/docs"
+            target="_blank"
+            rel="noreferrer"
+            className="studio-docs"
+            aria-label="Открыть документацию API в новой вкладке"
+          >
+            API <Icon name="arrow" size={15} />
+          </a>
         </div>
-      </aside>
-      <div className="service-main">
-        <header className="topbar">
-          <div className="inline-items">
-            <Button
-              className="mobile-menu"
-              tone="ghost"
-              icon="menu"
-              aria-label="Открыть меню"
-              onClick={() => setMobileMenu(true)}
-            />
-            <span className="breadcrumb">Фалькон</span>
-            <Icon name="chevron" size={13} />
-            <span>{navigation.find((item) => item.id === page)?.label}</span>
-          </div>
-          <div className="topbar-meta">
-            <span className="local-status">
-              <i />
-              Локальный сервис
-            </span>
-            <span className="topbar-version">v{capabilities.data?.service_version || '—'}</span>
-          </div>
-        </header>
-        <main id="main-content" tabIndex={-1}>
-          <div className="model-banner">
-            <Icon name="activity" size={17} />
-            <p>
-              <strong>Модель ещё не подключена.</strong> Сервис работает с технической заглушкой;
-              результаты не подтверждают идентичность автомобилей.
-            </p>
-            <a href="#quality">
-              Подробнее
-              <Icon name="chevron" size={13} />
-            </a>
-          </div>
-          {capabilities.error && (
-            <Message tone="error" action={<Button onClick={capabilities.reload}>Повторить</Button>}>
-              {capabilities.error}
-            </Message>
-          )}
-          {page === 'search' && (
-            <SearchPage
-              searchId={searchId}
-              capabilities={capabilities.data}
-              session={session}
-              navigate={navigate}
-            />
-          )}
-          {page === 'galleries' && (
-            <GalleriesPage session={session} capabilities={capabilities.data} />
-          )}
-          {page === 'history' && <HistoryPage navigate={navigate} />}
-          {page === 'quality' && <QualityPage capabilities={capabilities.data} />}
-          {page === 'integration' && <IntegrationPage />}
-          {page === 'system' && <SystemPage />}
-          <footer className="service-footer">
-            <span>Фалькон · Визуальный поиск</span>
-            <span>Изображения и результаты в вашем контуре</span>
-          </footer>
-        </main>
+      </header>
+      <div className="studio-toolbar">
+        <div className="studio-context">
+          <Icon name="layers" size={16} />
+          <span>Автомобили</span>
+          <span className="studio-divider">/</span>
+          <span>{navigation.find((item) => item.id === page)?.label}</span>
+        </div>
+        <nav className="studio-tools" aria-label="Настройки и интеграция">
+          {navigation
+            .filter((item) => item.group === 'tools')
+            .map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={`studio-tool${page === item.id ? ' active' : ''}`}
+                aria-current={page === item.id ? 'page' : undefined}
+              >
+                <Icon name={item.icon} size={16} />
+                <span>{item.label}</span>
+              </a>
+            ))}
+        </nav>
+        <a href="#quality" className="studio-mode">
+          <i />
+          Модель-заглушка
+        </a>
       </div>
+      <main id="main-content" tabIndex={-1}>
+        <div className="model-banner">
+          <Icon name="activity" size={16} />
+          <p>
+            <strong>Модель ещё не подключена.</strong> Работает техническая заглушка; результаты не
+            подтверждают идентичность автомобилей.
+          </p>
+          <a href="#quality">
+            Подробнее
+            <Icon name="chevron" size={13} />
+          </a>
+        </div>
+        {capabilities.error && (
+          <Message tone="error" action={<Button onClick={capabilities.reload}>Повторить</Button>}>
+            {capabilities.error}
+          </Message>
+        )}
+        {page === 'search' && (
+          <SearchPage
+            searchId={searchId}
+            capabilities={capabilities.data}
+            session={session}
+            navigate={navigate}
+          />
+        )}
+        {page === 'galleries' && (
+          <GalleriesPage session={session} capabilities={capabilities.data} />
+        )}
+        {page === 'history' && <HistoryPage navigate={navigate} />}
+        {page === 'quality' && <QualityPage capabilities={capabilities.data} />}
+        {page === 'integration' && <IntegrationPage />}
+        {page === 'system' && <SystemPage />}
+        <footer className="service-footer">
+          <span>Фалькон · Визуальный поиск</span>
+          <span>Изображения и результаты в вашем контуре</span>
+        </footer>
+      </main>
     </div>
   );
 }
