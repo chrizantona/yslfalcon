@@ -5,46 +5,32 @@ type UploadKind = 'image' | 'files' | 'document';
 function UploadArtwork({ kind }: { kind: UploadKind }) {
   return (
     <span className={`upload-artwork upload-artwork-${kind}`}>
-      {kind === 'document' ? (
-        <svg
-          className="upload-artwork-svg"
-          viewBox="0 0 112 96"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path d="M80 64V31L63 14H28V80H72" />
-          <path d="M63 14v18h17M40 44h25M40 55h19M40 66h12" />
-          <path className="upload-artwork-plus" d="M88 65v24M76 77h24" strokeWidth="4" />
-        </svg>
-      ) : (
-        <>
-          <img
-            className="upload-artwork-raster"
-            src={kind === 'image' ? '/images/upload-camera.png' : '/images/upload-photos.png'}
-            alt=""
-            width={1254}
-            height={1254}
-            draggable={false}
-          />
-          <svg
-            className="upload-artwork-add"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d="M12 3v18M3 12h18" />
-          </svg>
-        </>
-      )}
+      <svg
+        className="upload-artwork-svg"
+        viewBox="0 0 112 96"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        {kind === 'document' ? (
+          <>
+            <path d="M80 64V31L63 14H28V80H72" />
+            <path d="M63 14v18h17M40 44h25M40 55h19M40 66h12" />
+          </>
+        ) : (
+          <>
+            {kind === 'files' && <path d="M28 16V9h61v43" />}
+            <path d="M78 74H17V23h70v32" />
+            <path d="m18 62 18-19 19 18 11-11 12 12" />
+            <circle cx="66" cy="38" r="6" />
+          </>
+        )}
+        <path className="upload-artwork-plus" d="M88 65v24M76 77h24" strokeWidth="4" />
+      </svg>
     </span>
   );
 }
@@ -117,11 +103,7 @@ export function UploadPrompt({
       onPointerLeave={resetMotion}
       onPointerCancel={resetMotion}
     >
-      <span
-        ref={anchor}
-        className={`upload-artwork-anchor upload-artwork-anchor-${kind}`}
-        aria-hidden="true"
-      >
+      <span ref={anchor} className="upload-artwork-anchor" aria-hidden="true">
         <UploadArtwork kind={kind} />
       </span>
       <span className="upload-copy">
