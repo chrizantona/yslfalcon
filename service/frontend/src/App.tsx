@@ -145,18 +145,6 @@ function ServiceShell({ session }: { session: Session }) {
           </nav>
         </aside>
         <div className="studio-workspace">
-          <div className="studio-toolbar">
-            <div className="studio-context">
-              <Icon name="layers" size={16} />
-              <span>Автомобили</span>
-              <span className="studio-divider">/</span>
-              <span>{navigation.find((item) => item.id === page)?.label}</span>
-            </div>
-            <a href="#quality" className="studio-mode">
-              <i />
-              Модель-заглушка
-            </a>
-          </div>
           <main id="main-content" tabIndex={-1}>
             <div className="model-banner">
               <Icon name="activity" size={16} />

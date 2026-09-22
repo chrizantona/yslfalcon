@@ -30,7 +30,6 @@ export function SystemPage() {
   return (
     <>
       <PageHeading
-        eyebrow="ЭКСПЛУАТАЦИЯ"
         title="Состояние сервиса"
         description="Доступность модулей, реальные задержки и фоновые операции."
         action={

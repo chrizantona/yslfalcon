@@ -65,7 +65,6 @@ export function GalleriesPage({
   return (
     <>
       <PageHeading
-        eyebrow="ДАННЫЕ"
         title="Галереи наблюдений"
         description="Подготовка, проверка и публикация изображений для поиска."
         action={

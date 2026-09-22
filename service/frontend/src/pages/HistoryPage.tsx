@@ -17,7 +17,6 @@ export function HistoryPage({ navigate }: { navigate: (path: string) => void }) 
   return (
     <>
       <PageHeading
-        eyebrow="ЖУРНАЛ"
         title="История поиска"
         description="Результаты, версии данных и заключения сохраняются вместе."
         action={

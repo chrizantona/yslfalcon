@@ -19,7 +19,6 @@ export function QualityPage({ capabilities }: { capabilities: Capabilities | nul
   return (
     <>
       <PageHeading
-        eyebrow="КОНТРОЛЬ"
         title="Модель и качество"
         description="Конфигурация алгоритма и основания для решения о совпадении."
       />

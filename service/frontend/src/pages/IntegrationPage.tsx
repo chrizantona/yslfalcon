@@ -16,7 +16,6 @@ export function IntegrationPage() {
   return (
     <>
       <PageHeading
-        eyebrow="ПОДКЛЮЧЕНИЕ"
         title="Интеграция"
         description="Тот же поиск и те же результаты — из вашей системы."
         action={

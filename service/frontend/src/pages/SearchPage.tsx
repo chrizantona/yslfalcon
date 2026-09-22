@@ -9,7 +9,6 @@ import {
   EmptyState,
   Icon,
   JobProgress,
-  Loading,
   Message,
   PageHeading,
   SectionTitle,
@@ -137,10 +136,53 @@ export function SearchPage({
   };
   const chosenGallery = galleries.data?.items.find((gallery) => gallery.id === result?.gallery_id);
   const canOperate = session.role !== 'viewer';
+  const savedQuery = result && !image;
+  const hasMoreGalleries = galleries.data?.next_offset != null;
+  const needsGallery =
+    !!galleries.data &&
+    !galleries.loading &&
+    !galleries.error &&
+    !error &&
+    !activeGalleries.length &&
+    !hasMoreGalleries;
+  let emptyTitle = 'Начните с изображения';
+  let emptyDescription = 'Загрузите кадр слева, выделите автомобиль и запустите поиск.';
+  if (error) {
+    emptyTitle = image ? 'Запрос не завершён' : 'Результат не открыт';
+    emptyDescription = image
+      ? 'Проверьте сообщение выше. Изображение и координаты остались в форме для повторного поиска.'
+      : 'Проверьте сообщение выше или откройте другой результат в истории.';
+  } else if (galleries.loading && !activeGalleries.length) {
+    emptyTitle = 'Проверяем доступные галереи';
+    emptyDescription = 'Список появится в настройках поиска после загрузки.';
+  } else if (galleries.error) {
+    emptyTitle = 'Не удалось получить список галерей';
+    emptyDescription = 'Повторите загрузку списка в настройках поиска.';
+  } else if (!activeGalleries.length && hasMoreGalleries) {
+    emptyTitle = 'Выберите доступную галерею';
+    emptyDescription =
+      'В загруженной части списка нет активных версий. Загрузите ещё галереи в настройках поиска.';
+  } else if (needsGallery) {
+    emptyTitle = 'Нужна галерея для поиска';
+    emptyDescription =
+      session.role === 'admin'
+        ? 'Добавьте изображения в галерею и активируйте её версию.'
+        : 'Администратор должен подготовить галерею и активировать её версию.';
+  } else if (!canOperate) {
+    emptyTitle = 'Откройте сохранённый результат';
+    emptyDescription = 'Результаты доступны в истории. Для нового поиска нужна роль оператора.';
+  } else if (image) {
+    const validArea = validBBox(image.bbox, image.width, image.height);
+    emptyTitle = validArea ? 'Изображение загружено' : 'Проверьте область автомобиля';
+    emptyDescription = !validArea
+      ? 'Исправьте координаты рамки слева, чтобы она находилась внутри изображения.'
+      : galleryId
+        ? 'Проверьте выбранную область и нажмите «Найти похожие».'
+        : 'Выберите галерею в настройках поиска.';
+  }
   return (
     <>
       <PageHeading
-        eyebrow="ПОИСК ПО ИЗОБРАЖЕНИЮ"
         title="Визуальный поиск"
         description="Выберите кадр, выделите автомобиль и сравните детали."
         action={
@@ -155,9 +197,7 @@ export function SearchPage({
         <section className="panel query-panel">
           <SectionTitle
             title={result ? 'Исходный запрос' : 'Изображение запроса'}
-            caption={
-              result ? formatDate(result.created_at) : 'Выберите снимок и область автомобиля'
-            }
+            caption={result ? formatDate(result.created_at) : undefined}
           />
           {result && !image ? (
             <div className="saved-query">
@@ -181,83 +221,95 @@ export function SearchPage({
               maxBytes={capabilities?.limits.max_upload_bytes}
             />
           )}
-          {result && !image && (
-            <Button icon="upload" className="full-width" onClick={() => navigate('search')}>
-              Загрузить новый запрос
-            </Button>
-          )}
-          <div className="query-settings">
-            <label className="field-label" htmlFor="gallery-select">
-              Галерея поиска
-            </label>
-            <select
-              id="gallery-select"
-              value={galleryId}
-              onChange={(event) => setGalleryId(event.target.value)}
-              disabled={galleries.loading || !activeGalleries.length}
-            >
-              <option value="">
-                {galleries.loading ? 'Загружаем галереи…' : 'Выберите галерею'}
-              </option>
-              {activeGalleries.map((gallery) => (
-                <option key={gallery.id} value={gallery.id}>
-                  {gallery.name} · {gallery.observation_count} набл.
-                </option>
-              ))}
-            </select>
-            {galleries.error && (
-              <Message tone="error" action={<Button onClick={galleries.reload}>Повторить</Button>}>
-                {galleries.error}
-              </Message>
-            )}
-            {galleries.data?.next_offset != null && (
-              <Button tone="ghost" busy={galleries.loadingMore} onClick={galleries.loadMore}>
-                Загрузить ещё галереи
-              </Button>
-            )}
-            {!galleries.loading && !galleries.error && !activeGalleries.length && (
-              <p className="field-hint">
-                Сначала создайте галерею, импортируйте изображения и активируйте её версию.{' '}
-                <button className="text-link" onClick={() => navigate('galleries')}>
-                  Перейти к галереям
-                </button>
-              </p>
-            )}
-            <div className="topn-row">
-              <label htmlFor="top-n">Кандидатов в выдаче</label>
+          {savedQuery ? (
+            <dl className="saved-query-context">
+              <div>
+                <dt>Галерея</dt>
+                <dd title={result.gallery_id}>
+                  {chosenGallery?.name || shortId(result.gallery_id)}
+                </dd>
+              </div>
+              <div>
+                <dt>Версия поиска</dt>
+                <dd title={result.gallery_version_id}>{shortId(result.gallery_version_id)}</dd>
+              </div>
+              <div>
+                <dt>Кандидатов в выдаче</dt>
+                <dd>{formatNumber(result.ranked_candidates.length, 0)}</dd>
+              </div>
+            </dl>
+          ) : (
+            <div className="query-settings">
+              <label className="field-label" htmlFor="gallery-select">
+                Галерея поиска
+              </label>
               <select
-                id="top-n"
-                value={topN}
-                onChange={(event) => setTopN(Number(event.target.value))}
+                id="gallery-select"
+                value={galleryId}
+                onChange={(event) => setGalleryId(event.target.value)}
+                disabled={galleries.loading || !activeGalleries.length}
               >
-                {[5, 10, 20, 50].map((count) => (
-                  <option key={count} value={count}>
-                    {count}
+                <option value="">
+                  {galleries.loading ? 'Загружаем галереи…' : 'Выберите галерею'}
+                </option>
+                {activeGalleries.map((gallery) => (
+                  <option key={gallery.id} value={gallery.id}>
+                    {gallery.name} · {gallery.observation_count} набл.
                   </option>
                 ))}
               </select>
+              {galleries.error && (
+                <Message
+                  tone="error"
+                  action={<Button onClick={galleries.reload}>Повторить</Button>}
+                >
+                  {galleries.error}
+                </Message>
+              )}
+              {galleries.data?.next_offset != null && (
+                <Button tone="ghost" busy={galleries.loadingMore} onClick={galleries.loadMore}>
+                  Загрузить ещё галереи
+                </Button>
+              )}
+              {needsGallery && (
+                <p className="field-hint">Для поиска нужна активная версия галереи.</p>
+              )}
+              <div className="topn-row">
+                <label htmlFor="top-n">Кандидатов в выдаче</label>
+                <select
+                  id="top-n"
+                  value={topN}
+                  onChange={(event) => setTopN(Number(event.target.value))}
+                >
+                  {[5, 10, 20, 50].map((count) => (
+                    <option key={count} value={count}>
+                      {count}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                tone="primary"
+                icon="search"
+                className="full-width search-submit"
+                busy={searching}
+                disabled={
+                  !canOperate ||
+                  !image ||
+                  !galleryId ||
+                  !validBBox(image.bbox, image.width, image.height)
+                }
+                onClick={search}
+              >
+                {searching ? 'Обрабатываем запрос…' : 'Найти похожие'}
+              </Button>
+              {!canOperate && <p className="field-hint">Для нового поиска нужна роль оператора.</p>}
+              <p className="privacy-note">
+                <Icon name="shield" size={14} />
+                Обработка внутри вашего контура
+              </p>
             </div>
-            <Button
-              tone="primary"
-              icon="search"
-              className="full-width search-submit"
-              busy={searching}
-              disabled={
-                !canOperate ||
-                !image ||
-                !galleryId ||
-                !validBBox(image.bbox, image.width, image.height)
-              }
-              onClick={search}
-            >
-              {searching ? 'Обрабатываем запрос…' : 'Найти похожие'}
-            </Button>
-            {!canOperate && <p className="field-hint">Для нового поиска нужна роль оператора.</p>}
-            <p className="privacy-note">
-              <Icon name="shield" size={14} />
-              Обработка внутри вашего контура
-            </p>
-          </div>
+          )}
         </section>
         <ResultsSurface>
           {!result && (
@@ -270,9 +322,20 @@ export function SearchPage({
             </div>
           )}
           {error && <Message tone="error">{error}</Message>}
-          {loadingResult ? (
-            <div className="panel">
-              <Loading label="Открываем сохранённый результат…" />
+          {searching || loadingResult ? (
+            <div className="search-loading" role="status">
+              <p className="search-loading-label">
+                {loadingResult ? 'Открываем сохранённый результат…' : 'Ищем похожие изображения…'}
+              </p>
+              <div className="result-skeleton-grid" aria-hidden="true">
+                {[0, 1, 2, 3].map((item) => (
+                  <div className="result-skeleton" key={item}>
+                    <div className="result-skeleton-image" />
+                    <div className="result-skeleton-line" />
+                    <div className="result-skeleton-line result-skeleton-line-short" />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : result ? (
             <>
@@ -449,55 +512,23 @@ export function SearchPage({
             </>
           ) : (
             <div className="search-empty panel">
-              <span className="canvas-kicker">ОТ КАДРА К ДЕТАЛЯМ</span>
-              <div className="search-empty-art" aria-hidden="true">
-                <div className="art-scan">
-                  <svg viewBox="0 0 180 100">
-                    <path d="m30 65 12-27c3-6 8-9 16-9h65c8 0 13 3 16 9l12 27v20H30V65Z" />
-                    <path d="m42 59 8-20h77l10 20H42Z" />
-                    <path d="M40 72h20m58 0h21M68 72h42" />
-                    <path d="M38 86v7m104-7v7" />
-                  </svg>
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </div>
-                <div className="art-side side-one" />
-                <div className="art-side side-two" />
-                <div className="art-connector" />
+              <div className="search-empty-symbol" aria-hidden="true">
+                <Icon name={needsGallery ? 'layers' : 'search'} size={52} />
               </div>
-              <h2>
-                Найдите автомобиль.
-                <br />
-                <span>Сравните детали.</span>
-              </h2>
-              <p>
-                Добавьте изображение автомобиля и выберите галерею.
-                <br />
-                Здесь появятся кандидаты для внимательного сравнения.
-              </p>
-              <div className="search-steps">
-                <span>
-                  <b>1</b>Выберите область
-                </span>
-                <Icon name="chevron" size={15} />
-                <span>
-                  <b>2</b>Запустите поиск
-                </span>
-                <Icon name="chevron" size={15} />
-                <span>
-                  <b>3</b>Сравните детали
-                </span>
-              </div>
-              <div className="empty-model-note">
-                <Icon name="activity" size={17} />
-                <span>
-                  Каждый поиск сохраняется в истории.
-                  <br />
-                  <strong>К сравнению можно вернуться в любой момент.</strong>
-                </span>
-              </div>
+              <h2>{emptyTitle}</h2>
+              <p>{emptyDescription}</p>
+              {needsGallery && (
+                <Button
+                  tone="primary"
+                  className="search-empty-action"
+                  onClick={() => navigate('galleries')}
+                >
+                  {session.role === 'admin' ? 'Подготовить галерею' : 'Открыть галереи'}
+                </Button>
+              )}
+              <a href="#history" className="search-history-link">
+                История поиска <Icon name="arrow" size={14} />
+              </a>
             </div>
           )}
         </ResultsSurface>
