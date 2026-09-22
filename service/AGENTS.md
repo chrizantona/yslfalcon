@@ -16,7 +16,7 @@ This directory implements the operator service. The research code outside it rem
 - Use explicit structured errors; never turn infrastructure failure into a model refusal.
 - Prefer vertical user scenarios and tests through public interfaces over private-method mocks and generic frameworks.
 - TypeScript strict mode; avoid `any`, swallowed errors, duplicated domain types and decorative abstractions. React components express user tasks; API transport stays in one module.
-- Interface follows a restrained desktop visual system: local Unbounded headings, Manrope body text and IBM Plex Mono data, clear typography, near-black (#0d0d0e) work surfaces without section dividers, translucent white dots behind search results, white accent text actions with the neutral palette from st-falcon.ru and compact text-only side navigation without icons, with accent-colored hover text, flat upload prompts with white vector artwork, restrained corner radii, consistent spacing, keyboard focus and reduced-motion support.
+- Interface follows a restrained desktop visual system: local Unbounded headings, Manrope body text and IBM Plex Mono data, clear typography, near-black (#0d0d0e) work surfaces without section dividers, a subdued static backdrop of blurred side-profile cars beneath the shell, translucent white dots behind search results with readable captions, white accent text actions with the neutral palette from st-falcon.ru and compact text-only side navigation without icons, with accent-colored hover text, flat upload prompts with white vector artwork, restrained corner radii, consistent spacing, keyboard focus and reduced-motion support.
 - Keep all runtime assets local. No CDN fonts, cloud model downloads or telemetry services.
 
 ## Checks

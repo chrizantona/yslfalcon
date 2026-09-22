@@ -540,6 +540,23 @@ small {
   flex-shrink: 0;
 }
 
+/* One static decorative layer beneath every page; UI and working images stay sharp. */
+.app-shell,
+.startup-screen {
+  position: relative;
+  isolation: isolate;
+}
+.app-shell::before,
+.startup-screen::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/images/vehicle-backdrop.png') center / cover no-repeat;
+  opacity: 0.2;
+}
+
 /* Studio shell: persistent side navigation, open work surfaces. */
 .app-shell {
   display: flex;
@@ -582,7 +599,6 @@ small {
   min-height: 68px;
   gap: 24px;
   padding: 0 24px;
-  background: var(--canvas);
 }
 .studio-brand {
   flex-shrink: 0;
@@ -601,7 +617,6 @@ small {
 }
 .studio-sidebar {
   padding: 16px 8px;
-  background: var(--canvas);
 }
 .studio-navigation {
   display: flex;
@@ -782,12 +797,14 @@ small {
   gap: 40px;
   align-items: start;
 }
-/* The same black canvas on both sides; only results carry a dot texture. */
+/* Dots sit above the shared backdrop. Lighter captions retain contrast on both. */
 .results-area {
+  --muted: #d4d4d4;
+  --secondary: #e0e0e0;
   position: relative;
   isolation: isolate;
   min-width: 0;
-  background-color: var(--canvas);
+  background-color: transparent;
   background-image: radial-gradient(circle, rgb(255 255 255 / 17%) 1px, transparent 1px);
   background-size: 22px 22px;
 }
@@ -2646,6 +2663,16 @@ td .button {
   min-height: 100vh;
   align-items: center;
   justify-content: center;
+}
+
+/* Portrait screens keep entire side profiles instead of cropping the wide image. */
+@media (max-aspect-ratio: 1/1) {
+  .app-shell::before,
+  .startup-screen::before {
+    background-size: 100% auto;
+    background-position: center top;
+    background-repeat: repeat-y;
+  }
 }
 
 /* Responsive studio: the side rail remains available at every width. */
