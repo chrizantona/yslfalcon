@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api';
+import { PageNavigation } from './components/PageNavigation';
 import { installHoverTypewriter } from './visuals/hoverTypewriter';
 import {
   Brand,
@@ -127,23 +128,8 @@ function ServiceShell({ session }: { session: Session }) {
           </a>
         </div>
       </header>
+      <PageNavigation page={page} />
       <div className="studio-body">
-        <aside className="studio-sidebar">
-          <nav className="studio-navigation" aria-label="Основные разделы">
-            {navigation
-              .filter((item) => item.group === 'main')
-              .map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  className={`studio-nav-item${page === item.id ? ' active' : ''}`}
-                  aria-current={page === item.id ? 'page' : undefined}
-                >
-                  <span>{item.label}</span>
-                </a>
-              ))}
-          </nav>
-        </aside>
         <div className="studio-workspace">
           <main id="main-content" tabIndex={-1}>
             <div className="model-banner">

@@ -595,11 +595,15 @@ small {
   isolation: isolate;
   min-height: 100vh;
 }
-/* Studio shell: persistent side navigation, open work surfaces. */
+/* Equal side gutters keep the workspace centered between the page links. */
 .app-shell {
+  --shell-gutter: 120px;
+  --shell-max-width: 1440px;
   display: flex;
   flex-direction: column;
+  width: min(var(--shell-max-width), calc(100% - 2 * var(--shell-gutter)));
   min-height: 100vh;
+  margin-inline: auto;
 }
 .brand {
   display: flex;
@@ -636,7 +640,7 @@ small {
   justify-content: space-between;
   min-height: 68px;
   gap: 24px;
-  padding: 0 24px;
+  padding: 0;
 }
 .studio-brand {
   flex-shrink: 0;
@@ -648,44 +652,59 @@ small {
   min-width: 0;
 }
 .studio-body {
-  display: grid;
-  grid-template-columns: 176px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
 }
-.studio-sidebar {
-  padding: 16px 8px;
-}
-.studio-navigation {
+.page-navigation-link {
+  position: fixed;
+  top: 50%;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  position: sticky;
-  top: 16px;
-}
-.studio-nav-item {
-  display: flex;
   align-items: center;
-  min-width: 0;
-  min-height: 44px;
-  width: 100%;
-  padding: 12px 16px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  justify-content: center;
+  gap: 10px;
+  width: calc(var(--shell-gutter) - 24px);
+  min-height: 88px;
+  padding: 12px 4px;
   color: var(--secondary);
-  font-size: 14px;
-  font-weight: 600;
+  transform: translateY(-50%);
   transition: color 140ms;
 }
-
-.studio-nav-item:hover,
-.studio-nav-item:focus-visible,
-.studio-nav-item.active {
-  color: var(--accent);
+.page-navigation-previous {
+  left: max(12px, calc((100vw - var(--shell-max-width)) / 2 - var(--shell-gutter) + 12px));
+}
+.page-navigation-next {
+  right: max(12px, calc((100vw - var(--shell-max-width)) / 2 - var(--shell-gutter) + 12px));
+}
+.page-navigation-arrow {
+  display: flex;
+  transition: transform 180ms ease;
+}
+.page-navigation-previous .page-navigation-arrow > svg {
+  transform: rotate(180deg);
+}
+.page-navigation-label {
+  font-family: 'Unbounded', 'Manrope', sans-serif;
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+.page-navigation-link:hover,
+.page-navigation-link:focus-visible {
+  color: var(--accent-hover);
   text-shadow: var(--accent-depth);
 }
-.studio-nav-item.active,
+.page-navigation-previous:hover .page-navigation-arrow,
+.page-navigation-previous:focus-visible .page-navigation-arrow {
+  transform: translateX(-4px);
+}
+.page-navigation-next:hover .page-navigation-arrow,
+.page-navigation-next:focus-visible .page-navigation-arrow {
+  transform: translateX(4px);
+}
 .studio-tool.active {
   font-weight: 750;
 }
@@ -768,8 +787,7 @@ small {
 #main-content {
   width: 100%;
   min-width: 0;
-  max-width: 1800px;
-  padding: 24px 32px 0;
+  padding: 24px 0 0;
   margin: 0 auto;
   outline: none;
   flex: 1;
@@ -2705,27 +2723,22 @@ td .button {
   justify-content: center;
 }
 
-/* Responsive studio: the side rail remains available at every width. */
+/* Keep equal gutters on desktop; put page links in the flow on narrow screens. */
 @media (min-width: 1500px) {
   .search-layout {
     grid-template-columns: 320px minmax(0, 1fr);
     gap: 36px;
   }
-  .studio-body {
-    grid-template-columns: 184px minmax(0, 1fr);
-  }
   .search-empty {
     min-height: 500px;
   }
 }
-@media (max-height: 480px) {
-  .studio-navigation {
-    position: static;
-  }
-}
 @media (max-width: 1120px) {
-  .studio-body {
-    grid-template-columns: 168px minmax(0, 1fr);
+  .app-shell {
+    --shell-gutter: 96px;
+  }
+  .page-navigation-label {
+    font-size: 10px;
   }
   .studio-header-meta {
     gap: 18px;
@@ -2821,6 +2834,39 @@ td .button {
   }
 }
 @media (max-width: 980px) {
+  .studio-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 64px;
+    gap: 4px 18px;
+    padding: 10px 0 4px;
+  }
+  .studio-brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .studio-header-meta {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+    gap: 14px;
+  }
+
+  .studio-header > .studio-tools {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+    margin-left: 0;
+    gap: 14px;
+  }
+
+  .studio-header .studio-tool {
+    font-size: 11px;
+  }
+  .studio-header .studio-tool > svg {
+    display: none;
+  }
+
   .search-layout {
     grid-template-columns: 1fr;
     gap: 24px;
@@ -2852,51 +2898,31 @@ td .button {
   }
 }
 @media (max-width: 700px) {
-  .studio-header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 64px;
-    gap: 4px 18px;
-    padding: 10px 16px 4px;
+  .app-shell {
+    --shell-gutter: 20px;
   }
-  .studio-brand {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .studio-header-meta {
-    grid-column: 2;
-    grid-row: 1;
-    justify-content: flex-end;
-    gap: 14px;
-  }
-  .studio-body {
-    grid-template-columns: 76px minmax(0, 1fr);
-  }
-  .studio-sidebar {
-    padding: 12px 6px;
-  }
-  .studio-navigation {
-    top: 12px;
-  }
-  .studio-nav-item {
-    justify-content: center;
-    padding: 10px 2px;
-    font-size: 11px;
-  }
-
-  .studio-header > .studio-tools {
-    grid-column: 1 / -1;
-    grid-row: 2;
+  .page-navigation {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
-    margin-left: 0;
-    gap: 14px;
+    gap: 16px;
+    padding: 10px 0 0;
   }
-
-  .studio-header .studio-tool {
-    font-size: 11px;
+  .page-navigation-link {
+    position: static;
+    flex-direction: row;
+    gap: 8px;
+    width: auto;
+    min-height: 48px;
+    padding: 8px 0;
+    transform: none;
   }
-  .studio-header .studio-tool > svg {
-    display: none;
+  .page-navigation-next .page-navigation-arrow {
+    order: 1;
+  }
+  .page-navigation-arrow > svg {
+    width: 28px;
+    height: 28px;
   }
 }
 @media (max-width: 640px) {
@@ -2910,7 +2936,7 @@ td .button {
     padding: 8px;
   }
   #main-content {
-    padding: 16px 16px 0;
+    padding: 16px 0 0;
   }
   .model-banner {
     font-size: 12px;
@@ -3179,11 +3205,8 @@ td .button {
   }
 }
 @media (max-width: 400px) {
-  #main-content {
-    padding-inline: 12px;
-  }
-  .studio-header {
-    padding-inline: 12px;
+  .app-shell {
+    --shell-gutter: 16px;
   }
   .button {
     white-space: normal;
