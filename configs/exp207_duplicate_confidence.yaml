@@ -1,0 +1,9 @@
+exp_id: EXP-207
+parent: EXP-206
+description: a refusal confidence blind to near-duplicate gallery frames, scored on two constructions of a query without a pair (the vehicle removed, as our protocol does, and its same-camera twin kept, as the test may do) and then applied to the real test file as a diagnostic
+fold: 4
+embeddings_dir: /workspace/yslfalcon_runs/EXP-201/artifacts/EXP-203/val_fold4   # the folds 0-3 soup on the full fold-4 gallery
+test_embeddings: /workspace/yslfalcon_runs/EXP-206/artifacts/EXP-203/submission/embeddings.npy
+n_test_query: 1110
+taus: [0.95, 0.96, 0.97, 0.98]
+threshold: 7.0446          # the threshold of EXP-202 that the plain confidence carries
