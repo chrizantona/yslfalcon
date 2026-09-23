@@ -10,10 +10,9 @@ them, which is exactly what reid.view_tokens fitted on.
 Refusal is decided on the encoder's own similarity, before the penalty, because that is how the threshold of EXP-202
 was calibrated; the penalty only reorders the candidates.
 
-Usage: PYTHONPATH=src python -m reid.view_head --data-config configs/data.yaml --val-config configs/val_v2.yaml \
-           --config configs/exp208_view_head.yaml
+The head is fitted once, offline, and shipped as a 15 KB file next to the checkpoint; the fitting CLI and the
+labels it needs live on the `experiments` branch (reid.view_head there, configs/exp208_view_head.yaml).
 """
-import argparse
 import json
 from pathlib import Path
 
@@ -62,56 +61,3 @@ def load(path):
         raise ValueError(f"the head was fitted for views {list(saved['views'])}")
     return {"weight": saved["weight"].astype(np.float32), "bias": saved["bias"].astype(np.float32),
             "meta": json.loads(str(saved["meta"]))}
-
-
-def main():
-    import pandas as pd
-    import torch
-
-    from reid.benchmark import InferencePrecision
-    from reid.data import load_yaml
-    from reid.embed import embed_boxes, pick_device
-    from reid.inference import load_trained_encoder
-    from reid.view_penalty import fit_view_head
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data-config", required=True)
-    parser.add_argument("--val-config", required=True)
-    parser.add_argument("--config", required=True)
-    args = parser.parse_args()
-    data_cfg, val_cfg, cfg = (load_yaml(p) for p in (args.data_config, args.val_config, args.config))
-    device, spec = pick_device(), cfg["candidate"]
-    model_cfg = load_yaml(spec["config"])["model"]
-    encoder, _, mean, std = load_trained_encoder(model_cfg, Path(data_cfg["checkpoint_dir"]) / spec["checkpoint"],
-                                                 data_cfg.get("external_weights_dir"))
-    encoder = InferencePrecision(encoder.eval().to(device), cfg.get("precision", "fp16"), device)
-
-    folds = pd.read_csv(Path(val_cfg["out_dir"]) / "folds.csv")
-    rows = folds[folds.fold.isin(cfg["folds"])].reset_index(drop=True)
-    images = Path(data_cfg["dataset_dir"]) / "images"
-    _, tokens = mean_patch_tokens(encoder, lambda: embed_boxes(
-        encoder, rows, images, model_cfg["input_hw"], mean, std, data_cfg["crop_max_side"], device=device,
-        **cfg["embed"]))
-
-    labels = pd.read_csv("protocol/attributes.csv").set_index("image_id").view
-    code = {v: k for k, v in enumerate(VIEWS)}
-    y = labels.reindex(rows.image_id).map(code).to_numpy()
-    if np.isnan(y).any():
-        raise ValueError("protocol/attributes.csv has no view for some training rows")
-    h = cfg["head"]
-    weight, bias = fit_view_head(tokens, y.astype(np.int64), h["epochs"], h["lr"], h["weight_decay"])
-    agreement = float((views(tokens, {"weight": weight, "bias": bias}) == labels.reindex(rows.image_id).to_numpy()).mean())
-    meta = {"exp_id": cfg["exp_id"], "folds": cfg["folds"], "rows": int(len(rows)), "source": spec["checkpoint"],
-            "precision": cfg.get("precision", "fp16"), "train_agreement_with_clip": agreement, **h}
-    out = Path(data_cfg["checkpoint_dir"]) / cfg["head_name"]
-    if out.exists():
-        raise FileExistsError(out)
-    save(out, weight, bias, meta)
-    report = {**meta, "file": str(out), "size_kb": round(out.stat().st_size / 1024, 1)}
-    Path("artifacts", cfg["exp_id"]).mkdir(parents=True, exist_ok=True)
-    Path("artifacts", cfg["exp_id"], "head.json").write_text(json.dumps(report, indent=2))
-    print(json.dumps(report, indent=2), flush=True)
-
-
-if __name__ == "__main__":
-    main()
