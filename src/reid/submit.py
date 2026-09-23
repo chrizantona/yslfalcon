@@ -18,20 +18,29 @@ from reid.embed import ClipEmbedder, embed_boxes, pick_device
 from reid.inference import load_trained_encoder
 from reid.benchmark import InferencePrecision
 from reid.metrics import TOP_K, zscore
+from reid import view_head
 
 
-def build_submission(query_emb, gallery_emb, query_ids, gallery_ids, threshold, max_candidates=TOP_K):
-    """(submission, candidates) frames. A query is answered when its top-1 z-score >= threshold; it then lists its top
-    max_candidates items with their z-scores, so a same-camera twin dropped by the scorer still leaves a candidate.
-    A refused query gets no rows, as the organisers read candidates.csv."""
+def build_submission(query_emb, gallery_emb, query_ids, gallery_ids, threshold, max_candidates=TOP_K, penalty=None):
+    """(submission, candidates) frames.
+
+    penalty (nq x ng) is subtracted from the similarity for ranking only - the viewpoint penalty of reid.view_head.
+    A query is answered when its top-1 z-score *before* the penalty is at least threshold, because that is the
+    quantity the threshold of EXP-202 was calibrated on; a refused query gets no rows, as the organisers read
+    candidates.csv. Their evaluate.py sorts a query's candidates by confidence and judges the highest one, ignoring
+    the rest, so one row per query is enough and leaves the choice unambiguous."""
     sim = query_emb @ gallery_emb.T
-    order = np.argsort(-sim, axis=1, kind="stable")
-    submission = pd.DataFrame(gallery_ids[order[:, :TOP_K]], columns=[f"gallery_id_{i}" for i in range(1, TOP_K + 1)])
+    ranking = sim if penalty is None else sim - penalty
+    if penalty is not None and max_candidates > 1:
+        raise ValueError("with a penalty the listed order and the confidences disagree: use max_candidates 1")
+    order = np.argsort(-ranking, axis=1, kind="stable")
+    top = order[:, :TOP_K]                        # a gallery smaller than ten leaves shorter rows, as in their example
+    submission = pd.DataFrame(gallery_ids[top], columns=[f"gallery_id_{i}" for i in range(1, top.shape[1] + 1)])
     submission.insert(0, "query_id", query_ids)
 
-    z = zscore(sim)
-    rows = [{"query_id": query_id, "gallery_id": gallery_ids[j], "confidence": round(float(z[qi, j]), 4)}
-            for qi, query_id in enumerate(query_ids) if z[qi, order[qi, 0]] >= threshold
+    confidence = zscore(sim).max(1)
+    rows = [{"query_id": query_id, "gallery_id": gallery_ids[j], "confidence": round(float(confidence[qi]), 4)}
+            for qi, query_id in enumerate(query_ids) if confidence[qi] >= threshold
             for j in order[qi, :max_candidates]]
     return submission, pd.DataFrame(rows, columns=["query_id", "gallery_id", "confidence"])
 
@@ -69,13 +78,27 @@ def main():
         def embed(rows):
             return embedder.embed_boxes(rows, dataset_dir / "images", data_cfg["crop_max_side"], **cfg["embed"])
 
-    query_emb, gallery_emb = embed(query), embed(gallery)
+    view = cfg.get("view")            # the viewpoint penalty of EXP-192/204; the head is a 1152x3 matrix
+    if view is None:
+        query_emb, gallery_emb, penalty = embed(query), embed(gallery), None
+    else:
+        if not checkpoint_name:
+            raise ValueError("the viewpoint penalty needs a trained encoder, not a zero-shot CLIP tower")
+        head = view_head.load(Path(data_cfg["checkpoint_dir"]) / view["head"])
+        query_emb, q_tokens = view_head.mean_patch_tokens(encoder, lambda: embed(query))
+        gallery_emb, g_tokens = view_head.mean_patch_tokens(encoder, lambda: embed(gallery))
+        q_views, g_views = view_head.views(q_tokens, head), view_head.views(g_tokens, head)
+        penalty = view_head.penalty(q_views, g_views, view["delta"])
+        print(f"views: query {dict(zip(*np.unique(q_views, return_counts=True)))}, "
+              f"gallery {dict(zip(*np.unique(g_views, return_counts=True)))}; "
+              f"penalised pairs {float((penalty > 0).mean()):.1%}")
 
     out = Path("artifacts") / cfg["exp_id"] / "submission"
     out.mkdir(parents=True, exist_ok=True)
     np.save(out / "embeddings.npy", np.concatenate([query_emb, gallery_emb]))
     submission, candidates = build_submission(query_emb, gallery_emb, query.image_id.to_numpy(),
-                                              gallery.image_id.to_numpy(), threshold, cfg["refusal"]["max_candidates"])
+                                              gallery.image_id.to_numpy(), threshold,
+                                              cfg["refusal"]["max_candidates"], penalty)
     submission.to_csv(out / "submission.csv", index=False, header=False)  # the organisers' format has no header
     candidates.to_csv(out / "candidates.csv", index=False)
 
