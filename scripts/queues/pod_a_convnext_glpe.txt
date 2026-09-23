@@ -1,4 +1,0 @@
-# Second pod, 18.09.2026: ConvNeXt-L + OT-GFAM + GLPE at a colleague's request - VehicleID pretraining (EXP-057,
-# ~6 h, ~12 GB), then our folds (EXP-058), three seeds in parallel on GPU 3 (53 GB free at launch).
-EXP-057 configs/exp057_convnext_glpe_vehicleid.yaml 3 3 1
-EXP-058 configs/exp058_convnext_glpe_init_exp057.yaml 3 3 1

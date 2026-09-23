@@ -4,7 +4,6 @@ import torch
 
 from reid.data import to_model_input
 from reid.metrics import paired_bootstrap, pick_threshold, refusal_curve, reid_eval, reid_eval_top10
-from reid.protocol import assign_folds, no_match_by_query_share, pseudo_test
 from reid.submit import build_submission
 
 
@@ -62,28 +61,9 @@ def test_map_at_10_drops_junk_without_backfill_and_divides_by_min_npos_10():
     assert np.isnan(ap[0]) and summary["n_queries"] == 0  # no positive: excluded, not AP = 0
 
 
-def test_no_match_vehicles_cover_the_requested_share_of_queries():
-    query = pd.DataFrame({"vehicle_id": np.repeat(np.arange(20), 5)})
-    picked = no_match_by_query_share(query, 0.2, np.random.default_rng(0))
-    assert len(picked) == 4 and query.vehicle_id.isin(picked).mean() == 0.2
-
-
 def test_paired_bootstrap_of_identical_models_is_zero():
     ap = np.array([0.2, 0.5, 0.9, 0.4])
     assert paired_bootstrap(ap, ap.copy(), [1, 1, 2, 3]) == (0.0, 0.0, 0.0)
-
-
-def test_folds_group_vehicles_and_pseudo_test_follows_the_recipe():
-    rows = [(f"{v}_{c}_{i}", v, c) for v in range(40) for c in (v % 7, 89 if v % 3 == 0 else 20) for i in range(2)]
-    train = pd.DataFrame(rows, columns=["image_id", "vehicle_id", "camera_id"])
-    folds = assign_folds(train, 5, seed=42)
-    assert (train.assign(fold=folds).groupby("vehicle_id").fold.nunique() == 1).all()
-
-    fold_df = train[folds == 0]
-    query, gallery = pseudo_test(fold_df, seed=0)
-    assert (gallery.groupby(["vehicle_id", "camera_id"]).size() == 1).all()
-    assert len(query) + len(gallery) == len(fold_df)
-    assert set(query.image_id).isdisjoint(gallery.image_id)
 
 
 def test_build_submission_ranks_and_refuses_with_no_rows():

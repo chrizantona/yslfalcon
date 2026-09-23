@@ -1,4 +1,0 @@
-# Second pod (rougenn), 20.09.2026: EXP-153 distillation extended to unlabelled VERI-Wild images (138,517), one
-# unlabelled batch of 128 next to every labelled batch. GPU 3, three seeds one after another; the teacher embeddings
-# of the external set are computed once and cached for the seeds.
-EXP-154 configs/exp154_distill_veriwild.yaml 3 3 0

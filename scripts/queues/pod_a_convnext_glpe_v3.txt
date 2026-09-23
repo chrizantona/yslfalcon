@@ -1,4 +1,0 @@
-# Second pod, 18.09.2026: corrected ConvNeXt-L + BN + OT-GFAM + GLPE with GeM p >= 1 (EXP-061 went NaN) -
-# VehicleID pretraining (EXP-063, ~7 h, ~12 GB), then our folds (EXP-064) on GPU 3.
-EXP-063 configs/exp063_convnext_glpe_gem_min_p_vehicleid.yaml 3 3 1
-EXP-064 configs/exp064_convnext_glpe_gem_min_p_init_exp063.yaml 3 3 1

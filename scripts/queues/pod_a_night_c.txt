@@ -1,4 +1,0 @@
-# Second pod, night of 17-18.09.2026, queue C on GPU 3: backbone lr for SigLIP 2, never tuned for it (EXP-042).
-# Seeds run one after another: one SigLIP 2 training needs ~42 GB and GPU 3 has ~53 GB free.
-EXP-051 configs/exp051_siglip2_lr5e-6.yaml 3 3 0
-EXP-052 configs/exp052_siglip2_lr2e-5.yaml 3 3 0

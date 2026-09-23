@@ -1,2 +1,0 @@
-# OSNet control needs no EXP-054 checkpoint; real-batch preflight required.
-EXP-067 configs/exp067_osnet_ain.yaml 3 3,2,0 1 train

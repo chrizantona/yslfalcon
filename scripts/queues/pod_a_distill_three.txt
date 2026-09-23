@@ -1,4 +1,0 @@
-# Second pod (rougenn), 20.09.2026: distillation from the three-model ensemble of EXP-158 (0.9049) with the
-# unlabelled VERI-Wild stream. GPU 1, three seeds one after another; the teacher embeddings of 138,517 external
-# images are computed once for all three members (about 25 minutes) and cached for the seeds.
-EXP-159 configs/exp159_distill_three_teachers.yaml 1 1 0

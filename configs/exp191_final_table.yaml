@@ -1,7 +1,0 @@
-exp_id: EXP-191
-parent: EXP-190
-description: every fixed candidate of EXP-178 on fold 0 and on the holdout fold 4 in the single-gallery setting of the test, at the plateau-centre thresholds of EXP-178, with and without the EXP-190 viewpoint penalty - nothing fitted, a comparison table
-candidates_from: configs/exp178_refusal_calibration.yaml
-thresholds_from: artifacts/EXP-178/summary.json   # copied into the run dir from the EXP-178 run
-view_penalty: 0.07          # clip_hard delta chosen on fold 0 in EXP-190
-view_penalty_on: [EXP-164, EXP-164+reranker]

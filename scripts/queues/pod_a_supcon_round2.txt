@@ -1,5 +1,0 @@
-# Second pod (rougenn), 19.09.2026: SupCon temperature 0.1 / 0.05 and three more seeds of the EXP-053 recipe for a
-# six-seed soup. Three seeds in parallel on GPUs 1/2/3 (~45 GB each, measured); GPU 0 is left to the other services.
-EXP-070 configs/exp070_siglip2_supcon_t010.yaml 1 1,2,3 1
-EXP-071 configs/exp071_siglip2_supcon_t005.yaml 1 1,2,3 1
-EXP-072 configs/exp072_siglip2_supcon_seeds345.yaml 1 1,2,3 1

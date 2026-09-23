@@ -1,4 +1,0 @@
-# Second pod, night of 17-18.09.2026, queue A on GPU 1: ArcFace knobs on the accepted SigLIP 2 recipe (EXP-042).
-# Seeds run one after another: one SigLIP 2 training needs ~42 GB and GPU 1 has ~70 GB free.
-EXP-049 configs/exp049_siglip2_arcface_m03.yaml 1 1 0
-EXP-050 configs/exp050_siglip2_arcface_no_smoothing.yaml 1 1 0

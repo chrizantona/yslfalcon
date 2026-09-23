@@ -1,4 +1,0 @@
-# Second pod, 18.09.2026: CLIP-SENet at a colleague's request - VehicleID pretraining (EXP-055, ~6 h, ~30 GB),
-# then our folds (EXP-056): seeds 0/2 on GPU 2 and seed 1 on GPU 1 (~30 GB each; 88/70 GB free at launch).
-EXP-055 configs/exp055_clip_senet_vehicleid.yaml 2 2 1
-EXP-056 configs/exp056_clip_senet_init_exp055.yaml 2 2,1,2 1

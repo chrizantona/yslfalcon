@@ -14,6 +14,7 @@ COPY scripts/docker_fetch_checkpoint.py scripts/docker_fetch_checkpoint.py
 ENV PYTHONPATH=/app/src HF_HOME=/opt/hf PYTHONDONTWRITEBYTECODE=1
 
 # Bake the trained checkpoint into the image, then forbid HF downloads at runtime.
+# TODO: these still point at the EXP-037 release asset; swap them for the published final weights and the view head.
 ARG WEIGHTS_URL=https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/570071465
 ARG WEIGHTS_SHA256=ed735cad60ba42f79e2e2b933fd5565256da9327de7018155a0be22642ce3a29
 ARG CHECKPOINT_NAME=exp037.pt
@@ -23,4 +24,4 @@ ENV HF_HUB_OFFLINE=1
 RUN useradd --uid 1000 --create-home falcon && mkdir -p /app/artifacts && chown falcon:falcon /app/artifacts
 USER falcon
 ENTRYPOINT ["python", "-m", "reid.submit", "--data-config", "configs/data_docker.yaml", "--config"]
-CMD ["configs/submit_exp037.yaml"]
+CMD ["configs/final_model.yaml"]

@@ -1,3 +1,0 @@
-# Second pod (rougenn), 20.09.2026: a camera-adversarial head behind a gradient reversal layer on the EXP-089 recipe.
-# GPU 3, three seeds one after another.
-EXP-157 configs/exp157_camera_adversarial.yaml 3 3 0

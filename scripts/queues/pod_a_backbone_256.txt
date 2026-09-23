@@ -1,3 +1,0 @@
-# Second pod (rougenn), 19.09.2026: the SigLIP 2 So400m/16 tower at 256 px against the So400m/14 tower at 224
-# (EXP-032 screening recipe). GPU 1, three seeds one after another (~45 GB each), next to the other two queues.
-EXP-100 configs/exp100_siglip2_so400m16_256.yaml 1 1 0

@@ -14,7 +14,7 @@ services:
     volumes:
       - ${DATASET_DIR:-./BIG_DATA/dataset}:/data:ro
       - ./artifacts:/app/artifacts
-    command: ["${SUBMIT_CONFIG:-configs/submit_exp037.yaml}"]
+    command: ["${SUBMIT_CONFIG:-configs/final_model.yaml}"]
     deploy:
       resources:
         reservations:

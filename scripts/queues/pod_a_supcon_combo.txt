@@ -1,5 +1,0 @@
-# Second pod (rougenn), 19.09.2026: the two accepted recipe changes together - SupCon + batch-hard triplet (EXP-076)
-# with SupCon temperature 0.1 (EXP-070). Three seeds in parallel on GPUs 1/2/3 (~45 GB each); GPU 0 is left to the
-# other services. The EXP-090 soup of these seeds runs after the queue through scripts/pod_soup_job.sh (fp16 check +
-# benchmark), see experiments/EXP-090.md.
-EXP-089 configs/exp089_siglip2_supcon_triplet_t010.yaml 1 1,2,3 1

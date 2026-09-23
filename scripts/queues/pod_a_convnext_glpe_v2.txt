@@ -1,4 +1,0 @@
-# Second pod, 18.09.2026: ConvNeXt-L + BN + OT-GFAM + GLPE with the colleague's corrections (concatenated descriptor,
-# gate from the OT-GFAM input) - VehicleID pretraining (EXP-061, ~7 h, ~12 GB), then our folds (EXP-062) on GPU 3.
-EXP-061 configs/exp061_convnext_glpe_concat_vehicleid.yaml 3 3 1
-EXP-062 configs/exp062_convnext_glpe_concat_init_exp061.yaml 3 3 1

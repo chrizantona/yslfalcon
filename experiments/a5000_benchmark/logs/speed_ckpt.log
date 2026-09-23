@@ -1,8 +1,0 @@
-siglip2 1152
-laion_vitl 768
-dfn2b 768
-convnext 768
-eva02 768
-Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-vitb 512

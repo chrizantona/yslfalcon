@@ -1,2 +1,0 @@
-# Stabilised OT-GFAM + GLPE screening on one free H200; one seed, benchmark on the same GPU.
-EXP-123 configs/exp123_ot_gfam_stable.yaml 3 3 0 train
