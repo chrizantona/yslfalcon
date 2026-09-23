@@ -1,5 +1,64 @@
 # Проверки выпуска сервиса
 
+## 23 сентября 2026: три функции приоритета A для защиты
+
+На preview-заглушке реализованы три независимые от модели функции: экспертная доска query/candidate/
+competitor с общим zoom/pan, BBox и неизменяемыми координатными пометками; offline-дело ZIP с
+реальными изображениями, PDF/JSON, локальным viewer, SHA-256 manifest и verifier; смысловой diff
+двух готовых версий с миниатюрами и переходом к прежней compare-and-swap активации. Основное меню,
+палитра и композиция страниц не менялись. Модель, веса и ML-зависимости не добавлялись.
+
+- **119 backend-тестов прошли**. Новые интеграционные проверки охватывают сохранение пометок,
+  лимит 20 точек, отклонение ссылок вне выдачи, workspace isolation diff, дублирующиеся external ID,
+  старые версии без digest, added/removed/changed BBox, пагинацию, содержимое ZIP, внешний ETag/SHA,
+  все внутренние SHA-256 и фактический успех/отказ `verify.py` после изменения файла.
+- **82 frontend-теста прошли**; TypeScript/Vite production build, Prettier, Ruff check и Ruff format
+  прошли. Новые transport-тесты фиксируют version IDs diff, массив пометок и явный export `case`.
+- Compose пересобран; `api`, `worker`, `runtime`, `web`, `postgres` healthy. Полный HTTP smoke на
+  работающем стенде прошёл: preview не принял совпадение, diff сообщил 1 добавление/2 удаления,
+  JSON/CSV/PDF/ZIP скачались, ZIP содержал viewer/manifest/verifier, replay сохранил старую версию.
+- Финальный PDF smoke-отчёт отрендерен Poppler в две A4-страницы и просмотрен: кириллица, BBox,
+  координатная пометка, две пары original/crop, переносы, поля и footer отображаются без наложений
+  и обрезки. В offline HTML контейнер маркеров повторяет intrinsic aspect изображения без letterbox.
+- Встроенный браузер недоступен, список browser backends пуст. Реальные клики, синхронный pan,
+  placement координатных точек, адаптивная 3-up раскладка и diff-modal визуально **не проверены**;
+  unit/API/build/HTTP не заменяют эту приёмку.
+
+Новая схема добавляет только таблицы `review_annotations` и `observation_digests`; существующие
+таблицы не изменяются. Offline-дело собирается через spooled-файл; исходное содержимое и готовый
+архив независимо ограничены 256 МиБ. Новые digest сохраняются при
+импорте; для старых версий diff читает оригинал и вычисляет недостающий SHA-256 без использования
+хэша в ранжировании.
+
+## 23 сентября 2026: контракт внешнего GPU runtime и сервисный аудит
+
+Default-профиль по-прежнему запускает только явно обозначенный preview. Добавлены отдельный
+`docker-compose.gpu.yml`, read-only model bundle, NVIDIA reservation, preflight полного inventory с
+SHA-256 и лимитом 2 000 000 000 байт, обязательный image digest, точные ожидаемые `model_id` и
+`weights_bytes`, fail-closed capability handshake. API/worker не получили ML-зависимостей.
+Публичные capability/model ответы больше не зашиты в `false`, но preview фактически сообщает CPU,
+float32, 0 байт и отсутствие обученной модели.
+
+- **115 backend-тестов прошли**, включая новые проверки bundle gate, согласованности capability claims
+  и production capability path;
+  Ruff check и format прошли для 55 файлов. Сохранились два предупреждения Starlette/AnyIO.
+- **79 frontend-тестов прошли**; TypeScript/Vite production build и Prettier прошли. В существующий
+  экран качества добавлены только фактические device/precision/weight bytes, основная композиция не
+  менялась.
+- Обычный и GPU Compose config прошли. GPU-вариант на macOS не запускался: реального bundle/GPU нет.
+- Собраны и установлены единые arm64-образы `service-gpu-contract-20260923-arm64`; все пять
+  контейнеров healthy, существующие PostgreSQL/artifact volumes сохранены.
+- Через `127.0.0.1:8090` получены 200 для `/`, `/docs`, readiness, capabilities, models и system.
+  Readiness остался `preview`; ответы подтвердили `real_model_connected=false`, `device=cpu`,
+  `precision=float32`, `weights_bytes=0`.
+- `git diff --check` и статический аудит требований прошли. Зависимости и модель не изменялись.
+- `pip-audit -r requirements.lock` и `npm audit --audit-level=high` по актуальным базам не нашли
+  известных уязвимостей.
+
+Встроенный браузер вернул `No browser is available`. Реальные клики, zoom, анимации и визуальная
+раскладка **не проверены**; HTTP/build/unit-проверки это не заменяют. Обученная модель, CUDA runtime,
+калибровка, официальный benchmark и автономный amd64 GPU-комплект также не проверялись.
+
 ## 23 сентября 2026: сферический перекат между основными разделами
 
 Переход между галереями, поиском и историей анимирует снимки рабочей области вокруг общей оси в глубине: поворот ±56°, перспектива 1600 px, длительность 620 мс. Направление совпадает со стрелками и общим циклом разделов. Шапка и стрелки сохраняют положение; в React остаётся одна текущая страница. Сохранены native hash-ссылки и маршруты `search/id`, новые зависимости не добавлялись.

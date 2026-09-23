@@ -63,7 +63,12 @@ def test_binary_routes_declare_the_real_content_types(application):
     image = paths["/api/v1/searches/{search_id}/image"]["get"]["responses"]["200"]
     assert set(image["content"]) == {"image/jpeg", "image/png"}
     exported = paths["/api/v1/exports/{export_id}/download"]["get"]["responses"]["200"]
-    assert set(exported["content"]) == {"application/json", "text/csv", "application/pdf"}
+    assert set(exported["content"]) == {
+        "application/json",
+        "text/csv",
+        "application/pdf",
+        "application/zip",
+    }
     assert exported["content"]["application/json"]["schema"] == {"$ref": "#/components/schemas/SearchReport"}
 
 
@@ -146,6 +151,41 @@ def test_internal_runtime_documents_binary_transport_and_actual_auth_errors():
         invalid = client.post("/internal/v1/encode", headers=HEADERS)
         assert invalid.status_code == 422
         assert isinstance(RuntimeErrorResponse.model_validate(invalid.json()).detail, list)
+
+
+def test_public_capabilities_report_an_injected_production_runtime(tmp_path):
+    class ProductionRuntime(PreviewEncoder):
+        mode = "production"
+        model_id = "falcon-serving-release-fixture"
+        real_model_connected = True
+        device = "cuda:0"
+        precision = "float16"
+        weights_bytes = 123_456_789
+
+    settings = Settings(
+        database_url=f"sqlite:///{tmp_path}/production-contract.db",
+        storage_root=tmp_path / "artifacts",
+        engine_mode="remote",
+        expected_model_id=ProductionRuntime.model_id,
+        expected_weights_bytes=ProductionRuntime.weights_bytes,
+        auth_tokens={TOKEN: {"role": "admin", "workspace": "contracts"}},
+    )
+    with TestClient(create_app(settings, ProductionRuntime())) as client:
+        capabilities = client.get("/api/v1/capabilities", headers=HEADERS).json()
+        models = client.get("/api/v1/models", headers=HEADERS).json()
+    assert capabilities["engine"] == {
+        "mode": "production",
+        "model_id": ProductionRuntime.model_id,
+        "dimension": ProductionRuntime.dimension,
+        "ready": True,
+        "real_model_connected": True,
+        "device": "cuda:0",
+        "precision": "float16",
+        "weights_bytes": 123_456_789,
+    }
+    assert capabilities["features"]["trained_model_connected"] is True
+    assert models["items"][0]["trained_model_connected"] is True
+    assert models["items"][0]["weights_bytes"] == 123_456_789
 
 
 def test_documented_runtime_rerank_wire_round_trip():

@@ -9,9 +9,12 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from falcon_service.cli import preview_export
+from falcon_service.config import Settings
 from falcon_service.inference import PreviewEncoder, RemoteEncoder
 from falcon_service.inference.wire import pack_features, unpack_features
 from falcon_service.model_runtime import create_app
+from falcon_service.runtime import EncoderRuntime
+from falcon_service.runtime_schemas import RuntimeCapabilities
 
 TOKEN = "fixture-runtime-token-32-characters"
 
@@ -35,6 +38,9 @@ def test_runtime_auth_binary_output_and_bad_image():
         capabilities = client.get("/internal/v1/capabilities", headers=headers).json()
         assert capabilities["mode"] == "preview"
         assert capabilities["real_model_connected"] is False
+        assert capabilities["device"] == "cpu"
+        assert capabilities["precision"] == "float32"
+        assert capabilities["weights_bytes"] == 0
         response = client.post(
             "/internal/v1/encode", files={"image": ("image.png", image_bytes())}, headers=headers
         )
@@ -52,6 +58,33 @@ def test_runtime_refuses_missing_secret(monkeypatch):
             pass
 
 
+def test_runtime_rejects_a_weight_inventory_mismatch():
+    runtime = EncoderRuntime(Settings(expected_weights_bytes=1), PreviewEncoder())
+    runtime.initialize()
+
+    assert runtime.encoder is None
+    assert "FALCON_EXPECTED_WEIGHTS_BYTES" in runtime.error
+
+
+@pytest.mark.parametrize(
+    ("mode", "connected", "weights"),
+    [("preview", True, 1), ("production", False, 0), ("production", True, 0)],
+)
+def test_runtime_capabilities_reject_inconsistent_model_claims(mode, connected, weights):
+    with pytest.raises(ValueError):
+        RuntimeCapabilities(
+            mode=mode,
+            model_id="fixture",
+            dimension=192,
+            rerank_window=0,
+            calibration_policy=None,
+            real_model_connected=connected,
+            device="cuda:0" if connected else "cpu",
+            precision="float16" if connected else "float32",
+            weights_bytes=weights,
+        )
+
+
 def test_remote_adapter_preserves_binary_features_and_auth(monkeypatch):
     encoder = PreviewEncoder()
     feature = encoder.encode(image_bytes())
@@ -67,6 +100,11 @@ def test_remote_adapter_preserves_binary_features_and_auth(monkeypatch):
                     "mode": encoder.mode,
                     "dimension": encoder.dimension,
                     "rerank_window": 0,
+                    "calibration_policy": None,
+                    "real_model_connected": False,
+                    "device": "cpu",
+                    "precision": "float32",
+                    "weights_bytes": 0,
                 },
             )
         assert request.url.path.endswith("encode")
@@ -83,6 +121,7 @@ def test_remote_adapter_preserves_binary_features_and_auth(monkeypatch):
         np.testing.assert_array_equal(received.embedding, feature.embedding)
         assert received.model_id == feature.model_id
         assert remote.mode == "preview"
+        assert remote.real_model_connected is False
     finally:
         remote.close()
 

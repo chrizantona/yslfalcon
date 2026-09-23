@@ -10,6 +10,7 @@ from starlette.concurrency import run_in_threadpool
 from ..auth import Principal, principal, require_role
 from ..catalog import activate, prepare_import, scoped
 from ..errors import ServiceError, image_validation_message
+from ..gallery_diff import compare_versions
 from ..imports import (
     CreateImportSession,
     create_session,
@@ -24,6 +25,7 @@ from ..presenters import gallery_view, job_view, version_view
 from ..response_schemas import (
     GalleryList,
     GalleryResponse,
+    GalleryVersionDiffResponse,
     GalleryVersionList,
     ImportSessionList,
     ImportSessionResponse,
@@ -91,6 +93,31 @@ def versions(gallery_id: str, request: Request, identity: Principal = Depends(pr
             .order_by(GalleryVersion.number.desc())
         )
         return {"items": [version_view(row, gallery.active_version_id) for row in rows]}
+
+
+@router.get(
+    "/{gallery_id}/versions/{to_version_id}/diff",
+    response_model=GalleryVersionDiffResponse,
+)
+def version_diff(
+    gallery_id: str,
+    to_version_id: str,
+    request: Request,
+    from_version_id: str = Query(min_length=1, max_length=36),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    identity: Principal = Depends(principal),
+):
+    return compare_versions(
+        request.app.state.db,
+        request.app.state.store,
+        identity.workspace,
+        gallery_id,
+        from_version_id,
+        to_version_id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def _decode_manifest(value: str | None, filenames: set[str]) -> dict:

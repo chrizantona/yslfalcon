@@ -116,6 +116,15 @@ class ImportSessionResponse(ResponseModel):
 ImportSessionList = Items[ImportSessionResponse]
 
 
+class ReviewAnnotationResponse(ResponseModel):
+    id: str
+    image_ref: str
+    surface: Literal["crop", "original"]
+    kind: Literal["match", "conflict", "unclear"]
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
+
+
 class ReviewResponse(ResponseModel):
     id: str
     search_id: str
@@ -124,6 +133,7 @@ class ReviewResponse(ResponseModel):
     note: str
     actor: str
     created_at: Timestamp
+    annotations: list[ReviewAnnotationResponse]
 
 
 class QueryImage(ResponseModel):
@@ -236,6 +246,33 @@ class JobResponse(ResponseModel):
 JobList = Page[JobResponse]
 
 
+class GalleryVersionDiffItem(ResponseModel):
+    identity: str
+    external_id: str | None
+    change: Literal["added", "removed", "changed"]
+    from_observation_id: str | None
+    to_observation_id: str | None
+    image_changed: bool
+    bbox_changed: bool
+    from_bbox: BBox | None
+    to_bbox: BBox | None
+
+
+class GalleryVersionDiffResponse(ResponseModel):
+    gallery_id: str
+    from_version_id: str
+    to_version_id: str
+    from_number: int
+    to_number: int
+    added: int = Field(ge=0)
+    removed: int = Field(ge=0)
+    changed: int = Field(ge=0)
+    unchanged: int = Field(ge=0)
+    total_changes: int = Field(ge=0)
+    items: list[GalleryVersionDiffItem]
+    next_offset: int | None
+
+
 class LiveResponse(ResponseModel):
     status: Literal["alive"]
     version: str
@@ -251,6 +288,10 @@ class EngineCapabilities(ResponseModel):
     model_id: str | None
     dimension: int | None
     ready: bool
+    real_model_connected: bool
+    device: str | None
+    precision: str | None
+    weights_bytes: int | None = Field(default=None, ge=0, le=2_000_000_000)
 
 
 class SearchProfile(ResponseModel):
@@ -270,8 +311,11 @@ class ServiceFeatures(ResponseModel):
     replay: bool
     occlusion_explanations: bool
     durable_jobs: bool
-    exports: list[Literal["json", "csv", "pdf"]]
-    trained_model_connected: Literal[False]
+    exports: list[Literal["json", "csv", "pdf", "case"]]
+    expert_board: bool
+    gallery_version_diff: bool
+    offline_case_export: bool
+    trained_model_connected: bool
 
 
 class CapabilitiesResponse(ResponseModel):
@@ -288,7 +332,10 @@ class ModelResponse(ResponseModel):
     mode: str
     dimension: int | None
     status: Literal["ready", "unavailable"]
-    trained_model_connected: Literal[False]
+    trained_model_connected: bool
+    device: str | None
+    precision: str | None
+    weights_bytes: int | None = Field(default=None, ge=0, le=2_000_000_000)
     description: str
 
 

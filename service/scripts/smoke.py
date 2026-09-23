@@ -6,6 +6,7 @@ import argparse
 import io
 import json
 import time
+import zipfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -103,6 +104,15 @@ def run(url: str, token: str) -> dict:
                     "observation_id": candidate["observation_id"],
                     "verdict": "uncertain",
                     "note": "Проверка сервиса: синтетическое изображение, модель-заглушка.",
+                    "annotations": [
+                        {
+                            "image_ref": "query",
+                            "surface": "crop",
+                            "kind": "match",
+                            "x": 0.4,
+                            "y": 0.5,
+                        }
+                    ],
                 },
             )
         )
@@ -116,7 +126,7 @@ def run(url: str, token: str) -> dict:
             ),
         )
         exported = {}
-        for format_name in ("json", "csv", "pdf"):
+        for format_name in ("json", "csv", "pdf", "case"):
             artifact = await_job(
                 client,
                 expect(
@@ -128,7 +138,10 @@ def run(url: str, token: str) -> dict:
             )
             download = client.get(artifact["download_url"])
             download.raise_for_status()
-            if format_name == "pdf":
+            if format_name == "case":
+                with zipfile.ZipFile(io.BytesIO(download.content)) as archive:
+                    assert {"viewer.html", "manifest.json", "verify.py"} <= set(archive.namelist())
+            elif format_name == "pdf":
                 assert download.content.startswith(b"%PDF-")
             elif format_name == "json":
                 assert download.json()["search"]["id"] == result["id"]
@@ -144,6 +157,13 @@ def run(url: str, token: str) -> dict:
                 )
             ),
         )
+        diff = expect(
+            client.get(
+                f"/api/v1/galleries/{gallery['id']}/versions/{replacement['version_id']}/diff",
+                params={"from_version_id": imported["version_id"]},
+            )
+        )
+        assert diff["added"] == 1 and diff["removed"] == 2
         expect(
             client.post(
                 f"/api/v1/galleries/{gallery['id']}/versions/{replacement['version_id']}/activate",
@@ -168,6 +188,11 @@ def run(url: str, token: str) -> dict:
             "decision": result["decision"],
             "export_bytes": exported,
             "explanation_method": explanation.get("method"),
+            "gallery_diff": {
+                "added": diff["added"],
+                "removed": diff["removed"],
+                "changed": diff["changed"],
+            },
             "capabilities_available": bool(capabilities),
         }
 

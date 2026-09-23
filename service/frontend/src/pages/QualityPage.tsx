@@ -9,7 +9,7 @@ import {
   SectionTitle,
 } from '../components/ui';
 import { useResource } from '../hooks';
-import { statusLabels } from '../domain';
+import { formatBytes, statusLabels } from '../domain';
 import type { Capabilities } from '../types';
 
 export function QualityPage({ capabilities }: { capabilities: Capabilities | null }) {
@@ -74,6 +74,24 @@ export function QualityPage({ capabilities }: { capabilities: Capabilities | nul
                     <dt>Режим</dt>
                     <dd>{model.mode}</dd>
                   </div>
+                  {model.device && (
+                    <div>
+                      <dt>Устройство</dt>
+                      <dd>{model.device}</dd>
+                    </div>
+                  )}
+                  {model.precision && (
+                    <div>
+                      <dt>Точность вычислений</dt>
+                      <dd>{model.precision}</dd>
+                    </div>
+                  )}
+                  {model.weights_bytes != null && (
+                    <div>
+                      <dt>Вес файлов модели</dt>
+                      <dd>{formatBytes(model.weights_bytes)}</dd>
+                    </div>
+                  )}
                 </dl>
                 {model.manifest && (
                   <details className="technical-details">

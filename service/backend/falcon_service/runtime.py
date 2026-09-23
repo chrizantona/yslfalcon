@@ -28,6 +28,13 @@ class EncoderRuntime:
                     self.encoder = RepositoryEncoder(self.settings.model_manifest, self.settings.model_device)
                 else:
                     raise RuntimeError("FALCON_MODEL_MANIFEST is required in repository mode")
+            if self.settings.expected_model_id and self.encoder.model_id != self.settings.expected_model_id:
+                raise RuntimeError("Runtime model identity does not match FALCON_EXPECTED_MODEL_ID")
+            if (
+                self.settings.expected_weights_bytes is not None
+                and self.encoder.weights_bytes != self.settings.expected_weights_bytes
+            ):
+                raise RuntimeError("Runtime weight inventory does not match FALCON_EXPECTED_WEIGHTS_BYTES")
             self.policy = getattr(self.encoder, "calibration_policy", None)
             if self.settings.calibration_path:
                 self.policy = json.loads(self.settings.calibration_path.read_text())
@@ -56,4 +63,8 @@ class EncoderRuntime:
             "model_id": getattr(encoder, "model_id", None),
             "dimension": getattr(encoder, "dimension", None),
             "ready": encoder is not None,
+            "real_model_connected": bool(getattr(encoder, "real_model_connected", False)),
+            "device": getattr(encoder, "device", None),
+            "precision": getattr(encoder, "precision", None),
+            "weights_bytes": getattr(encoder, "weights_bytes", None),
         }

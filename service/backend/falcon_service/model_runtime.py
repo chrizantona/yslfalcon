@@ -25,7 +25,13 @@ from .runtime_schemas import (
 
 def create_app(encoder=None, token=None):
     state = {"encoder": encoder, "token": token}
-    capacity = threading.BoundedSemaphore(2)
+    try:
+        max_concurrency = int(os.environ.get("FALCON_RUNTIME_MAX_CONCURRENCY", "2"))
+    except ValueError as exc:
+        raise RuntimeError("FALCON_RUNTIME_MAX_CONCURRENCY must be an integer") from exc
+    if not 1 <= max_concurrency <= 128:
+        raise RuntimeError("FALCON_RUNTIME_MAX_CONCURRENCY must be between 1 and 128")
+    capacity = threading.BoundedSemaphore(max_concurrency)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -78,7 +84,10 @@ def create_app(encoder=None, token=None):
             "dimension": current.dimension,
             "rerank_window": current.rerank_window,
             "calibration_policy": current.calibration_policy,
-            "real_model_connected": False,
+            "real_model_connected": current.real_model_connected,
+            "device": current.device,
+            "precision": current.precision,
+            "weights_bytes": current.weights_bytes,
         }
 
     @app.post(

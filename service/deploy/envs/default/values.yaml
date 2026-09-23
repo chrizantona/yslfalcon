@@ -11,6 +11,11 @@ infrastructure:
   queue: PostgreSQL leased jobs
   artifacts: shared persistent volume
   gpuRequired: false
+gpuRuntimeProfile:
+  composeOverlay: docker-compose.gpu.yml
+  gpuRequired: true
+  modelBundleMount: /models (read-only)
+  defaultConcurrency: 1
 envs:
   FALCON_DATABASE_URL: database DSN, supplied with secret credentials
   FALCON_STORAGE_ROOT: /data
@@ -19,6 +24,8 @@ envs:
   FALCON_ENCODER: preview
   FALCON_WEB_PORT: 8090
   FALCON_IMAGE_TAG: release-specific image tag
+  FALCON_EXPECTED_MODEL_ID: exact model identity required from the runtime handshake
+  FALCON_EXPECTED_WEIGHTS_BYTES: exact manifest weight total required from the runtime handshake
   FALCON_ALLOWED_ORIGINS: exact JSON array of browser origins
   FALCON_COOKIE_SECURE: true when behind HTTPS; false for supplied localhost HTTP
   FALCON_LOCAL_AUTO_LOGIN: true only for the loopback-bound local UI; false for a network deployment
@@ -30,9 +37,14 @@ envs:
   FALCON_WORKER_POLL_SECONDS: 1
   FALCON_SESSION_HOURS: 12
 reservedEnvNames:
+  - FALCON_RUNTIME_IMAGE
+  - FALCON_MODEL_BUNDLE_DIR
   - FALCON_MODEL_MANIFEST
   - FALCON_MODEL_DEVICE
   - FALCON_CALIBRATION_PATH
+  - FALCON_RUNTIME_MAX_CONCURRENCY
+  - FALCON_RUNTIME_SHM_SIZE
+  - FALCON_GPU_COUNT
 vaultSecretEnvs:
   - FALCON_AUTH_TOKENS
   - FALCON_RUNTIME_TOKEN

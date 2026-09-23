@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base, now
@@ -49,6 +49,17 @@ class Observation(Base):
     bbox_source: Mapped[str] = mapped_column(String(24), default="explicit")
 
 
+class ObservationDigest(Base):
+    """Image inventory checksum kept outside the legacy observation schema."""
+
+    __tablename__ = "observation_digests"
+    observation_id: Mapped[str] = mapped_column(
+        ForeignKey("observations.id", ondelete="CASCADE"), primary_key=True
+    )
+    workspace: Mapped[str] = mapped_column(String(128), index=True)
+    sha256: Mapped[str] = mapped_column(String(64))
+
+
 class Search(Base):
     __tablename__ = "searches"
     __table_args__ = (UniqueConstraint("workspace", "idempotency_key"),)
@@ -79,6 +90,21 @@ class Review(Base):
     verdict: Mapped[str] = mapped_column(String(16))
     note: Mapped[str] = mapped_column(Text, default="")
     actor: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class ReviewAnnotation(Base):
+    """Immutable expert evidence pinned to a saved review and image."""
+
+    __tablename__ = "review_annotations"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace: Mapped[str] = mapped_column(String(128), index=True)
+    review_id: Mapped[str] = mapped_column(ForeignKey("reviews.id"), index=True)
+    image_ref: Mapped[str] = mapped_column(String(36))
+    surface: Mapped[str] = mapped_column(String(8))
+    kind: Mapped[str] = mapped_column(String(16))
+    x: Mapped[float] = mapped_column(Float)
+    y: Mapped[float] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 

@@ -4,14 +4,14 @@ This file describes the service boundaries. Public API lives under `/api/v1`; in
 
 The exact request/response models, status codes and security schemes are published in `/api/v1/openapi.json` and the local `/docs` reference. Shapes below summarize those models; [response_schemas.py](backend/falcon_service/response_schemas.py) is their implementation. The internal runtime uses its separate typed `{detail: ...}` error contract from [runtime_schemas.py](backend/falcon_service/runtime_schemas.py).
 
-**User update:** trained model integration is intentionally disabled. Only the explicit stub/preview adapter runs. RepositoryEncoder is an unavailable-adapter guard; no weights are loaded or downloaded. All service operations remain real, with uncalibrated placeholder feature computation.
+**Current default:** trained model integration remains intentionally disabled. Only the explicit stub/preview adapter runs in the ordinary Compose profile. RepositoryEncoder is an unavailable-adapter guard; no weights are loaded or downloaded. The optional GPU deployment profile accepts a separately built runtime through the same HTTP port, without adding model code to API/worker. All default service operations remain real, with uncalibrated placeholder feature computation.
 
 ## Python inference port
 
 Module `falcon_service.inference` exports:
 
 - `FeatureBundle(embedding: numpy.ndarray, tokens: numpy.ndarray | None, model_id: str)`.
-- `PreviewEncoder()`; attributes `model_id`, `mode="preview"`, `dimension`; `encode(image: bytes, bbox: tuple[int,int,int,int] | None) -> FeatureBundle`.
+- `PreviewEncoder()`; attributes `model_id`, `mode="preview"`, `dimension`, `real_model_connected=false`, `device`, `precision`, `weights_bytes`; `encode(image: bytes, bbox: tuple[int,int,int,int] | None) -> FeatureBundle`.
 - `RepositoryEncoder(manifest_path: str, device: str="cpu")` is reserved for future integration and raises a clear unavailable error in this release.
 - `RemoteEncoder(url: str, token: str, timeout: float=60)` with the same interface; runtime capabilities supply identity.
 - Each encoder has `rerank(query: FeatureBundle, candidates: list[FeatureBundle], similarities: numpy.ndarray) -> numpy.ndarray`; preview returns unchanged cosine.
@@ -20,25 +20,40 @@ Module `falcon_service.inference` exports:
 - `validate_image(image: bytes, bbox=None) -> tuple[bytes, tuple[int,int,int,int], int, int]`: canonical safe PNG/JPEG original bytes, validated/clipped bbox, width, height. Reject corrupt/decompression bombs/nonfinite/outside boxes; no silent EXIF coordinate changes. `crop_image(image: bytes, bbox) -> bytes`.
 - Invalid image/bbox => ValueError. Missing/unusable model => explicit RuntimeError.
 
+The internal runtime contract consists of authenticated `GET /internal/v1/capabilities`,
+`POST /internal/v1/encode` and `POST /internal/v1/rerank`, plus unauthenticated liveness. The
+capability handshake declares `mode`, exact `model_id`, dimension, rerank window, calibration policy,
+whether a real model is connected, device, precision and total inference weight bytes. API startup
+fails closed when the response is invalid or its identity differs from `FALCON_EXPECTED_MODEL_ID`.
+The binary feature format and independent-query rules are unchanged. Deployment details live in
+[GPU_RUNTIME.md](docs/GPU_RUNTIME.md).
+
 ## Public HTTP contract
 
 `POST /api/v1/auth/local-session` takes no body and creates the local browser session automatically. It requires `FALCON_LOCAL_AUTO_LOGIN=true`, an allowed loopback Origin and loopback Host, and a configured admin credential in the internal `local` workspace. It never returns that credential or selects another workspace. Compose enables this for its loopback-bound UI; standalone API defaults to disabled. Existing sessions and data are reused; the browser has no login form or workspace selector.
 
 `POST /api/v1/auth/session {token}` remains available for explicit credential exchange; DELETE clears the session. GET `/api/v1/auth/me` returns role/workspace and CSRF token. Both session creation paths set HttpOnly SameSite cookies. Bearer works for integrations; roles viewer/operator/admin. Health live unauthenticated; business endpoints authenticated.
 
-- GET `/capabilities`: engine mode/model_id/dimension, profiles, limits, service version.
+- GET `/capabilities`: engine mode/model_id/dimension, connection status, device, precision, weight bytes, profiles, limits and service version.
 - GET `/system`: dependencies, jobs counts, model status, timing summaries (real measured values only).
 - GET/POST `/galleries`: list `{items:[...],total,next_offset}` with `limit`/`offset`; create `{name,description?}` -> gallery `{id,name,description,active_version_id,observation_count,created_at}`.
 - GET `/galleries/{id}`; GET `/galleries/{id}/versions` -> `{items:[{id,number,status,count,model_id,created_at,...}]}`.
+- GET `/galleries/{id}/versions/{to}/diff?from_version_id={from}&limit=100&offset=0` -> полная
+  сводка added/removed/changed/unchanged и ограниченная страница различий. Уникальный `external_id`
+  связывает изменённое наблюдение; без него точное содержимое сопоставляется по SHA-256 только для
+  инвентарного diff, никогда для ранжирования.
 - POST `/galleries/{id}/imports`: legacy multipart `files` repeated JPEG/PNG, optional `manifest` JSON mapping filename to `{bbox:[x,y,w,h],external_id?}`. Return 202 job. One complete replacement snapshot per request, up to 500 files by default; this legacy route does not provide a resumable session or import idempotency key. Missing bbox means full frame, displayed explicitly.
 - POST/GET `/galleries/{id}/import-sessions`, GET `/galleries/{id}/import-sessions/{session}`, POST `.../{session}/files`, POST `.../{session}/finalize`: resumable official CSV import described below; admin role required.
 - POST `/galleries/{id}/versions/{version}/activate`: admin; required JSON `{expected_active_version_id: string|null}` performs atomic compare-and-set activation of a compatible ready snapshot. Import never activates the snapshot automatically.
 - GET `/jobs` -> paginated `{items:[...],total,next_offset}`; GET `/jobs/{id}` -> `{id,kind,status,progress,message,result,error,attempts,created_at,completed_at}`. Statuses pending/running/completed/failed. Jobs are durable/recoverable with bounded retry; result is a typed import, explanation or export result.
 - POST `/searches`: multipart `image`, `bbox` JSON array optional, `gallery_id`, `top_n` (1..50). Optional Idempotency-Key. Return saved search directly: `{id,decision,query:{image_url,crop_url,bbox,width,height},gallery_id,gallery_version_id,model_id,query_confidence,threshold,confidence_kind,calibration_reason,ranked_candidates:[{observation_id,rank,cosine,score,accepted,image_url,crop_url}],accepted_candidates:[],timings,created_at,reviews:[]}`. Empty/invalid gallery is typed error, not refusal. Only completed saved result changes UI ranking.
 - GET `/searches` -> paginated `{items:[...],total,next_offset}`; GET `/searches/{id}` -> same immutable response plus reviews; POST `/searches/{id}/replays` -> new result with pinned version (or explicit unavailable).
-- POST `/searches/{id}/reviews` `{observation_id?, verdict:"match"|"different"|"uncertain",note?}` -> review, independent of model.
+- POST `/searches/{id}/reviews` `{observation_id?, verdict, note?, annotations:[{image_ref,surface:"crop"|"original",kind:"match"|"conflict"|"unclear",x,y}]}` -> неизменяемое заключение и до 20 нормализованных координатных пометок. Все image_ref проверяются по сохранённой выдаче; review независим от модели.
 - POST `/searches/{id}/explanations` `{observation_id}` -> job. Job result occlusion maps with method metadata.
-- POST `/searches/{id}/exports` `{format:"json"|"csv"|"pdf"}` -> job with result `{download_url}`. GET `/exports/{id}/download`, scoped.
+- POST `/searches/{id}/exports` `{format:"json"|"csv"|"pdf"|"case"}` -> job with result
+  `{download_url}`. `case` скачивается как ZIP до 256 МиБ исходных файлов: originals/crops,
+  `report.json`, `report.pdf`, автономный `viewer.html`, `manifest.json`, `verify.py`. GET
+  `/exports/{id}/download` остаётся workspace-scoped.
 - GET `/observations/{id}/image`, `/observations/{id}/crop`; query originals through `/searches/{id}/image`, `/searches/{id}/crop`; scoped cookie or bearer auth, never query-string secrets.
 - GET `/models`, `/calibrations` -> real local configured data, no invented performance.
 
@@ -89,8 +104,12 @@ The added schema consists of:
 - `feature_artifacts`: primary key `key`, index on `workspace`, numeric NPZ `payload` (`BYTEA`/`BLOB`), `model_id`, `dimension`, `dtype`, `encoding`, `sha256`, `created_at`. `observations.feature_key` remains the application-level reference; no new foreign key is imposed on legacy observations.
 - `import_sessions`: primary key `id`, indexes on `workspace` and `gallery_id`, unique `(workspace, idempotency_key)`, gallery/job/version foreign keys, request hash, status and revision.
 - `import_items`: primary key `id`, index and foreign key on `session_id`, unique `(session_id, image_id)`, original bbox/order, received filename/checksum/image key and validated image geometry. Workspace access is enforced through the owning session.
+- `review_annotations`: отдельные неизменяемые координатные пометки с FK на review, workspace,
+  ссылкой на query/candidate, поверхностью, смыслом и нормализованными координатами.
+- `observation_digests`: SHA-256 оригинала для инвентарного diff без повторного чтения новых
+  галерей; старые версии безопасно вычисляют отсутствующий digest при сравнении.
 
-Startup creates the three missing tables with their indexes through `create_all`; existing tables are not rebuilt or altered. PostgreSQL startup DDL is protected by the existing advisory transaction lock. When a legacy observation has no database feature row, `FeatureStore` reads and validates the bounded old NPZ, retains the original key and inserts a database record using conflict-safe insertion. **Old NPZ files must remain available until every required historical version has been read and backfilled.** Starting the new image does not backfill all versions. A missing legacy file before backfill returns 503 `feature_unavailable`.
+Startup creates missing tables with their indexes through `create_all`; existing tables are not rebuilt or altered. PostgreSQL startup DDL is protected by the existing advisory transaction lock. When a legacy observation has no database feature row, `FeatureStore` reads and validates the bounded old NPZ, retains the original key and inserts a database record using conflict-safe insertion. **Old NPZ files must remain available until every required historical version has been read and backfilled.** Starting the new image does not backfill all versions. A missing legacy file before backfill returns 503 `feature_unavailable`.
 
 New snapshots need no NPZ cache. Gallery features are loaded into memory for exact dot-product search; relational indexes and the optional exact `FAISS IndexFlatIP` are not ANN. Query feature vectors remain transient. ANN scale or million-observation performance is not claimed.
 
@@ -98,6 +117,11 @@ Back up the database and original/report/legacy-feature volume consistently befo
 
 ## Browser and verification
 
-React/TypeScript consumes these routes with same-origin cookies (`/api` proxy). Screens cover search/comparison, galleries with resumable CSV uploads and jobs, history/export, quality/model status, integration and system state. Product language is Russian. The UI has no fabricated gallery, camera or performance data and carries a persistent preview badge. API, worker and runtime run separately in Compose. The shared file adapter stores original images, reports and legacy migration input using server-generated paths.
+React/TypeScript consumes these routes with same-origin cookies (`/api` proxy). Screens cover search,
+expert board, gallery diff/activation, resumable CSV uploads, history/export, quality/model status,
+integration and system state. Product language is Russian. The UI has no fabricated gallery, camera
+or performance data and carries a persistent preview badge. API, worker and runtime run separately
+in Compose. The shared file adapter stores original images, reports and legacy migration input using
+server-generated paths.
 
 Behavioral coverage includes 750-file chunked import, restart/resume, repeated uploads, concurrent finalization, validation and workspace isolation; database vectors are tested across missing caches, legacy migration, corruption, worker failure, replay and export. See [test_import_sessions.py](tests/test_import_sessions.py), [test_feature_store.py](tests/test_feature_store.py) and [IMPLEMENTATION](docs/IMPLEMENTATION.md). Exact commands, counts and verified deployment checks belong to [VALIDATION](docs/VALIDATION.md).

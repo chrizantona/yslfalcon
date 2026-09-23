@@ -106,6 +106,15 @@ export function heatOpacity(value: number, maximum: number): number {
   return maximum > 0 ? Math.min(0.8, (Math.abs(value) / maximum) * 0.8) : 0;
 }
 
+/** Convert a shared normalized pan position back to pixels after zoom or resize. */
+export function synchronizedScrollOffset(
+  fraction: number,
+  scrollSize: number,
+  clientSize: number,
+): number {
+  return Math.min(1, Math.max(0, fraction)) * Math.max(0, scrollSize - clientSize);
+}
+
 export function createOperationKey(): string {
   // getRandomValues also works on an isolated HTTP appliance; randomUUID requires HTTPS.
   const bytes = crypto.getRandomValues(new Uint8Array(16));

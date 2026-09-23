@@ -1,11 +1,12 @@
 """Local immutable artifact store; user filenames are never filesystem paths."""
 
+import hashlib
 import io
 import os
 import re
 import zipfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO
 from uuid import uuid4
 
 import numpy as np
@@ -41,6 +42,35 @@ class ArtifactStore:
             handle.flush()
             os.fsync(handle.fileno())
         return key
+
+    def put_stream(
+        self,
+        source: BinaryIO,
+        category: str,
+        extension: str,
+        *,
+        max_bytes: int | None = None,
+    ) -> tuple[str, str, int]:
+        """Publish a stream atomically enough for the later database reference."""
+        key = f"{category}/{uuid4().hex}.{extension}"
+        path = self.path(key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256()
+        size = 0
+        try:
+            with path.open("xb") as handle:
+                while chunk := source.read(1024 * 1024):
+                    size += len(chunk)
+                    if max_bytes is not None and size > max_bytes:
+                        raise ServiceError("artifact_too_large", "Размер файла превышает лимит", 413)
+                    digest.update(chunk)
+                    handle.write(chunk)
+                handle.flush()
+                os.fsync(handle.fileno())
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
+        return key, digest.hexdigest(), size
 
     def read(self, key: str) -> bytes:
         try:

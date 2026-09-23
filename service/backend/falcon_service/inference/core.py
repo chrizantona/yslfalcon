@@ -25,6 +25,10 @@ class Encoder(Protocol):
     dimension: int
     rerank_window: int
     calibration_policy: dict | None
+    real_model_connected: bool
+    device: str
+    precision: str
+    weights_bytes: int
 
     def encode(self, image: bytes, bbox: tuple[int, int, int, int] | None = None) -> FeatureBundle: ...
 

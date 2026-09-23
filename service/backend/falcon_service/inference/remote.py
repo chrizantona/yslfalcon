@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 import httpx
 import numpy as np
 
+from ..runtime_schemas import RuntimeCapabilities
 from .images import validate_image
 from .wire import MAX_WIRE_BYTES, pack_features, unpack_features
 
@@ -26,11 +27,15 @@ class RemoteEncoder:
         try:
             response = self._client.get("/internal/v1/capabilities")
             response.raise_for_status()
-            capabilities = response.json()
-            self.model_id, self.mode = capabilities["model_id"], capabilities["mode"]
-            self.dimension = int(capabilities["dimension"])
-            self.rerank_window = int(capabilities.get("rerank_window", 0))
-            self.calibration_policy = capabilities.get("calibration_policy")
+            capabilities = RuntimeCapabilities.model_validate(response.json())
+            self.model_id, self.mode = capabilities.model_id, capabilities.mode
+            self.dimension = capabilities.dimension
+            self.rerank_window = capabilities.rerank_window
+            self.calibration_policy = capabilities.calibration_policy
+            self.real_model_connected = capabilities.real_model_connected
+            self.device = capabilities.device
+            self.precision = capabilities.precision
+            self.weights_bytes = capabilities.weights_bytes
         except (httpx.HTTPError, ValueError, KeyError) as exc:
             self._client.close()
             raise RuntimeError("Model runtime is unavailable or returned invalid capabilities") from exc

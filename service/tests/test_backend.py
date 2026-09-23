@@ -1,8 +1,12 @@
 """Behavioral integration checks against the real API, queue and file store."""
 
+import hashlib
 import io
 import json
+import subprocess
+import sys
 import threading
+import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
@@ -16,7 +20,7 @@ from falcon_service.app import create_app
 from falcon_service.config import Settings
 from falcon_service.db import now
 from falcon_service.jobs import claim, run_once
-from falcon_service.models import GalleryVersion, Job, Observation, Search
+from falcon_service.models import GalleryVersion, Job, Observation, ObservationDigest, Search
 
 ADMIN = "admin-test-token-" + "a" * 24
 OTHER = "other-test-token-" + "b" * 24
@@ -79,6 +83,20 @@ def import_gallery(client, gallery_id, colors=("red", "blue")):
     return job["result"]["version_id"], job_id
 
 
+def import_gallery_manifest(client, gallery_id, files, manifest):
+    response = client.post(
+        f"/api/v1/galleries/{gallery_id}/imports",
+        headers=HEADERS,
+        files=[("files", (name, picture(color), "image/png")) for name, color in files],
+        data={"manifest": json.dumps(manifest)},
+    )
+    assert response.status_code == 202, response.text
+    work(client)
+    job = client.get(f"/api/v1/jobs/{response.json()['id']}", headers=HEADERS).json()
+    assert job["status"] == "completed", job
+    return job["result"]["version_id"]
+
+
 def activate(client, gallery_id, version_id, expected=None):
     response = client.post(
         f"/api/v1/galleries/{gallery_id}/versions/{version_id}/activate",
@@ -107,7 +125,7 @@ def ready_gallery(client):
     return gallery_id, version_id, job_id
 
 
-def test_search_review_explanation_and_all_exports(client):
+def test_search_review_explanation_and_all_exports(client, tmp_path):
     gallery, version, _ = ready_gallery(client)
     response = search(client, gallery)
     assert response.status_code == 200, response.text
@@ -128,12 +146,30 @@ def test_search_review_explanation_and_all_exports(client):
             "observation_id": candidate["observation_id"],
             "verdict": "uncertain",
             "note": "Проверить ракурс",
+            "annotations": [
+                {
+                    "image_ref": "query",
+                    "surface": "crop",
+                    "kind": "match",
+                    "x": 0.25,
+                    "y": 0.75,
+                },
+                {
+                    "image_ref": candidate["observation_id"],
+                    "surface": "original",
+                    "kind": "conflict",
+                    "x": 0.5,
+                    "y": 0.5,
+                },
+            ],
         },
     )
     assert review.status_code == 201
+    assert len(review.json()["annotations"]) == 2
     reread = client.get(f"/api/v1/searches/{result['id']}", headers=HEADERS).json()
     assert reread["ranked_candidates"] == result["ranked_candidates"]
     assert reread["reviews"][0]["note"] == "Проверить ракурс"
+    assert reread["reviews"][0]["annotations"][0]["image_ref"] == "query"
     explained = client.post(
         f"/api/v1/searches/{result['id']}/explanations",
         headers=HEADERS,
@@ -144,7 +180,7 @@ def test_search_review_explanation_and_all_exports(client):
     assert explanation["status"] == "completed", explanation
     assert explanation["result"]["method"] == "occlusion_sensitivity"
     assert len(explanation["result"]["query_map"]) == 6
-    for format in ("json", "csv", "pdf"):
+    for format in ("json", "csv", "pdf", "case"):
         job = client.post(
             f"/api/v1/searches/{result['id']}/exports", headers=HEADERS, json={"format": format}
         ).json()
@@ -153,13 +189,190 @@ def test_search_review_explanation_and_all_exports(client):
         assert completed["status"] == "completed", completed
         download = client.get(completed["result"]["download_url"], headers=HEADERS)
         assert download.status_code == 200
-        if format == "pdf":
+        assert hashlib.sha256(download.content).hexdigest() == completed["result"]["sha256"]
+        assert download.headers["etag"] == f'"{completed["result"]["sha256"]}"'
+        if format == "case":
+            assert download.headers["content-type"] == "application/zip"
+            with zipfile.ZipFile(io.BytesIO(download.content)) as archive:
+                names = set(archive.namelist())
+                assert {
+                    "manifest.json",
+                    "viewer.html",
+                    "report.json",
+                    "report.pdf",
+                    "verify.py",
+                    "images/query/crop.png",
+                } <= names
+                manifest = json.loads(archive.read("manifest.json"))
+                for item in manifest["files"]:
+                    payload = archive.read(item["path"])
+                    assert len(payload) == item["size"]
+                    assert hashlib.sha256(payload).hexdigest() == item["sha256"]
+                compile(archive.read("verify.py"), "verify.py", "exec")
+                viewer = archive.read("viewer.html").decode()
+                assert "Координатных пометок" in viewer
+                assert "Исходный кадр и пометки" in viewer
+                assert "Заключение #1" in viewer
+                assert "Пара: запрос ↔" in viewer
+                assert ">R1</span>" in viewer
+                assert "aspect-ratio:4/3" not in viewer and ".photo img" in viewer
+                assert json.loads(archive.read("report.json"))["search"]["reviews"][0]["annotations"]
+                archive.extractall(tmp_path)
+            verified = subprocess.run(
+                [sys.executable, str(tmp_path / "verify.py")],
+                cwd=tmp_path,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            assert verified.returncode == 0 and "OK" in verified.stdout
+            with (tmp_path / "report.json").open("ab") as handle:
+                handle.write(b"tampered")
+            tampered = subprocess.run(
+                [sys.executable, str(tmp_path / "verify.py")],
+                cwd=tmp_path,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            assert tampered.returncode == 1 and "report.json" in tampered.stdout
+        elif format == "pdf":
             assert download.content.startswith(b"%PDF")
+            assert download.content.count(b"/Subtype /Image") >= 6
         elif format == "json":
             assert "PREVIEW" in download.json()["notice"]
             assert download.json()["search"]["reviews"][0]["verdict"] == "uncertain"
         else:
             assert "observation_id" in download.text
+
+
+def test_review_annotations_reject_images_outside_the_saved_result(client):
+    gallery, _, _ = ready_gallery(client)
+    result = search(client, gallery).json()
+    response = client.post(
+        f"/api/v1/searches/{result['id']}/reviews",
+        headers=HEADERS,
+        json={
+            "observation_id": result["ranked_candidates"][0]["observation_id"],
+            "verdict": "uncertain",
+            "annotations": [
+                {
+                    "image_ref": "00000000-0000-0000-0000-000000000000",
+                    "surface": "crop",
+                    "kind": "unclear",
+                    "x": 0.5,
+                    "y": 0.5,
+                }
+            ],
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_annotation"
+    assert client.get(f"/api/v1/searches/{result['id']}", headers=HEADERS).json()["reviews"] == []
+    annotation = {
+        "image_ref": "query",
+        "surface": "crop",
+        "kind": "unclear",
+        "x": 0.5,
+        "y": 0.5,
+    }
+    too_many = client.post(
+        f"/api/v1/searches/{result['id']}/reviews",
+        headers=HEADERS,
+        json={"verdict": "uncertain", "annotations": [annotation] * 21},
+    )
+    assert too_many.status_code == 422
+    assert too_many.json()["error"]["code"] == "invalid_request"
+
+
+def test_gallery_version_diff_reports_added_removed_and_bbox_changes(client):
+    gallery = make_gallery(client)
+    first = import_gallery_manifest(
+        client,
+        gallery,
+        [("one.png", "red"), ("two.png", "blue")],
+        {
+            "one.png": {"external_id": "car-1", "bbox": [0, 0, 48, 32]},
+            "two.png": {"external_id": "car-2", "bbox": [0, 0, 48, 32]},
+        },
+    )
+    second = import_gallery_manifest(
+        client,
+        gallery,
+        [("one.png", "red"), ("three.png", "green")],
+        {
+            "one.png": {"external_id": "car-1", "bbox": [4, 2, 40, 28]},
+            "three.png": {"external_id": "car-3", "bbox": [0, 0, 48, 32]},
+        },
+    )
+    with client.app.state.db.transaction() as session:
+        assert session.scalar(select(func.count()).select_from(ObservationDigest)) == 4
+        legacy_digest = session.scalar(
+            select(ObservationDigest)
+            .join(Observation, Observation.id == ObservationDigest.observation_id)
+            .where(Observation.version_id == first)
+            .limit(1)
+        )
+        session.delete(legacy_digest)
+    response = client.get(
+        f"/api/v1/galleries/{gallery}/versions/{second}/diff",
+        headers=HEADERS,
+        params={"from_version_id": first},
+    )
+    assert response.status_code == 200, response.text
+    diff = response.json()
+    assert (diff["added"], diff["removed"], diff["changed"], diff["unchanged"]) == (1, 1, 1, 0)
+    assert {item["external_id"] for item in diff["items"]} == {"car-1", "car-2", "car-3"}
+    changed = next(item for item in diff["items"] if item["external_id"] == "car-1")
+    assert changed["bbox_changed"] is True
+    assert changed["image_changed"] is False
+    with client.app.state.db.transaction() as session:
+        assert session.scalar(select(func.count()).select_from(ObservationDigest)) == 3
+    page = client.get(
+        f"/api/v1/galleries/{gallery}/versions/{second}/diff",
+        headers=HEADERS,
+        params={"from_version_id": first, "limit": 1},
+    ).json()
+    assert page["total_changes"] == 3 and len(page["items"]) == 1 and page["next_offset"] == 1
+    assert (
+        client.get(
+            f"/api/v1/galleries/{gallery}/versions/{second}/diff",
+            headers=OTHER_HEADERS,
+            params={"from_version_id": first},
+        ).status_code
+        == 404
+    )
+
+
+def test_gallery_diff_pairs_duplicate_external_ids_across_uniqueness_transition(client):
+    gallery = make_gallery(client)
+    first = import_gallery_manifest(
+        client,
+        gallery,
+        [("one.png", "red")],
+        {"one.png": {"external_id": "car-1", "bbox": [0, 0, 48, 32]}},
+    )
+    second = import_gallery_manifest(
+        client,
+        gallery,
+        [("one.png", "red"), ("duplicate.png", "blue")],
+        {
+            "one.png": {"external_id": "car-1", "bbox": [0, 0, 48, 32]},
+            "duplicate.png": {"external_id": "car-1", "bbox": [0, 0, 48, 32]},
+        },
+    )
+    response = client.get(
+        f"/api/v1/galleries/{gallery}/versions/{second}/diff",
+        headers=HEADERS,
+        params={"from_version_id": first},
+    )
+    assert response.status_code == 200, response.text
+    diff = response.json()
+    assert (diff["added"], diff["removed"], diff["changed"], diff["unchanged"]) == (1, 0, 0, 1)
+    assert diff["items"][0]["external_id"] == "car-1"
+    assert diff["items"][0]["identity"] == "external:car-1:2"
 
 
 def test_idempotency_pins_snapshot_across_activation_and_restart(client, settings):

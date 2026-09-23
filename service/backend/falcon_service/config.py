@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     auth_tokens: dict[str, dict[str, str]] = Field(default_factory=dict, repr=False)
     engine_mode: Literal["preview", "repository", "remote"] = "preview"
     model_manifest: str | None = None
+    expected_model_id: str | None = None
+    expected_weights_bytes: int | None = Field(default=None, ge=0, le=2_000_000_000)
     runtime_url: str = "http://model-runtime:8090"
     runtime_token: str = Field(default="", repr=False)
     model_device: str = "cpu"

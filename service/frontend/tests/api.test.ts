@@ -211,6 +211,33 @@ test('activation includes the observed version, including explicit null', async 
     expected_active_version_id: null,
   });
 });
+test('version diff keeps both immutable snapshot ids and pagination explicit', async () => {
+  await api.versionDiff('gallery 1', 'version/old', 'version/new', 100);
+  assert.equal(
+    calls[0].url,
+    '/api/v1/galleries/gallery%201/versions/version%2Fnew/diff?from_version_id=version%2Fold&limit=100&offset=100',
+  );
+});
+test('expert review transports normalized evidence and case export stays explicit', async () => {
+  const annotations = [
+    {
+      image_ref: 'query',
+      surface: 'crop' as const,
+      kind: 'match' as const,
+      x: 0.25,
+      y: 0.75,
+    },
+  ];
+  await api.review('search-1', 'candidate-1', 'uncertain', 'Проверить деталь', annotations);
+  assert.deepEqual(JSON.parse(calls[0].options.body as string), {
+    observation_id: 'candidate-1',
+    verdict: 'uncertain',
+    note: 'Проверить деталь',
+    annotations,
+  });
+  await api.export('search-1', 'case');
+  assert.deepEqual(JSON.parse(calls[1].options.body as string), { format: 'case' });
+});
 test('search transports the caller-owned idempotency key without generating a replacement', async () => {
   const image = new File(['image'], 'vehicle.png', { type: 'image/png' });
   await api.search(image, [10, 20, 300, 180], 'gallery-1', 10, 'stable-operation-key');

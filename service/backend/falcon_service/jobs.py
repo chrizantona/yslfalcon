@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+import tempfile
 from datetime import timedelta
 from uuid import uuid4
 
@@ -12,10 +13,16 @@ from .catalog import fingerprint, scoped
 from .config import Settings
 from .db import Database, now
 from .errors import ServiceError
-from .exports import make_passport, render_export
+from .exports import (
+    CASE_SPOOL_BYTES,
+    MAX_CASE_ARCHIVE_BYTES,
+    make_passport,
+    render_case,
+    render_export,
+)
 from .features import FeatureStore
 from .leases import heartbeat
-from .models import Export, GalleryVersion, Job, Observation, Search
+from .models import Export, GalleryVersion, Job, Observation, ObservationDigest, Search
 from .runtime import EncoderRuntime
 from .storage import ArtifactStore
 
@@ -132,7 +139,7 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
                 "status": "ready",
                 "manifest_hash": version.manifest_hash,
             }
-    observations, artifacts, hashes = [], [], []
+    observations, digests, artifacts, hashes = [], [], [], []
     files = job.payload["files"]
     for ordinal, item in enumerate(files):
         image = store.read(item["image_key"])
@@ -142,9 +149,11 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
         if artifact.model_id != encoder.model_id or artifact.dimension != encoder.dimension:
             raise ServiceError("feature_model_mismatch", "Признаки не соответствуют версии модели", 503)
         artifacts.append(artifact)
+        observation_id = str(uuid4())
+        image_sha256 = hashlib.sha256(image).hexdigest()
         observations.append(
             Observation(
-                id=str(uuid4()),
+                id=observation_id,
                 workspace=job.workspace,
                 version_id=version.id,
                 ordinal=ordinal,
@@ -157,7 +166,14 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
                 bbox_source=item["bbox_source"],
             )
         )
-        hashes.append({"image_sha256": hashlib.sha256(image).hexdigest(), "bbox": item["bbox"]})
+        digests.append(
+            ObservationDigest(
+                observation_id=observation_id,
+                workspace=job.workspace,
+                sha256=image_sha256,
+            )
+        )
+        hashes.append({"image_sha256": image_sha256, "bbox": item["bbox"]})
         _progress(
             db,
             job,
@@ -172,6 +188,7 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
             raise ServiceError("invalid_version_state", "Состояние версии изменилось", 409)
         session.add_all(artifacts)
         session.add_all(observations)
+        session.add_all(digests)
         version.status, version.count, version.manifest_hash = "ready", len(observations), manifest_hash
     return {
         "gallery_id": version.gallery_id,
@@ -219,9 +236,22 @@ def export_result(db: Database, store: ArtifactStore, job: Job) -> dict:
                 "sha256": existing.sha256,
             }
     passport = make_passport(db, store, job.workspace, job.payload["search_id"])
-    data = render_export(passport, job.payload["format"], db, store, job.workspace)
-    storage_key = store.put(data, "exports", job.payload["format"])
-    checksum = hashlib.sha256(data).hexdigest()
+    if job.payload["format"] == "case":
+        with tempfile.SpooledTemporaryFile(max_size=CASE_SPOOL_BYTES, mode="w+b") as archive:
+            render_case(passport, db, store, job.workspace, archive)
+            if archive.tell() > MAX_CASE_ARCHIVE_BYTES:
+                raise ServiceError("case_too_large", "Размер offline-дела превышает 256 МиБ", 413)
+            archive.seek(0)
+            storage_key, checksum, _ = store.put_stream(
+                archive,
+                "exports",
+                "zip",
+                max_bytes=MAX_CASE_ARCHIVE_BYTES,
+            )
+    else:
+        data = render_export(passport, job.payload["format"], db, store, job.workspace)
+        storage_key = store.put(data, "exports", job.payload["format"])
+        checksum = hashlib.sha256(data).hexdigest()
     with db.transaction() as session:
         _owned_job(session, job)
         session.add(

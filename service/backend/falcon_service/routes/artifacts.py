@@ -25,6 +25,7 @@ EXPORT_RESPONSES = {
             "application/json": {"schema": {"$ref": "#/components/schemas/SearchReport"}},
             "text/csv": {"schema": {"type": "string", "format": "binary"}},
             "application/pdf": {"schema": {"type": "string", "format": "binary"}},
+            "application/zip": {"schema": {"type": "string", "format": "binary"}},
         },
         "headers": {
             "ETag": {"description": "Quoted SHA-256 digest of the report", "schema": {"type": "string"}},
@@ -82,10 +83,16 @@ def download_export(export_id: str, request: Request, identity: Principal = Depe
         from ..errors import ServiceError
 
         raise ServiceError("artifact_unavailable", "Файл отчёта недоступен", 410)
-    media = {"json": "application/json", "csv": "text/csv", "pdf": "application/pdf"}[row.format]
+    media = {
+        "json": "application/json",
+        "csv": "text/csv",
+        "pdf": "application/pdf",
+        "case": "application/zip",
+    }[row.format]
+    extension = "zip" if row.format == "case" else row.format
     return FileResponse(
         path,
         media_type=media,
-        filename=f"falcon-{row.search_id}.{row.format}",
+        filename=f"falcon-{row.search_id}.{extension}",
         headers={"Cache-Control": "private, no-store", "ETag": f'"{row.sha256}"'},
     )

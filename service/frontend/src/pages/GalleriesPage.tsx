@@ -24,7 +24,15 @@ import {
   statusLabels,
 } from '../domain';
 import { usePagedResource, useResource } from '../hooks';
-import type { Capabilities, Gallery, GalleryVersion, Job, Session } from '../types';
+import type {
+  Capabilities,
+  Gallery,
+  GalleryVersion,
+  GalleryVersionDiff,
+  GalleryVersionDiffItem,
+  Job,
+  Session,
+} from '../types';
 
 export function GalleriesPage({
   session,
@@ -213,6 +221,7 @@ function GalleryDetail({
   const [error, setError] = useState('');
   const [activating, setActivating] = useState<string | null>(null);
   const [confirmVersion, setConfirmVersion] = useState<GalleryVersion | null>(null);
+  const [diffTarget, setDiffTarget] = useState<GalleryVersion | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const manifestInput = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -376,11 +385,20 @@ function GalleryDetail({
                     </td>
                     <td>{formatDate(version.created_at)}</td>
                     <td>
-                      {canManage &&
-                        version.id !== gallery.active_version_id &&
-                        ['ready', 'retired', 'active'].includes(version.status) && (
-                          <Button onClick={() => setConfirmVersion(version)}>Активировать</Button>
-                        )}
+                      <div className="version-actions">
+                        {gallery.active_version_id &&
+                          version.id !== gallery.active_version_id &&
+                          version.status === 'ready' && (
+                            <Button tone="ghost" onClick={() => setDiffTarget(version)}>
+                              Изменения
+                            </Button>
+                          )}
+                        {canManage &&
+                          version.id !== gallery.active_version_id &&
+                          ['ready', 'retired', 'active'].includes(version.status) && (
+                            <Button onClick={() => setConfirmVersion(version)}>Активировать</Button>
+                          )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -528,6 +546,19 @@ function GalleryDetail({
           }}
         />
       )}
+      {diffTarget && gallery.active_version_id && (
+        <VersionDiffModal
+          gallery={gallery}
+          fromVersionId={gallery.active_version_id}
+          toVersion={diffTarget}
+          canActivate={canManage}
+          onClose={() => setDiffTarget(null)}
+          onActivate={() => {
+            setDiffTarget(null);
+            setConfirmVersion(diffTarget);
+          }}
+        />
+      )}
       {confirmVersion && (
         <Modal
           title={`Активировать версию v${confirmVersion.number}?`}
@@ -550,5 +581,182 @@ function GalleryDetail({
         </Modal>
       )}
     </div>
+  );
+}
+
+const diffLabels: Record<GalleryVersionDiffItem['change'], string> = {
+  added: 'Добавлено',
+  removed: 'Удалено',
+  changed: 'Изменено',
+};
+
+function VersionDiffModal({
+  gallery,
+  fromVersionId,
+  toVersion,
+  canActivate,
+  onClose,
+  onActivate,
+}: {
+  gallery: Gallery;
+  fromVersionId: string;
+  toVersion: GalleryVersion;
+  canActivate: boolean;
+  onClose: () => void;
+  onActivate: () => void;
+}) {
+  const [diff, setDiff] = useState<GalleryVersionDiff | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setDiff(null);
+    setError('');
+    api
+      .versionDiff(gallery.id, fromVersionId, toVersion.id)
+      .then((value) => {
+        if (alive) setDiff(value);
+      })
+      .catch((cause) => {
+        if (alive) setError(errorMessage(cause));
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [fromVersionId, gallery.id, toVersion.id]);
+  const loadMore = async () => {
+    if (!diff?.next_offset) return;
+    setLoadingMore(true);
+    setError('');
+    try {
+      const next = await api.versionDiff(gallery.id, fromVersionId, toVersion.id, diff.next_offset);
+      setDiff({ ...next, items: [...diff.items, ...next.items] });
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+  return (
+    <Modal wide title={`Изменения перед публикацией v${toVersion.number}`} onClose={onClose}>
+      <div className="version-diff">
+        {loading && <Loading />}
+        {error && <Message tone="error">{error}</Message>}
+        {diff && (
+          <>
+            <div className="diff-heading">
+              <div>
+                <p>Галерея «{gallery.name}»</p>
+                <h3>
+                  v{diff.from_number} → v{diff.to_number}
+                </h3>
+              </div>
+              <Badge tone={diff.total_changes ? 'warning' : 'success'}>
+                {diff.total_changes ? `${diff.total_changes} изменений` : 'Состав совпадает'}
+              </Badge>
+            </div>
+            <div className="diff-summary">
+              <div>
+                <strong>{diff.added}</strong>
+                <span>добавлено</span>
+              </div>
+              <div>
+                <strong>{diff.removed}</strong>
+                <span>удалено</span>
+              </div>
+              <div>
+                <strong>{diff.changed}</strong>
+                <span>изменено</span>
+              </div>
+              <div>
+                <strong>{diff.unchanged}</strong>
+                <span>без изменений</span>
+              </div>
+            </div>
+            {diff.items.length ? (
+              <div className="diff-list">
+                {diff.items.map((item) => {
+                  const oldImage = item.from_observation_id
+                    ? `/api/v1/observations/${encodeURIComponent(item.from_observation_id)}/crop`
+                    : null;
+                  const newImage = item.to_observation_id
+                    ? `/api/v1/observations/${encodeURIComponent(item.to_observation_id)}/crop`
+                    : null;
+                  return (
+                    <article className="diff-row" key={`${item.change}-${item.identity}`}>
+                      <div className="diff-images">
+                        {oldImage ? (
+                          <img src={oldImage} alt="До изменения" loading="lazy" />
+                        ) : (
+                          <i />
+                        )}
+                        <Icon name="arrow" size={17} />
+                        {newImage ? (
+                          <img src={newImage} alt="После изменения" loading="lazy" />
+                        ) : (
+                          <i />
+                        )}
+                      </div>
+                      <div>
+                        <Badge
+                          tone={
+                            item.change === 'added'
+                              ? 'success'
+                              : item.change === 'removed'
+                                ? 'danger'
+                                : 'warning'
+                          }
+                        >
+                          {diffLabels[item.change]}
+                        </Badge>
+                        <strong>
+                          {item.external_id || `Контент ${item.identity.slice(7, 19)}`}
+                        </strong>
+                        <p>
+                          {item.image_changed && 'Изображение изменено. '}
+                          {item.bbox_changed &&
+                            `BBox ${item.from_bbox?.join(' · ')} → ${item.to_bbox?.join(' · ')}`}
+                          {!item.image_changed &&
+                            !item.bbox_changed &&
+                            (item.change === 'added'
+                              ? 'Новое наблюдение'
+                              : 'Наблюдение отсутствует в v' + diff.to_number)}
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState title="Изменений нет">
+                Наблюдения и рамки совпадают. Версии всё равно остаются отдельными снимками.
+              </EmptyState>
+            )}
+            <div className="diff-footer">
+              <span>
+                Показано {diff.items.length} из {diff.total_changes}
+              </span>
+              <div className="inline-items">
+                {diff.next_offset != null && (
+                  <Button busy={loadingMore} onClick={loadMore}>
+                    Загрузить ещё
+                  </Button>
+                )}
+                {canActivate && (
+                  <Button tone="primary" onClick={onActivate}>
+                    Перейти к активации v{diff.to_number}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
   );
 }

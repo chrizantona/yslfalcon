@@ -16,12 +16,27 @@ export interface Engine {
   model_id: string;
   dimension: number;
   ready: boolean;
+  real_model_connected: boolean;
+  device: string | null;
+  precision: string | null;
+  weights_bytes: number | null;
 }
 export interface Capabilities {
   service_version: string;
   engine: Engine;
   limits: { max_upload_bytes: number; max_import_files: number; max_request_bytes: number };
   profiles: { id: string; name: string; top_n_max: number }[];
+  features: {
+    immutable_snapshots: boolean;
+    replay: boolean;
+    occlusion_explanations: boolean;
+    durable_jobs: boolean;
+    exports: ('json' | 'csv' | 'pdf' | 'case')[];
+    expert_board: boolean;
+    gallery_version_diff: boolean;
+    offline_case_export: boolean;
+    trained_model_connected: boolean;
+  };
 }
 export interface Gallery {
   id: string;
@@ -38,6 +53,31 @@ export interface GalleryVersion {
   count: number;
   model_id: string;
   created_at: string;
+}
+export interface GalleryVersionDiffItem {
+  identity: string;
+  external_id: string | null;
+  change: 'added' | 'removed' | 'changed';
+  from_observation_id: string | null;
+  to_observation_id: string | null;
+  image_changed: boolean;
+  bbox_changed: boolean;
+  from_bbox: BBox | null;
+  to_bbox: BBox | null;
+}
+export interface GalleryVersionDiff {
+  gallery_id: string;
+  from_version_id: string;
+  to_version_id: string;
+  from_number: number;
+  to_number: number;
+  added: number;
+  removed: number;
+  changed: number;
+  unchanged: number;
+  total_changes: number;
+  items: GalleryVersionDiffItem[];
+  next_offset: number | null;
 }
 export interface ImportSession {
   id: string;
@@ -75,15 +115,30 @@ export interface Candidate {
   image_url: string;
   crop_url: string;
   external_id?: string;
+  bbox: BBox;
+  bbox_source: 'explicit' | 'full_frame';
 }
 export type Verdict = 'match' | 'different' | 'uncertain';
+export type AnnotationKind = 'match' | 'conflict' | 'unclear';
+export interface ReviewAnnotationDraft {
+  image_ref: string;
+  surface: 'crop' | 'original';
+  kind: AnnotationKind;
+  x: number;
+  y: number;
+}
+export interface ReviewAnnotation extends ReviewAnnotationDraft {
+  id: string;
+}
 export interface Review {
   id: string;
   search_id: string;
-  observation_id?: string;
+  observation_id: string | null;
   verdict: Verdict;
-  note?: string;
+  note: string;
+  actor: string;
   created_at: string;
+  annotations: ReviewAnnotation[];
 }
 export interface SearchResult {
   id: string;
@@ -91,6 +146,7 @@ export interface SearchResult {
   query: { image_url: string; crop_url: string; bbox: BBox; width: number; height: number };
   gallery_id: string;
   gallery_version_id: string;
+  gallery_manifest_hash: string;
   model_id: string;
   query_confidence: number | null;
   threshold: number | null;
@@ -100,6 +156,7 @@ export interface SearchResult {
   accepted_candidates: Candidate[];
   timings: Record<string, number>;
   created_at: string;
+  replay_of?: string | null;
   reviews: Review[];
 }
 export interface ModelInfo {
@@ -107,6 +164,10 @@ export interface ModelInfo {
   mode: string;
   dimension: number;
   status: string;
+  trained_model_connected: boolean;
+  device: string | null;
+  precision: string | null;
+  weights_bytes: number | null;
   manifest?: Record<string, unknown>;
 }
 export interface Explanation {

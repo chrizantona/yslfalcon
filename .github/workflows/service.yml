@@ -65,6 +65,12 @@ jobs:
       - run: python -m pip install -r requirements.lock
       - run: python scripts/init_env.py
       - run: docker compose config --quiet
+      - run: >-
+          FALCON_RUNTIME_IMAGE=registry.example/falcon-runtime@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          FALCON_MODEL_BUNDLE_DIR=./models
+          FALCON_EXPECTED_MODEL_ID=ci-fixture
+          FALCON_EXPECTED_WEIGHTS_BYTES=1
+          docker compose -f docker-compose.yml -f docker-compose.gpu.yml config --quiet
       - run: docker compose up --build --detach --wait
       - run: python scripts/smoke.py
       - run: python scripts/smoke_gallery.py

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_id": "replace-with-exact-serving-model-id",
+  "runtime_image": "registry.example/falcon-runtime@sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "total_weights_bytes": 0,
+  "files": [
+    {
+      "path": "encoder.safetensors",
+      "role": "weight",
+      "bytes": 0,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

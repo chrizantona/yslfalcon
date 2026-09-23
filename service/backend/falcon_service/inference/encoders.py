@@ -15,6 +15,10 @@ class PreviewEncoder:
     dimension = 192
     rerank_window = 0
     calibration_policy = None
+    real_model_connected = False
+    device = "cpu"
+    precision = "float32"
+    weights_bytes = 0
 
     def encode(self, image: bytes, bbox=None):
         with Image.open(BytesIO(crop_image(image, bbox))) as frame:

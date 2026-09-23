@@ -48,9 +48,11 @@ def ready(request: Request):
 @router.get("/capabilities", response_model=CapabilitiesResponse)
 def capabilities(request: Request, _: Principal = Depends(principal)):
     state = request.app.state
+    engine = state.runtime.capabilities()
+    connected = engine["real_model_connected"]
     return {
         "service_version": __version__,
-        "engine": state.runtime.capabilities(),
+        "engine": engine,
         "profiles": [{"id": "default", "name": "Визуальный поиск", "top_n_max": 50}],
         "limits": {
             "max_upload_bytes": state.settings.max_upload_bytes,
@@ -62,16 +64,26 @@ def capabilities(request: Request, _: Principal = Depends(principal)):
             "replay": True,
             "occlusion_explanations": True,
             "durable_jobs": True,
-            "exports": ["json", "csv", "pdf"],
-            "trained_model_connected": False,
+            "exports": ["json", "csv", "pdf", "case"],
+            "expert_board": True,
+            "gallery_version_diff": True,
+            "offline_case_export": True,
+            "trained_model_connected": connected,
         },
-        "notice": "Модель ReID не подключена. Preview проверяет работу сервиса и не подтверждает совпадения автомобилей.",
+        "notice": (
+            "Подключён отдельный вычислительный модуль ReID. Его качество и производительность "
+            "подтверждаются только версионированным протоколом оценки."
+            if connected
+            else "Модель ReID не подключена. Preview проверяет работу сервиса и не подтверждает "
+            "совпадения автомобилей."
+        ),
     }
 
 
 @router.get("/models", response_model=ModelList)
 def models(request: Request, _: Principal = Depends(principal)):
     engine = request.app.state.runtime.capabilities()
+    connected = engine["real_model_connected"]
     return {
         "items": [
             {
@@ -79,8 +91,13 @@ def models(request: Request, _: Principal = Depends(principal)):
                 "mode": engine["mode"],
                 "dimension": engine["dimension"],
                 "status": "ready" if engine["ready"] else "unavailable",
-                "trained_model_connected": False,
-                "description": "Preview: модель ReID не подключена",
+                "trained_model_connected": connected,
+                "device": engine["device"],
+                "precision": engine["precision"],
+                "weights_bytes": engine["weights_bytes"],
+                "description": (
+                    "Подключён внешний runtime ReID" if connected else "Preview: модель ReID не подключена"
+                ),
             }
         ]
     }

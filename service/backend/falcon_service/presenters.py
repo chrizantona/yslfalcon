@@ -42,7 +42,18 @@ def job_view(row):
     }
 
 
-def review_view(row):
+def annotation_view(row):
+    return {
+        "id": row.id,
+        "image_ref": row.image_ref,
+        "surface": row.surface,
+        "kind": row.kind,
+        "x": row.x,
+        "y": row.y,
+    }
+
+
+def review_view(row, annotations=()):
     return {
         "id": row.id,
         "search_id": row.search_id,
@@ -51,4 +62,5 @@ def review_view(row):
         "note": row.note,
         "actor": row.actor,
         "created_at": timestamp(row.created_at),
+        "annotations": [annotation_view(item) for item in annotations],
     }

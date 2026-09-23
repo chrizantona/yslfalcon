@@ -11,7 +11,7 @@ from ..auth import Principal, principal, require_role
 from ..catalog import scoped
 from ..errors import ServiceError, image_validation_message
 from ..jobs import enqueue
-from ..models import Review, Search
+from ..models import Review, ReviewAnnotation, Search
 from ..presenters import job_view, review_view
 from ..response_schemas import JobResponse, ReviewResponse, SearchList, SearchResponse
 from ..schemas import CreateExplanation, CreateExport, CreateReview
@@ -146,7 +146,12 @@ def create_review(
     identity: Principal = Depends(require_role("operator")),
 ):
     with request.app.state.db.transaction() as session:
-        _completed_search(session, search_id, identity.workspace, body.observation_id)
+        search = _completed_search(session, search_id, identity.workspace, body.observation_id)
+        valid_refs = {"query"} | {item["observation_id"] for item in search.result["ranked_candidates"]}
+        if any(item.image_ref not in valid_refs for item in body.annotations):
+            raise ServiceError(
+                "invalid_annotation", "Пометка относится к изображению вне сохранённой выдачи", 400
+            )
         review = Review(
             id=str(uuid4()),
             workspace=identity.workspace,
@@ -158,7 +163,22 @@ def create_review(
         )
         session.add(review)
         session.flush()
-        return review_view(review)
+        annotations = [
+            ReviewAnnotation(
+                id=str(uuid4()),
+                workspace=identity.workspace,
+                review_id=review.id,
+                image_ref=item.image_ref,
+                surface=item.surface,
+                kind=item.kind,
+                x=item.x,
+                y=item.y,
+            )
+            for item in body.annotations
+        ]
+        session.add_all(annotations)
+        session.flush()
+        return review_view(review, annotations)
 
 
 @router.post("/{search_id}/explanations", status_code=202, response_model=JobResponse)

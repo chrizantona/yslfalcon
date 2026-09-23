@@ -15,7 +15,7 @@ from .db import Database, now, timestamp
 from .errors import ServiceError
 from .features import FeatureStore
 from .leases import heartbeat
-from .models import Gallery, GalleryVersion, Observation, Review, Search
+from .models import Gallery, GalleryVersion, Observation, Review, ReviewAnnotation, Search
 from .presenters import review_view
 from .runtime import EncoderRuntime
 from .storage import ArtifactStore
@@ -25,14 +25,33 @@ def search_view(session: Session, row: Search) -> dict:
     if row.state != "completed" or row.result is None:
         raise ServiceError("search_not_complete", "Поиск ещё не завершён", 409)
     result = dict(row.result)
-    result["reviews"] = [
-        review_view(item)
-        for item in session.scalars(
+    reviews = list(
+        session.scalars(
             select(Review)
             .where(Review.search_id == row.id, Review.workspace == row.workspace)
             .order_by(Review.created_at, Review.id)
         )
-    ]
+    )
+    annotations = (
+        list(
+            session.scalars(
+                select(ReviewAnnotation)
+                .join(Review, Review.id == ReviewAnnotation.review_id)
+                .where(
+                    ReviewAnnotation.workspace == row.workspace,
+                    Review.search_id == row.id,
+                    Review.workspace == row.workspace,
+                )
+                .order_by(ReviewAnnotation.created_at, ReviewAnnotation.id)
+            )
+        )
+        if reviews
+        else []
+    )
+    by_review: dict[str, list[ReviewAnnotation]] = {}
+    for annotation in annotations:
+        by_review.setdefault(annotation.review_id, []).append(annotation)
+    result["reviews"] = [review_view(item, by_review.get(item.id, ())) for item in reviews]
     return result
 
 

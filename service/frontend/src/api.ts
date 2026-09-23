@@ -4,11 +4,13 @@ import type {
   Explanation,
   Gallery,
   GalleryVersion,
+  GalleryVersionDiff,
   ImportSession,
   Job,
   ModelInfo,
   PageResult,
   Review,
+  ReviewAnnotationDraft,
   SearchResult,
   Session,
   SystemInfo,
@@ -121,6 +123,10 @@ export const api = {
     request<Gallery>('/galleries', { method: 'POST', body: json({ name, description }) }),
   versions: (galleryId: string) =>
     request<{ items: GalleryVersion[] }>(`/galleries/${id(galleryId)}/versions`),
+  versionDiff: (galleryId: string, fromVersion: string, toVersion: string, offset = 0) =>
+    request<GalleryVersionDiff>(
+      `/galleries/${id(galleryId)}/versions/${id(toVersion)}/diff?from_version_id=${id(fromVersion)}&limit=100&offset=${offset}`,
+    ),
   async importGallery(galleryId: string, files: File[], manifest?: File) {
     const body = new FormData();
     files.forEach((file) => body.append('files', file));
@@ -173,17 +179,23 @@ export const api = {
   searchResult: (searchId: string) => request<SearchResult>(`/searches/${id(searchId)}`),
   replay: (searchId: string) =>
     request<SearchResult>(`/searches/${id(searchId)}/replays`, { method: 'POST' }),
-  review: (searchId: string, observationId: string, verdict: Verdict, note: string) =>
+  review: (
+    searchId: string,
+    observationId: string,
+    verdict: Verdict,
+    note: string,
+    annotations: ReviewAnnotationDraft[],
+  ) =>
     request<Review>(`/searches/${id(searchId)}/reviews`, {
       method: 'POST',
-      body: json({ observation_id: observationId, verdict, note }),
+      body: json({ observation_id: observationId, verdict, note, annotations }),
     }),
   explain: (searchId: string, observationId: string) =>
     request<Job>(`/searches/${id(searchId)}/explanations`, {
       method: 'POST',
       body: json({ observation_id: observationId }),
     }),
-  export: (searchId: string, format: 'json' | 'csv' | 'pdf') =>
+  export: (searchId: string, format: 'json' | 'csv' | 'pdf' | 'case') =>
     request<Job>(`/searches/${id(searchId)}/exports`, { method: 'POST', body: json({ format }) }),
   models: () => request<{ items: ModelInfo[] }>('/models'),
   calibrations: () => request<{ items: Record<string, unknown>[] }>('/calibrations'),

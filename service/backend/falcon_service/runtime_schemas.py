@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel, Field, JsonValue, model_validator
 
 
 class RuntimeLiveResponse(BaseModel):
@@ -10,12 +10,27 @@ class RuntimeLiveResponse(BaseModel):
 
 
 class RuntimeCapabilities(BaseModel):
-    mode: str
-    model_id: str
-    dimension: int
-    rerank_window: int
+    mode: str = Field(min_length=1, max_length=64)
+    model_id: str = Field(min_length=1, max_length=256)
+    dimension: int = Field(ge=1, le=16384)
+    rerank_window: int = Field(ge=0, le=50)
     calibration_policy: dict[str, JsonValue] | None
-    real_model_connected: Literal[False]
+    real_model_connected: bool
+    device: str = Field(min_length=1, max_length=64)
+    precision: str = Field(min_length=1, max_length=64)
+    weights_bytes: int = Field(ge=0, le=2_000_000_000)
+
+    @model_validator(mode="after")
+    def preview_never_claims_a_model(self):
+        if self.mode == "preview" and self.real_model_connected:
+            raise ValueError("Preview mode cannot claim a connected trained model")
+        if self.mode != "preview" and not self.real_model_connected:
+            raise ValueError("A non-preview runtime must declare a connected trained model")
+        if self.real_model_connected and not self.weights_bytes:
+            raise ValueError("A connected trained model must report nonzero model weights")
+        if not self.real_model_connected and self.weights_bytes:
+            raise ValueError("A runtime without a connected model cannot report model weights")
+        return self
 
 
 class ValidationIssue(BaseModel):

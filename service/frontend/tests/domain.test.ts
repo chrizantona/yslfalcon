@@ -5,6 +5,7 @@ import {
   heatOpacity,
   normalizeProgress,
   safeDownloadUrl,
+  synchronizedScrollOffset,
   validBBox,
 } from '../src/domain.ts';
 
@@ -56,4 +57,11 @@ test('zero sensitivity produces a transparent map, not fabricated emphasis', () 
   assert.equal(heatOpacity(0.5, 1), 0.4);
   assert.equal(heatOpacity(-0.5, 1), 0.4);
   assert.equal(heatOpacity(5, 1), 0.8);
+});
+test('shared pan remains normalized when zoom or viewport size changes', () => {
+  assert.equal(synchronizedScrollOffset(0.5, 1200, 400), 400);
+  assert.equal(synchronizedScrollOffset(0.5, 2000, 400), 800);
+  assert.equal(synchronizedScrollOffset(0.5, 2000, 800), 600);
+  assert.equal(synchronizedScrollOffset(-1, 1200, 400), 0);
+  assert.equal(synchronizedScrollOffset(2, 1200, 400), 800);
 });

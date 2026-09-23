@@ -48,7 +48,7 @@ export function SearchPage({
   const [selected, setSelected] = useState<Candidate | null>(null);
   const [exportJob, setExportJob] = useState<Job | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'pdf' | 'json' | 'csv'>('pdf');
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'json' | 'csv' | 'case'>('case');
   const [replaying, setReplaying] = useState(false);
   const pendingSearch = useRef<{ signature: string; key: string } | null>(null);
   const activeGalleries =
@@ -421,8 +421,8 @@ export function SearchPage({
               <div className="result-footnote">
                 <Icon name="eye" size={16} />
                 <span>
-                  Нажмите на изображение, чтобы сравнить детали и сохранить заключение. Числа —
-                  косинус признаков, не проценты уверенности.
+                  Нажмите на изображение, чтобы открыть экспертную доску с запросом, кандидатом и
+                  ближайшим конкурентом. Числа — косинус признаков, не проценты уверенности.
                 </span>
               </div>
               <section className="panel result-passport">
@@ -467,6 +467,7 @@ export function SearchPage({
                       <option value="pdf">PDF</option>
                       <option value="json">JSON</option>
                       <option value="csv">CSV</option>
+                      <option value="case">Offline-дело ZIP</option>
                     </select>
                     <Button
                       icon="download"
