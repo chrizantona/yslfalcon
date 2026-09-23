@@ -1,16 +1,10 @@
-# docker compose up --build  ->  artifacts/<exp_id>/submission/. Image build and offline CPU forward checked; GPU container runtime pending.
+# docker compose up --build  ->  artifacts/final/submission/. The build downloads the weights; the run has no network.
 services:
   inference:
     platform: linux/amd64
     user: "${INFERENCE_UID:-1000}:${INFERENCE_GID:-1000}"
     build:
       context: .
-      args:
-        WEIGHTS_URL: ${WEIGHTS_URL:-https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/570071465}
-        WEIGHTS_SHA256: ${WEIGHTS_SHA256:-ed735cad60ba42f79e2e2b933fd5565256da9327de7018155a0be22642ce3a29}
-        CHECKPOINT_NAME: ${CHECKPOINT_NAME:-exp037.pt}
-      secrets:
-        - github_token
     volumes:
       - ${DATASET_DIR:-./BIG_DATA/dataset}:/data:ro
       - ./artifacts:/app/artifacts
@@ -22,6 +16,3 @@ services:
             - driver: nvidia
               device_ids: ["${INFERENCE_GPU:-1}"]
               capabilities: [gpu]
-secrets:
-  github_token:
-    file: ${GITHUB_TOKEN_FILE:?set path to the GitHub token file for the private Release}

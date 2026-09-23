@@ -1,5 +1,5 @@
 # Offline inference image: builds the test submission from the dataset mounted at /data.
-# Linux amd64 build and offline CPU forward checked; GPU container runtime pending.
+# Weights are fetched at build time from a public source and verified by sha256; at runtime there is no network.
 FROM python:3.13.7-slim@sha256:5f55cdf0c5d9dc1a415637a5ccc4a9e18663ad203673173b8cda8f8dcacef689 AS dependencies
 
 WORKDIR /app
@@ -13,12 +13,9 @@ COPY configs/ configs/
 COPY scripts/docker_fetch_checkpoint.py scripts/docker_fetch_checkpoint.py
 ENV PYTHONPATH=/app/src HF_HOME=/opt/hf PYTHONDONTWRITEBYTECODE=1
 
-# Bake the trained checkpoint into the image, then forbid HF downloads at runtime.
-# TODO: these still point at the EXP-037 release asset; swap them for the published final weights and the view head.
-ARG WEIGHTS_URL=https://api.github.com/repos/chrizantona/yslfalcon/releases/assets/570071465
-ARG WEIGHTS_SHA256=ed735cad60ba42f79e2e2b933fd5565256da9327de7018155a0be22642ce3a29
-ARG CHECKPOINT_NAME=exp037.pt
-RUN --mount=type=secret,id=github_token --mount=type=cache,id=yslfalcon-checkpoints,target=/var/cache/reid,sharing=locked python scripts/docker_fetch_checkpoint.py
+# Public weights pinned by sha256 in configs/weights.json: the build needs network but no credentials.
+RUN --mount=type=cache,id=yslfalcon-checkpoints,target=/var/cache/reid,sharing=locked \
+    python scripts/docker_fetch_checkpoint.py
 ENV HF_HUB_OFFLINE=1
 
 RUN useradd --uid 1000 --create-home falcon && mkdir -p /app/artifacts && chown falcon:falcon /app/artifacts
