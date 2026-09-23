@@ -1,0 +1,15 @@
+exp_id: EXP-204
+parent: EXP-202
+description: does the viewpoint penalty still pay on a model trained on 1232 vehicles - delta 0.07 carried unchanged, checked on fold 0 with the leave-one-fold-out instrument that never saw it
+candidate:
+  config: configs/exp202_loo_fold0.yaml
+  checkpoint: 82968b5df6694133aadecc743ee288f0_seed0.pt
+  threshold: 7.0363         # the plateau centre EXP-202 fitted on this same fold
+delta: 0.07                 # chosen on fold 0 in EXP-190, never refitted
+head:
+  folds: [1, 2, 3, 4]
+  epochs: 300
+  lr: 0.01
+  weight_decay: 1.0e-4
+folds: [0]
+cache_dir: /workspace/yslfalcon_runs/cache_exp204/fold0

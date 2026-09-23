@@ -445,7 +445,8 @@ def main():
 
     protocol_dir = Path(val_cfg["out_dir"])
     train_df, crops_dir, classes = training_table(cfg, data_cfg, val_cfg)
-    query, gallery, no_match = load_fold(protocol_dir, cfg["eval_fold"])
+    dev = cfg["eval_fold"] is not None      # null: every fold is training data, so there is nothing left to score
+    query, gallery, no_match = load_fold(protocol_dir, cfg["eval_fold"]) if dev else (None, None, None)
 
     if cfg["model"]["backbone"] in AFEM_KINDS:
         model, feat_dim, mean, std = build_extended_model(cfg["model"], len(classes),
@@ -635,7 +636,7 @@ def main():
             record["gem_p"] = float(pool.p.detach())
         if tcfg.get("layer_decay"):
             record["lr_backbone_min"] = min(g["lr"] for g in optimizer.param_groups[:-1])
-        if epoch % tcfg["eval_every"] == 0 or epoch == tcfg["epochs"]:
+        if dev and (epoch % tcfg["eval_every"] == 0 or epoch == tcfg["epochs"]):
             result = evaluate_fold(embed, query, gallery, no_match)
             record["dev"] = {**result["retrieval"], "refusal_F1": result["refusal"]["F1"], "refusal_TNR": result["refusal"]["TNR"]}
             if tcfg.get("select_best_dev", False):
@@ -648,7 +649,8 @@ def main():
         print(json.dumps(record), flush=True)
 
     header = {"exp_id": cfg["exp_id"], "seed": seed, "protocol": val_cfg["version"], "fold": cfg["eval_fold"],
-              "n_query": len(query), "n_gallery": len(gallery), "train_minutes": (time.time() - start) / 60}
+              "n_query": len(query) if dev else 0, "n_gallery": len(gallery) if dev else 0,
+              "train_minutes": (time.time() - start) / 60}
     header["gradient_checkpointing"] = gradient_checkpointing
     if unfused_attention_blocks:
         header["unfused_attention_blocks"] = unfused_attention_blocks
@@ -676,7 +678,11 @@ def main():
                    checkpoints / name)
         header["checkpoint"] = name
         header["checkpoint_mb"] = round((checkpoints / name).stat().st_size / 1e6, 1)
-    save_fold_results(out, result, query, header, emb_dtype=np.float16)
+    if dev:
+        save_fold_results(out, result, query, header, emb_dtype=np.float16)
+    else:  # no dev fold: the last training record is all the evidence the run leaves behind
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "metrics.json").write_text(json.dumps({**header, "last_epoch": record}, indent=2))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,12 @@
+# val_v2 for the final model, which trains on every fold (EXP-205).
+# There is nothing left to hold out by construction: the guard in reid.train and the dev evaluation are both switched
+# off through holdout_fold and eval_fold being null. The refusal threshold of such a model comes from EXP-202, where
+# five leave-one-fold-out instruments were each calibrated on a fold they had never seen.
+version: val_v2
+out_dir: protocol/val_v2      # the same frozen folds
+base_dir: protocol/val_v1
+n_folds: 5
+no_match_query_share: 0.2
+no_match_seed: 0
+dev_fold: 0
+holdout_fold: null            # changed: every fold is training data for the final model

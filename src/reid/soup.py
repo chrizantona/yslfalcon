@@ -50,7 +50,8 @@ def main():
     args = parser.parse_args()
     data_cfg, val_cfg, cfg = load_yaml(args.data_config), load_yaml(args.val_config), load_yaml(args.config)
     fold, device = cfg["eval_fold"], pick_device()
-    query, gallery, no_match = load_fold(val_cfg["out_dir"], fold)
+    dev = fold is not None                 # null: the members trained on every fold, so there is nothing left to score
+    query, gallery, no_match = load_fold(val_cfg["out_dir"], fold) if dev else (None, None, None)
 
     checkpoints = Path(data_cfg["checkpoint_dir"])
     soup = average_state_dicts([torch.load(checkpoints / name, map_location="cpu")["state_dict"]
@@ -69,12 +70,19 @@ def main():
         return embed_boxes(model, df, images_dir, cfg["model"]["input_hw"], mean, std, data_cfg["crop_max_side"],
                            device=device, **cfg["embed"])
 
-    result = evaluate_fold(embed, query, gallery, no_match)
-    header = {"exp_id": cfg["exp_id"], "protocol": val_cfg["version"], "fold": fold, "n_query": len(query),
-              "n_gallery": len(gallery), "members": cfg["checkpoints"], "checkpoint": name,
+    header = {"exp_id": cfg["exp_id"], "protocol": val_cfg["version"], "fold": fold,
+              "n_query": len(query) if dev else 0, "n_gallery": len(gallery) if dev else 0,
+              "members": cfg["checkpoints"], "checkpoint": name,
               "checkpoint_mb": round((checkpoints / name).stat().st_size / 1e6, 1)}
-    metrics = save_fold_results(Path("artifacts") / cfg["exp_id"] / f"val_fold{fold}", result, query, header,
-                                emb_dtype=np.float16)
+    if dev:
+        result = evaluate_fold(embed, query, gallery, no_match)
+        metrics = save_fold_results(Path("artifacts") / cfg["exp_id"] / f"val_fold{fold}", result, query, header,
+                                    emb_dtype=np.float16)
+    else:
+        out = Path("artifacts") / cfg["exp_id"]
+        out.mkdir(parents=True, exist_ok=True)
+        metrics = header
+        (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
     print(json.dumps(metrics, indent=2))
 
 
