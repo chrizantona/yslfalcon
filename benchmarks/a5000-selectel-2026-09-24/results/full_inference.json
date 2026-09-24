@@ -1,0 +1,28 @@
+{
+  "dataset": {
+    "query_rows": 1110,
+    "gallery_rows": 750,
+    "total_rows": 1860
+  },
+  "wall_seconds_including_container_and_model_load": 63,
+  "average_images_per_second_including_startup": 29.5,
+  "average_ms_per_image_including_startup": 33.9,
+  "answered_queries": 1048,
+  "refused_queries": 62,
+  "refused_percent": 5.6,
+  "validation": "submission OK",
+  "artifacts": {
+    "submission.csv": {
+      "bytes": 402930,
+      "sha256": "2464fc969eb1310f76ea7dadc95bed76aab660794b08e73a93510c5ec766af05"
+    },
+    "candidates.csv": {
+      "bytes": 76773,
+      "sha256": "39bfee3938500efcd28316f2362b5de55cc137ef61b1f01adfdc99df8eeea785"
+    },
+    "embeddings.npy": {
+      "bytes": 8571008,
+      "sha256": "020e3be773cf1eaf5d4db7ca33c9257dc1ffc54fc4f9b72813ad6eee8c8128cb"
+    }
+  }
+}

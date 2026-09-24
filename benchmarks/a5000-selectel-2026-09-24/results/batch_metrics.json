@@ -1,0 +1,383 @@
+{
+  "methodology": {
+    "batch_sizes": [
+      1,
+      8,
+      16,
+      32
+    ],
+    "warmup_batches_per_size": 1,
+    "measured_batches_per_size": 5,
+    "workers": 8,
+    "timed_cycle": "pipelined jpeg read + bbox crop + resize/normalize + H2D + encoder + L2 + D2H",
+    "cpu_gpu_prefetch_overlap": true
+  },
+  "environment": {
+    "gpu": {
+      "name": "NVIDIA RTX A5000",
+      "driver_version": "580.65.06",
+      "memory.total": "24564",
+      "power.limit": "230.00",
+      "clocks.max.sm": "2100"
+    },
+    "cpu_logical_available": 16,
+    "system_memory": {
+      "MemTotal_mb": 32092.2,
+      "MemAvailable_mb": 29247.7
+    },
+    "platform": "Linux-6.8.0-85-generic-x86_64-with-glibc2.41",
+    "python": "3.13.7",
+    "torch": "2.10.0+cu126",
+    "torch_cuda": "12.6"
+  },
+  "model": {
+    "model_id": "emb-so400m-224-v1",
+    "checkpoint": "6a1c8e0b53f74d9fae2c7b81d40936af.pt",
+    "checkpoint_bytes": 1717961753,
+    "precision": "fp16",
+    "embedding_dim": 1152,
+    "load_seconds": 16.08
+  },
+  "results": [
+    {
+      "summary": {
+        "batch_size": 1,
+        "measured_batches": 5,
+        "images": 5,
+        "batch_total_ms_mean": 20.43,
+        "batch_total_ms_median": 24.37,
+        "batch_total_ms_min": 7.52,
+        "batch_total_ms_max": 25.61,
+        "per_image_ms": 20.43,
+        "fps_end_to_end": 48.9,
+        "forward_ms_mean": 6.81,
+        "peak_vram_allocated_mb": 889.6,
+        "peak_vram_reserved_mb": 956.3,
+        "process_rss_mb_max": 1842.4,
+        "process_peak_rss_mb": 6669.3
+      },
+      "samples": [
+        {
+          "batch_index": 1,
+          "warmup": false,
+          "preprocess_ms": 0.66,
+          "forward_ms": 6.86,
+          "total_ms": 7.52,
+          "vram_allocated_mb": 889.6,
+          "vram_reserved_mb": 956.3,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1842.4
+          }
+        },
+        {
+          "batch_index": 2,
+          "warmup": false,
+          "preprocess_ms": 18.57,
+          "forward_ms": 6.8,
+          "total_ms": 25.37,
+          "vram_allocated_mb": 889.6,
+          "vram_reserved_mb": 956.3,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1842.4
+          }
+        },
+        {
+          "batch_index": 3,
+          "warmup": false,
+          "preprocess_ms": 18.8,
+          "forward_ms": 6.81,
+          "total_ms": 25.61,
+          "vram_allocated_mb": 889.6,
+          "vram_reserved_mb": 956.3,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1842.4
+          }
+        },
+        {
+          "batch_index": 4,
+          "warmup": false,
+          "preprocess_ms": 17.58,
+          "forward_ms": 6.79,
+          "total_ms": 24.37,
+          "vram_allocated_mb": 889.6,
+          "vram_reserved_mb": 956.3,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1842.4
+          }
+        },
+        {
+          "batch_index": 5,
+          "warmup": false,
+          "preprocess_ms": 12.51,
+          "forward_ms": 6.8,
+          "total_ms": 19.3,
+          "vram_allocated_mb": 889.6,
+          "vram_reserved_mb": 956.3,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1842.4
+          }
+        }
+      ]
+    },
+    {
+      "summary": {
+        "batch_size": 8,
+        "measured_batches": 5,
+        "images": 40,
+        "batch_total_ms_mean": 49.08,
+        "batch_total_ms_median": 40.29,
+        "batch_total_ms_min": 40.04,
+        "batch_total_ms_max": 67.07,
+        "per_image_ms": 6.14,
+        "fps_end_to_end": 163.0,
+        "forward_ms_mean": 37.12,
+        "peak_vram_allocated_mb": 975.8,
+        "peak_vram_reserved_mb": 1069.5,
+        "process_rss_mb_max": 1932.3,
+        "process_peak_rss_mb": 6669.3
+      },
+      "samples": [
+        {
+          "batch_index": 1,
+          "warmup": false,
+          "preprocess_ms": 2.66,
+          "forward_ms": 37.47,
+          "total_ms": 40.12,
+          "vram_allocated_mb": 975.8,
+          "vram_reserved_mb": 1069.5,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1931.8
+          }
+        },
+        {
+          "batch_index": 2,
+          "warmup": false,
+          "preprocess_ms": 4.81,
+          "forward_ms": 35.23,
+          "total_ms": 40.04,
+          "vram_allocated_mb": 975.8,
+          "vram_reserved_mb": 1069.5,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1931.8
+          }
+        },
+        {
+          "batch_index": 3,
+          "warmup": false,
+          "preprocess_ms": 19.91,
+          "forward_ms": 37.99,
+          "total_ms": 57.9,
+          "vram_allocated_mb": 975.8,
+          "vram_reserved_mb": 1069.5,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1932.3
+          }
+        },
+        {
+          "batch_index": 4,
+          "warmup": false,
+          "preprocess_ms": 4.35,
+          "forward_ms": 35.94,
+          "total_ms": 40.29,
+          "vram_allocated_mb": 975.8,
+          "vram_reserved_mb": 1069.5,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1932.3
+          }
+        },
+        {
+          "batch_index": 5,
+          "warmup": false,
+          "preprocess_ms": 28.1,
+          "forward_ms": 38.97,
+          "total_ms": 67.07,
+          "vram_allocated_mb": 975.8,
+          "vram_reserved_mb": 1069.5,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1932.3
+          }
+        }
+      ]
+    },
+    {
+      "summary": {
+        "batch_size": 16,
+        "measured_batches": 5,
+        "images": 80,
+        "batch_total_ms_mean": 100.41,
+        "batch_total_ms_median": 104.55,
+        "batch_total_ms_min": 75.2,
+        "batch_total_ms_max": 111.33,
+        "per_image_ms": 6.28,
+        "fps_end_to_end": 159.3,
+        "forward_ms_mean": 65.55,
+        "peak_vram_allocated_mb": 1054.4,
+        "peak_vram_reserved_mb": 1170.2,
+        "process_rss_mb_max": 1940.4,
+        "process_peak_rss_mb": 6669.3
+      },
+      "samples": [
+        {
+          "batch_index": 1,
+          "warmup": false,
+          "preprocess_ms": 8.59,
+          "forward_ms": 66.61,
+          "total_ms": 75.2,
+          "vram_allocated_mb": 1054.4,
+          "vram_reserved_mb": 1170.2,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1940.4
+          }
+        },
+        {
+          "batch_index": 2,
+          "warmup": false,
+          "preprocess_ms": 35.51,
+          "forward_ms": 64.99,
+          "total_ms": 100.5,
+          "vram_allocated_mb": 1054.4,
+          "vram_reserved_mb": 1170.2,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1940.4
+          }
+        },
+        {
+          "batch_index": 3,
+          "warmup": false,
+          "preprocess_ms": 40.17,
+          "forward_ms": 64.38,
+          "total_ms": 104.55,
+          "vram_allocated_mb": 1054.4,
+          "vram_reserved_mb": 1170.2,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1940.4
+          }
+        },
+        {
+          "batch_index": 4,
+          "warmup": false,
+          "preprocess_ms": 44.36,
+          "forward_ms": 66.97,
+          "total_ms": 111.33,
+          "vram_allocated_mb": 1054.4,
+          "vram_reserved_mb": 1170.2,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1940.4
+          }
+        },
+        {
+          "batch_index": 5,
+          "warmup": false,
+          "preprocess_ms": 45.67,
+          "forward_ms": 64.81,
+          "total_ms": 110.48,
+          "vram_allocated_mb": 1054.4,
+          "vram_reserved_mb": 1170.2,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1940.4
+          }
+        }
+      ]
+    },
+    {
+      "summary": {
+        "batch_size": 32,
+        "measured_batches": 5,
+        "images": 160,
+        "batch_total_ms_mean": 135.61,
+        "batch_total_ms_median": 135.4,
+        "batch_total_ms_min": 135.35,
+        "batch_total_ms_max": 136.06,
+        "per_image_ms": 4.24,
+        "fps_end_to_end": 236.0,
+        "forward_ms_mean": 129.82,
+        "peak_vram_allocated_mb": 1210.9,
+        "peak_vram_reserved_mb": 1554.0,
+        "process_rss_mb_max": 1971.4,
+        "process_peak_rss_mb": 6669.3
+      },
+      "samples": [
+        {
+          "batch_index": 1,
+          "warmup": false,
+          "preprocess_ms": 6.1,
+          "forward_ms": 129.97,
+          "total_ms": 136.06,
+          "vram_allocated_mb": 1210.9,
+          "vram_reserved_mb": 1554.0,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1968.4
+          }
+        },
+        {
+          "batch_index": 2,
+          "warmup": false,
+          "preprocess_ms": 5.75,
+          "forward_ms": 129.6,
+          "total_ms": 135.35,
+          "vram_allocated_mb": 1210.9,
+          "vram_reserved_mb": 1554.0,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1970.5
+          }
+        },
+        {
+          "batch_index": 3,
+          "warmup": false,
+          "preprocess_ms": 5.76,
+          "forward_ms": 130.13,
+          "total_ms": 135.89,
+          "vram_allocated_mb": 1210.9,
+          "vram_reserved_mb": 1554.0,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1971.3
+          }
+        },
+        {
+          "batch_index": 4,
+          "warmup": false,
+          "preprocess_ms": 5.66,
+          "forward_ms": 129.74,
+          "total_ms": 135.4,
+          "vram_allocated_mb": 1210.9,
+          "vram_reserved_mb": 1554.0,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1971.4
+          }
+        },
+        {
+          "batch_index": 5,
+          "warmup": false,
+          "preprocess_ms": 5.69,
+          "forward_ms": 129.66,
+          "total_ms": 135.35,
+          "vram_allocated_mb": 1210.9,
+          "vram_reserved_mb": 1554.0,
+          "process_memory": {
+            "VmHWM_mb": 6669.3,
+            "VmRSS_mb": 1971.4
+          }
+        }
+      ]
+    }
+  ]
+}
