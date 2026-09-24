@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements-inference.txt --extra-index-url h
 FROM dependencies AS inference
 COPY src/ src/
 COPY configs/ configs/
-COPY scripts/docker_fetch_checkpoint.py scripts/docker_fetch_checkpoint.py
+COPY scripts/docker_fetch_checkpoint.py scripts/entrypoint.sh scripts/
 ENV PYTHONPATH=/app/src HF_HOME=/opt/hf PYTHONDONTWRITEBYTECODE=1
 
 # Public weights pinned by sha256 in configs/weights.json: the build needs network but no credentials.
@@ -20,5 +20,5 @@ ENV HF_HUB_OFFLINE=1
 
 RUN useradd --uid 1000 --create-home falcon && mkdir -p /app/artifacts && chown falcon:falcon /app/artifacts
 USER falcon
-ENTRYPOINT ["python", "-m", "reid.submit", "--data-config", "configs/data_docker.yaml", "--config"]
-CMD ["configs/final_model.yaml"]
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
+CMD ["submit", "configs/final_model.yaml"]
