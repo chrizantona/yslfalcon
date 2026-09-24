@@ -192,6 +192,6 @@ def test_occlusion_is_measured_and_labeled_preview():
     assert "no trained vehicle model" in result["preview_warning"].lower()
 
 
-def test_real_model_connection_is_explicitly_disabled(tmp_path):
-    with pytest.raises(RuntimeError, match="disabled"):
+def test_the_trained_encoder_refuses_to_start_without_its_bundle(tmp_path):
+    with pytest.raises(RuntimeError, match="manifest not found"):
         RepositoryEncoder(str(tmp_path / "does-not-exist.json"))

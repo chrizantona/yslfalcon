@@ -1,0 +1,25 @@
+# The submitted model: SigLIP 2 So400m/14 at 224, fine-tuned on every fold of the challenge train set and averaged
+# over three seeds (weight soup). One forward pass per vehicle; the viewpoint head below is a 1152x3 matrix applied
+# to a token the tower already computes. Numbers, ablations and the experiments behind every line: branch `experiments`.
+exp_id: final
+description: submission of the final model - one encoder, the viewpoint penalty on the similarity matrix and the refusal threshold from the leave-one-fold-out calibration
+checkpoint_name: 6a1c8e0b53f74d9fae2c7b81d40936af.pt
+model:
+  backbone: clip
+  name: ViT-SO400M-14-SigLIP2
+  pretrained: webli
+  weights: clip/siglip2_so400m14_webli.safetensors
+  sha256: bd5884118e72b5cc24c37cff23b8d202e2c3dac723b8a150901b022785235626
+  input_hw: [224, 224]
+  drop_path_rate: 0.05      # kept for a matching module tree; DropPath is the identity outside training
+embed:
+  batch_size: 256
+  num_workers: 8
+inference:
+  precision: fp16           # fp16 weights cast once; embeddings match fp32 to the fifth decimal of the metric
+refusal:
+  max_candidates: 1         # evaluate.py judges only the highest-confidence row of a query
+  threshold: 7.0828         # median of five out-of-sample plateau centres, plus the seed-to-soup offset
+view:
+  head: 4d6b0f9c81a74e35b2c7ad1e6f508392.npz   # softmax head on the mean patch token, fitted on all five folds
+  delta: 0.07                                  # penalty on a candidate shot from the query's own viewpoint

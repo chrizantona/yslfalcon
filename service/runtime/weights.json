@@ -1,0 +1,7 @@
+{
+  "base_url": "https://huggingface.co/rougenn/emb-so400m-224-v1/resolve/main",
+  "files": {
+    "6a1c8e0b53f74d9fae2c7b81d40936af.pt": "c23626f3fbd10b155c23aec8aca9a7342a83bed0a01dc3f187bda716a759c88b",
+    "4d6b0f9c81a74e35b2c7ad1e6f508392.npz": "025e5a332ee2752f8b3a37faac2158fd41cb9716d91dfaa6e75f54c2967508e2"
+  }
+}

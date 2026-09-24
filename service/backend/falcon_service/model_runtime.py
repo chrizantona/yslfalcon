@@ -1,4 +1,4 @@
-"""Separate internal preview runtime. No trained model or checkpoint is loaded."""
+"""Separate internal runtime: the preview descriptor, or the trained model with FALCON_ENCODER=production."""
 
 import json
 import os
@@ -11,7 +11,7 @@ from fastapi.responses import Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.concurrency import run_in_threadpool
 
-from .inference import PreviewEncoder
+from .inference import PreviewEncoder, RepositoryEncoder
 from .inference.images import MAX_IMAGE_BYTES
 from .inference.wire import MAX_WIRE_BYTES, pack_features, unpack_features
 from .runtime_schemas import (
@@ -39,11 +39,16 @@ def create_app(encoder=None, token=None):
         if not state["token"] or len(state["token"]) < 24:
             raise RuntimeError("FALCON_RUNTIME_TOKEN must contain at least 24 characters")
         if state["encoder"] is None:
-            if os.environ.get("FALCON_ENCODER", "preview") != "preview":
-                raise RuntimeError(
-                    "Only the explicit preview runtime is enabled; model integration is deferred"
-                )
-            state["encoder"] = PreviewEncoder()
+            mode = os.environ.get("FALCON_ENCODER", "preview")
+            if mode == "preview":
+                state["encoder"] = PreviewEncoder()
+            elif mode == "production":
+                manifest = os.environ.get("FALCON_MODEL_MANIFEST")
+                if not manifest:
+                    raise RuntimeError("FALCON_MODEL_MANIFEST is required by the production encoder")
+                state["encoder"] = RepositoryEncoder(manifest, os.environ.get("FALCON_MODEL_DEVICE", "cuda"))
+            else:
+                raise RuntimeError(f"Unknown FALCON_ENCODER {mode!r}: expected preview or production")
         yield
 
     app = FastAPI(
