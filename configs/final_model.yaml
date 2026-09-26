@@ -17,6 +17,8 @@ embed:
   num_workers: 8
 inference:
   precision: fp16           # fp16 weights cast once; embeddings match fp32 to the fifth decimal of the metric
+benchmark:
+  precision: fp16           # reid.benchmark reads its precision here: the same fp16 path as the submission
 refusal:
   max_candidates: 1         # evaluate.py judges only the highest-confidence row of a query
   threshold: 7.0828         # median of five out-of-sample plateau centres, plus the seed-to-soup offset
