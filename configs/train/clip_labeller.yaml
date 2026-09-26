@@ -1,0 +1,9 @@
+# The public CLIP that labels the viewpoint of every training frame (reid.attributes) - the targets of the view head.
+# open_clip fetches laion/CLIP-ViT-B-16-laion2B-s34B-b88K; revision and sha256 are listed in README.md.
+model:
+  name: ViT-B-16
+  pretrained: laion2b_s34b_b88k
+  input_hw: [224, 224]   # crops are squashed to this size
+embed:
+  batch_size: 256
+  num_workers: 16

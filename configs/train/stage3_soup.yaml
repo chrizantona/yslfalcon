@@ -1,0 +1,15 @@
+exp_id: EXP-206
+description: stage 3 - uniform weight soup of the three stage 2 seeds; the submitted encoder
+checkpoint_name: 6a1c8e0b53f74d9fae2c7b81d40936af.pt
+model:
+  backbone: clip
+  name: ViT-SO400M-14-SigLIP2
+  pretrained: webli
+  weights: clip/siglip2_so400m14_webli.safetensors
+  sha256: bd5884118e72b5cc24c37cff23b8d202e2c3dac723b8a150901b022785235626
+  input_hw: [224, 224]
+  drop_path_rate: 0.05      # kept for a matching module tree; DropPath is the identity outside training
+checkpoints:              # stage 2, seeds 0, 1, 2
+  - 9f2d47c1ea3c4bd8b1e5a06f7c39d254_seed0.pt
+  - 9f2d47c1ea3c4bd8b1e5a06f7c39d254_seed1.pt
+  - 9f2d47c1ea3c4bd8b1e5a06f7c39d254_seed2.pt

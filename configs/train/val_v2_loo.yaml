@@ -1,0 +1,12 @@
+# val_v2 with the holdout guard lifted, for the leave-one-fold-out threshold study of EXP-202 only.
+# reid.train refuses to train on val_cfg.holdout_fold; the LOO instruments deliberately train on every fold but one,
+# including fold 4, and are never candidates - each is only used to fit a refusal threshold on the fold it never saw.
+# Never use this file to train a submitted model.
+version: val_v2
+out_dir: protocol/val_v2      # the same frozen folds
+base_dir: protocol/val_v1
+n_folds: 5
+no_match_query_share: 0.2
+no_match_seed: 0
+dev_fold: 0
+holdout_fold: null            # changed: the guard is lifted for the instruments of EXP-202

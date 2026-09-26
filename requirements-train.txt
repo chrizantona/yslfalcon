@@ -1,0 +1,6 @@
+# Training environment of the submitted model (Python 3.13.7, NVIDIA H200). Install torch and torchvision from the
+# cu130 wheel index first, then the shared runtime packages:
+#   pip install -r requirements-train.txt --index-url https://download.pytorch.org/whl/cu130
+#   pip install -r requirements.txt
+torch==2.10.0
+torchvision==0.25.0

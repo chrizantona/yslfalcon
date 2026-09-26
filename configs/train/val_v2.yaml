@@ -1,0 +1,12 @@
+# Frozen validation protocol v2, after the organisers' answers of 2026-09-16. Never regenerate it: a change means val_v3.
+# Scoring (reid.evaluate): mAP@10 / R1 / R5 from the top-10 list as submission.csv holds it (junk dropped, AP divided by
+# min(n_pos, 10), queries without a pair excluded); full-ranking mAP and mINP for reference; candidate mode at query
+# level with the top candidate only, threshold maximising 0.7 F1 + 0.3 TNR.
+version: val_v2
+out_dir: protocol/val_v2
+base_dir: protocol/val_v1     # folds and pseudo-test query/gallery copied unchanged: saved embeddings stay valid
+n_folds: 5
+no_match_query_share: 0.2     # about 20% of queries have no pair, as in the closed test (was 30% of vehicles in val_v1)
+no_match_seed: 0
+dev_fold: 0                   # used for experiments
+holdout_fold: 4               # untouched until the final candidates

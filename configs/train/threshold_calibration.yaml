@@ -1,0 +1,10 @@
+exp_id: EXP-202
+description: the refusal threshold of the submission - each leave-one-fold-out run is fitted on the fold it never saw (one gallery without the no-pair vehicles, the organisers' F1), and the median of the five plateau centres plus the seed-to-soup offset is the submitted threshold
+plateau_tolerance: 0.001   # the plateau: scores within 0.001 of the best
+soup_offset: 0.03          # a three-seed soup scores its top-1 higher than one seed: EXP-161 -> EXP-164, 7.251 -> 7.280
+folds:                     # fold scored: the run that never saw it
+  0: {config: configs/train/threshold_loo_fold0.yaml, checkpoint: 82968b5df6694133aadecc743ee288f0_seed0.pt}
+  1: {config: configs/train/threshold_loo_fold1.yaml, checkpoint: e5e98ba41a214512b47083db61f6838e_seed0.pt}
+  2: {config: configs/train/threshold_loo_fold2.yaml, checkpoint: 70b4b4607d35413d93cff1b602a70f96_seed0.pt}
+  3: {config: configs/train/threshold_loo_fold3.yaml, checkpoint: b0fbdd7cb4664a9096ece520ac2bf681_seed0.pt}
+  4: {config: configs/train/threshold_loo_fold4.yaml, checkpoint: c15dcc3343b64259bd831b286822dde8_seed0.pt}

@@ -1,0 +1,41 @@
+exp_id: EXP-202
+description: leave-one-fold-out run 3 of the threshold study - the frozen recipe on every fold but 3, one seed; the refusal threshold is then fitted on the untouched fold 3 (reid.calibrate_refusal, configs/train/threshold_calibration.yaml)
+seeds: [0]
+checkpoint_name: b0fbdd7cb4664a9096ece520ac2bf681_seed{seed}.pt
+model:
+  backbone: clip
+  name: ViT-SO400M-14-SigLIP2
+  pretrained: webli
+  weights: clip/siglip2_so400m14_webli.safetensors
+  sha256: bd5884118e72b5cc24c37cff23b8d202e2c3dac723b8a150901b022785235626
+  init_checkpoint: b155ab652c084d75bf3054d188e01313.pt
+  input_hw: [224, 224]
+  drop_path_rate: 0.05      # changed: 0.1 -> 0.05; at 0.1 train accuracy fell to 0.12 in 30 epochs
+train:
+  id_head: {type: arcface, scale: 30.0, margin: 0.5, imprinting: true, imprint_batch_size: 128}
+  folds: [0, 1, 2, 4]          # changed: the dev fold joins training, the recipe is frozen
+  vehicles_per_batch: 32    # P
+  images_per_vehicle: 4     # K
+  epochs: 30                # one epoch = every training vehicle once
+  warmup_epochs: 10
+  lr_backbone: 1.0e-5
+  lr_head: 5.0e-4
+  weight_decay: 1.0e-4
+  label_smoothing: 0.1
+  metric_loss: {type: supcon+triplet, temperature: 0.1}
+  triplet_margin: 0.3
+  flip_p: 0.5
+  pad: 10
+  erasing_p: 0.5
+  num_workers: 12
+  eval_every: 30            # only the last epoch: no fold is watched during training
+embed:
+  batch_size: 256
+  num_workers: 8
+eval_fold: 3
+refusal:
+  max_candidates: 10
+  min_tnr: 0.5
+  threshold: null
+benchmark:
+  precision: fp32
