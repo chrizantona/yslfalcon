@@ -1,18 +1,19 @@
-# docker compose up --build  ->  artifacts/final/submission/. The build downloads the weights; the run has no network.
+# DATASET_DIR=/path/to/dataset docker compose up --build  ->  submission/. The build downloads the weights; the run has
+# no network. The container runs as root so it can write into submission/ whoever owns the checkout.
 services:
   inference:
     platform: linux/amd64
-    user: "${INFERENCE_UID:-1000}:${INFERENCE_GID:-1000}"
+    user: root
     build:
       context: .
     volumes:
       - ${DATASET_DIR:-./BIG_DATA/dataset}:/data:ro
-      - ./artifacts:/app/artifacts
+      - ./submission:/app/artifacts/final/submission
     command: ["${SUBMIT_CONFIG:-configs/final_model.yaml}"]
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ["${INFERENCE_GPU:-1}"]
+              count: all
               capabilities: [gpu]
