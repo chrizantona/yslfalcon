@@ -9,7 +9,7 @@ services:
     volumes:
       - ${DATASET_DIR:-./BIG_DATA/dataset}:/data:ro
       - ./submission:/app/artifacts/final/submission
-    command: ["${SUBMIT_CONFIG:-configs/final_model.yaml}"]
+    command: ["submit", "${SUBMIT_CONFIG:-configs/final_model.yaml}"]  # entrypoint.sh: mode, then the config
     deploy:
       resources:
         reservations:
