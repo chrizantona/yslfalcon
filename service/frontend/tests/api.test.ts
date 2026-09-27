@@ -1,7 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { api, ApiError, explanationFromJob } from '../src/api.ts';
-import type { Job } from '../src/types.ts';
+import { api, ApiError } from '../src/api.ts';
 
 let calls: { url: string; options: RequestInit }[];
 let responses: { status: number; body?: unknown }[];
@@ -276,15 +275,6 @@ test('pagination offset reaches the backend', async () => {
       '/api/v1/galleries?limit=100&offset=100',
       '/api/v1/jobs?limit=100&offset=300',
     ],
-  );
-});
-test('missing explanation maps stay unavailable', () => {
-  assert.equal(
-    explanationFromJob({ result: { method: 'occlusion_sensitivity' } } as unknown as Job),
-    null,
-  );
-  assert.ok(
-    explanationFromJob({ result: { query_map: [[0]], candidate_map: [[0]] } } as unknown as Job),
   );
 });
 test('staged import preserves the manifest and create key, then uploads files and finalizes explicitly', async () => {

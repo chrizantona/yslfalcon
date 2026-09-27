@@ -161,6 +161,26 @@ class FeatureArtifact(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 
+class GalleryIndexArtifact(Base):
+    """Rebuildable immutable HNSW graph for one gallery snapshot."""
+
+    __tablename__ = "gallery_index_artifacts"
+    version_id: Mapped[str] = mapped_column(
+        ForeignKey("gallery_versions.id", ondelete="CASCADE"), primary_key=True
+    )
+    workspace: Mapped[str] = mapped_column(String(128), index=True)
+    model_id: Mapped[str] = mapped_column(String(256))
+    algorithm: Mapped[str] = mapped_column(String(64))
+    metric: Mapped[str] = mapped_column(String(32))
+    dimension: Mapped[int] = mapped_column(Integer)
+    count: Mapped[int] = mapped_column(Integer)
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSON)
+    artifact_key: Mapped[str] = mapped_column(String(256))
+    sha256: Mapped[str] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
 class ImportSession(Base):
     __tablename__ = "import_sessions"
     __table_args__ = (UniqueConstraint("workspace", "idempotency_key"),)

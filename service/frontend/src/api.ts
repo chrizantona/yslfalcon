@@ -1,7 +1,6 @@
 import type {
   BBox,
   Capabilities,
-  Explanation,
   Gallery,
   GalleryVersion,
   GalleryVersionDiff,
@@ -190,20 +189,9 @@ export const api = {
       method: 'POST',
       body: json({ observation_id: observationId, verdict, note, annotations }),
     }),
-  explain: (searchId: string, observationId: string) =>
-    request<Job>(`/searches/${id(searchId)}/explanations`, {
-      method: 'POST',
-      body: json({ observation_id: observationId }),
-    }),
   export: (searchId: string, format: 'json' | 'csv' | 'pdf' | 'case') =>
     request<Job>(`/searches/${id(searchId)}/exports`, { method: 'POST', body: json({ format }) }),
   models: () => request<{ items: ModelInfo[] }>('/models'),
   calibrations: () => request<{ items: Record<string, unknown>[] }>('/calibrations'),
   system: () => request<SystemInfo>('/system'),
 };
-export function explanationFromJob(job: Job): Explanation | null {
-  const result = job.result;
-  return result && Array.isArray(result.query_map) && Array.isArray(result.candidate_map)
-    ? (result as unknown as Explanation)
-    : null;
-}
