@@ -127,17 +127,19 @@ function ServiceShell({ session }: { session: Session }) {
       <div className="studio-body">
         <div className="studio-workspace" ref={workspace}>
           <main id="main-content" tabIndex={-1}>
-            <div className="model-banner">
-              <Icon name="activity" size={16} />
-              <p>
-                <strong>Модель ещё не подключена.</strong> Работает техническая заглушка; результаты
-                не подтверждают идентичность автомобилей.
-              </p>
-              <a href="#quality">
-                Подробнее
-                <Icon name="chevron" size={13} />
-              </a>
-            </div>
+            {capabilities.data?.engine.mode === 'preview' && (
+              <div className="model-banner">
+                <Icon name="activity" size={16} />
+                <p>
+                  <strong>Модель ещё не подключена.</strong> Работает техническая заглушка;
+                  результаты не подтверждают идентичность автомобилей.
+                </p>
+                <a href="#quality">
+                  Подробнее
+                  <Icon name="chevron" size={13} />
+                </a>
+              </div>
+            )}
             {capabilities.error && (
               <Message
                 tone="error"

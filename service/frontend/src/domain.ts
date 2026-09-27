@@ -7,6 +7,10 @@ export const decisionLabels: Record<string, string> = {
   no_confident_match: 'Уверенное совпадение не найдено',
   calibration_unavailable: 'Ранжирование без решения о совпадении',
 };
+export const calibrationReasonLabels: Record<string, string> = {
+  preview_descriptor_is_not_vehicle_reidentification: 'Модель ещё не подключена.',
+  gallery_size_outside_validated_range: 'Размер галереи вне диапазона, на котором проверен порог.',
+};
 export const verdictLabels = {
   match: 'Совпадение',
   different: 'Другое ТС',

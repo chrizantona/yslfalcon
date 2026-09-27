@@ -15,6 +15,7 @@ import {
   SectionTitle,
 } from '../components/ui';
 import {
+  calibrationReasonLabels,
   decisionLabels,
   createOperationKey,
   errorMessage,
@@ -367,7 +368,10 @@ export function SearchPage({
                   <strong>{decisionLabels[result.decision] || result.decision}</strong>
                   <p>
                     {result.decision === 'calibration_unavailable'
-                      ? 'Модель ещё не подключена. Ни один кандидат не считается подтверждённым совпадением.'
+                      ? `${
+                          calibrationReasonLabels[result.calibration_reason ?? ''] ??
+                          'Для этой галереи порог не откалиброван.'
+                        } Ни один кандидат не считается подтверждённым совпадением.`
                       : result.decision === 'no_confident_match'
                         ? 'Порог не пройден. Изображения ниже доступны для дополнительной проверки.'
                         : 'Решение относится только к первому кандидату. Остальные изображения — альтернативы для проверки.'}

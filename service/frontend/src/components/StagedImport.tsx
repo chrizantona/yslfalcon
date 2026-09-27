@@ -482,8 +482,14 @@ export function StagedImport({
       )}
       <div className="import-footer staged-footer">
         <p>
-          <Icon name="shield" size={15} /> Модель ReID не подключена. Подготовка использует
-          заглушку.
+          {capabilities && (
+            <>
+              <Icon name="shield" size={15} />{' '}
+              {capabilities.engine.mode === 'preview'
+                ? 'Модель ReID не подключена. Подготовка использует заглушку.'
+                : `Признаки считает модель ${capabilities.engine.model_id}.`}
+            </>
+          )}
         </p>
         <div className="inline-items">
           {phase === 'uploading' && (
