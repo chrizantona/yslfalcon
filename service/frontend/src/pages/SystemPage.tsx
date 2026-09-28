@@ -131,7 +131,10 @@ export function SystemPage() {
                 )}
               </section>
               <section className="panel">
-                <SectionTitle title="Очередь заданий" caption="Подготовка данных и экспорт" />
+                <SectionTitle
+                  title="Очередь заданий"
+                  caption="Подготовка данных, объяснения и экспорт"
+                />
                 <dl className="queue-summary">
                   {['pending', 'running', 'completed', 'failed'].map((status) => (
                     <div key={status}>
@@ -162,7 +165,7 @@ export function SystemPage() {
           </div>
         ) : (
           <EmptyState icon="activity" title="Очередь свободна">
-            Задания появятся после импорта галереи или экспорта результата.
+            Задания появятся после импорта галереи, расчёта карты влияния или экспорта результата.
           </EmptyState>
         )}
         {jobs.data && (

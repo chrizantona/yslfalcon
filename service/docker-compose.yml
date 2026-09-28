@@ -11,7 +11,6 @@ x-api-environment: &api-environment
   FALCON_ALLOWED_ORIGINS: ${FALCON_ALLOWED_ORIGINS:-["http://localhost:8090","http://127.0.0.1:8090"]}
   FALCON_COOKIE_SECURE: ${FALCON_COOKIE_SECURE:-false}
   FALCON_LOCAL_AUTO_LOGIN: ${FALCON_LOCAL_AUTO_LOGIN:-true}
-  FALCON_INDEX_CACHE_SIZE: ${FALCON_INDEX_CACHE_SIZE:-2}
 
 services:
   postgres:

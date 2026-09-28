@@ -10,7 +10,6 @@ export const decisionLabels: Record<string, string> = {
 export const calibrationReasonLabels: Record<string, string> = {
   preview_descriptor_is_not_vehicle_reidentification: 'Модель ещё не подключена.',
   gallery_size_outside_validated_range: 'Размер галереи вне диапазона, на котором проверен порог.',
-  ann_confidence_unavailable: 'Для HNSW-профиля не валидирован порог уверенности.',
 };
 export const verdictLabels = {
   match: 'Совпадение',
@@ -37,6 +36,8 @@ export const statusLabels: Record<string, string> = {
 export const jobLabels: Record<string, string> = {
   import: 'Импорт галереи',
   gallery_import: 'Импорт галереи',
+  explanation: 'Карта влияния',
+  explain: 'Карта влияния',
   export: 'Экспорт результата',
 };
 export function formatDate(value: string): string {
@@ -105,6 +106,10 @@ export function safeDownloadUrl(value: unknown): string | null {
   // Artifacts stay within the current authenticated origin; reject schemes and protocol-relative URLs.
   return value.startsWith('/api/') && !value.includes('\\') ? value : null;
 }
+export function heatOpacity(value: number, maximum: number): number {
+  return maximum > 0 ? Math.min(0.8, (Math.abs(value) / maximum) * 0.8) : 0;
+}
+
 /** Convert a shared normalized pan position back to pixels after zoom or resize. */
 export function synchronizedScrollOffset(
   fraction: number,

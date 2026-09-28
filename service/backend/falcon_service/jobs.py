@@ -21,9 +21,8 @@ from .exports import (
     render_export,
 )
 from .features import FeatureStore
-from .indexes import prepare_index_artifact
 from .leases import heartbeat
-from .models import Export, GalleryVersion, Job, Observation, ObservationDigest
+from .models import Export, GalleryVersion, Job, Observation, ObservationDigest, Search
 from .runtime import EncoderRuntime
 from .storage import ArtifactStore
 
@@ -140,7 +139,7 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
                 "status": "ready",
                 "manifest_hash": version.manifest_hash,
             }
-    observations, digests, artifacts, features, hashes = [], [], [], [], []
+    observations, digests, artifacts, hashes = [], [], [], []
     files = job.payload["files"]
     for ordinal, item in enumerate(files):
         image = store.read(item["image_key"])
@@ -150,7 +149,6 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
         if artifact.model_id != encoder.model_id or artifact.dimension != encoder.dimension:
             raise ServiceError("feature_model_mismatch", "Признаки не соответствуют версии модели", 503)
         artifacts.append(artifact)
-        features.append(feature)
         observation_id = str(uuid4())
         image_sha256 = hashlib.sha256(image).hexdigest()
         observations.append(
@@ -183,38 +181,47 @@ def import_snapshot(db: Database, store: ArtifactStore, runtime: EncoderRuntime,
             f"Рассчитано {ordinal + 1} из {len(files)}",
         )
     manifest_hash = fingerprint({"model_id": encoder.model_id, "observations": hashes})
-    index_artifact = prepare_index_artifact(store, job.workspace, version.id, encoder.model_id, features)
-    try:
-        with db.transaction() as session:
-            _owned_job(session, job)
-            version = scoped(session, GalleryVersion, version.id, job.workspace)
-            if version.status != "preparing":
-                raise ServiceError("invalid_version_state", "Состояние версии изменилось", 409)
-            session.add_all(artifacts)
-            session.add_all(observations)
-            session.add_all(digests)
-            session.add(index_artifact)
-            version.status, version.count, version.manifest_hash = (
-                "ready",
-                len(observations),
-                manifest_hash,
-            )
-    except Exception:
-        try:
-            store.path(index_artifact.artifact_key).unlink(missing_ok=True)
-        except (OSError, ServiceError):
-            logger.warning(
-                "index_artifact_cleanup_failed",
-                extra={"artifact_key": index_artifact.artifact_key},
-                exc_info=True,
-            )
-        raise
+    with db.transaction() as session:
+        _owned_job(session, job)
+        version = scoped(session, GalleryVersion, version.id, job.workspace)
+        if version.status != "preparing":
+            raise ServiceError("invalid_version_state", "Состояние версии изменилось", 409)
+        session.add_all(artifacts)
+        session.add_all(observations)
+        session.add_all(digests)
+        version.status, version.count, version.manifest_hash = "ready", len(observations), manifest_hash
     return {
         "gallery_id": version.gallery_id,
         "version_id": version.id,
         "count": version.count,
         "status": "ready",
         "manifest_hash": manifest_hash,
+    }
+
+
+def explain(db: Database, store: ArtifactStore, runtime: EncoderRuntime, job: Job) -> dict:
+    from .inference import explain_pair
+
+    encoder = runtime.require()
+    with db.transaction() as session:
+        search = scoped(session, Search, job.payload["search_id"], job.workspace)
+        observation = scoped(session, Observation, job.payload["observation_id"], job.workspace)
+        if observation.version_id != search.gallery_version_id or encoder.model_id != search.model_id:
+            raise ServiceError("model_mismatch", "Модель или снимок галереи недоступны", 409)
+    with runtime.lock:
+        result = explain_pair(
+            encoder,
+            store.read(search.query["image_key"]),
+            tuple(search.query["bbox"]),
+            store.read(observation.image_key),
+            tuple(observation.bbox),
+        )
+    return {
+        **result,
+        "search_id": search.id,
+        "observation_id": observation.id,
+        "model_id": search.model_id,
+        "gallery_version_id": search.gallery_version_id,
     }
 
 
@@ -273,6 +280,8 @@ def run_once(db: Database, store: ArtifactStore, runtime: EncoderRuntime, settin
         with heartbeat(db, Job, job.id, job.claim_token, settings.job_lease_seconds):
             if job.kind == "import":
                 result = import_snapshot(db, store, runtime, job)
+            elif job.kind == "explanation":
+                result = explain(db, store, runtime, job)
             elif job.kind == "export":
                 result = export_result(db, store, job)
             else:

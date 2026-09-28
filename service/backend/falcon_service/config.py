@@ -31,7 +31,6 @@ class Settings(BaseSettings):
     job_lease_seconds: int = Field(default=120, ge=5)
     job_max_attempts: int = Field(default=3, ge=1, le=10)
     worker_poll_seconds: float = Field(default=1, gt=0)
-    index_cache_size: int = Field(default=2, ge=1, le=16)
 
     @model_validator(mode="after")
     def validate_security(self):

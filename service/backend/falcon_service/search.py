@@ -14,7 +14,6 @@ from .config import Settings
 from .db import Database, now, timestamp
 from .errors import ServiceError
 from .features import FeatureStore
-from .indexes import GalleryIndexStore
 from .leases import heartbeat
 from .models import Gallery, GalleryVersion, Observation, Review, ReviewAnnotation, Search
 from .presenters import review_view
@@ -144,13 +143,12 @@ def reserve_search(
 def execute_search(
     db: Database,
     store: ArtifactStore,
-    indexes: GalleryIndexStore,
     runtime: EncoderRuntime,
     settings: Settings,
     workspace: str,
     search_id: str,
 ) -> dict:
-    from .inference import calibration_needs_population, rank_candidates
+    from .inference import rank_gallery
 
     token = str(uuid4())
     with db.transaction() as session:
@@ -183,50 +181,31 @@ def execute_search(
                 raise ServiceError("model_unavailable", "Модель сохранённого поиска недоступна", 409)
             with db.transaction() as session:
                 version = scoped(session, GalleryVersion, row.gallery_version_id, workspace)
-            index = indexes.get(workspace, version.id, row.model_id, version.count)
+                observations = list(
+                    session.scalars(
+                        select(Observation)
+                        .where(
+                            Observation.version_id == version.id,
+                            Observation.workspace == workspace,
+                        )
+                        .order_by(Observation.ordinal)
+                    )
+                )
+            if not observations or len(observations) != version.count:
+                raise ServiceError("gallery_incomplete", "Снимок галереи неполон; поиск остановлен", 503)
             image = store.read(row.query["image_key"])
+            features = FeatureStore(db, store).read_many(workspace, observations, row.model_id)
             loaded = time.perf_counter()
             with runtime.lock:
                 query = encoder.encode(image, tuple(row.query["bbox"]))
-            encoded = time.perf_counter()
-            policy = row.query.get("calibration_policy")
-            exact_population = calibration_needs_population(encoder, policy, version.count)
-            rerank_window = getattr(encoder, "rerank_window", 0) or row.top_n
-            positions, population = index.retrieve(
-                query.embedding,
-                max(row.top_n, rerank_window),
-                exact_population=exact_population,
-            )
-            with db.transaction() as session:
-                selected = list(
-                    session.scalars(
-                        select(Observation).where(
-                            Observation.version_id == version.id,
-                            Observation.workspace == workspace,
-                            Observation.ordinal.in_(positions),
-                        )
-                    )
-                )
-            by_ordinal = {item.ordinal: item for item in selected}
-            if len(by_ordinal) != len(positions):
-                raise ServiceError("gallery_incomplete", "Снимок галереи неполон; поиск остановлен", 503)
-            observations = [by_ordinal[position] for position in positions]
-            features = FeatureStore(db, store).read_many(workspace, observations, row.model_id)
-            with runtime.lock:
-                ranked = rank_candidates(
-                    query,
-                    features,
-                    positions,
-                    encoder,
-                    top_n=row.top_n,
-                    policy=policy,
-                    gallery_size=version.count,
-                    population_scores=population,
+                encoded = time.perf_counter()
+                ranked = rank_gallery(
+                    query, features, encoder, top_n=row.top_n, policy=row.query.get("calibration_policy")
                 )
             finished = time.perf_counter()
             candidates = []
             for rank, item in enumerate(ranked["ranked"], start=1):
-                observation = by_ordinal[item["index"]]
+                observation = observations[item["index"]]
                 candidates.append(
                     {
                         "observation_id": observation.id,

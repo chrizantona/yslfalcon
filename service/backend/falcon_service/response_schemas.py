@@ -174,12 +174,7 @@ class SearchResponse(ResponseModel):
     gallery_version_id: str
     gallery_manifest_hash: str
     model_id: str
-    query_confidence: float | None = Field(
-        description=(
-            "Top-1 z-score over the exact gallery population, not a probability; null when "
-            "the search profile does not compute exact population statistics."
-        )
-    )
+    query_confidence: float = Field(description="Top-1 z-score over this gallery, not a probability.")
     threshold: float | None
     confidence_kind: str
     calibration_reason: str | None
@@ -205,18 +200,16 @@ class ImportResult(ResponseModel):
     manifest_hash: str
 
 
-class LegacyAnalysisSizes(ResponseModel):
+class AnalysisSizes(ResponseModel):
     query: tuple[int, int]
     candidate: tuple[int, int]
 
 
-class LegacyExplanationResult(ResponseModel):
-    """Read-only compatibility for durable jobs created before maps were removed."""
-
+class ExplanationResult(ResponseModel):
     method: Literal["occlusion_sensitivity"]
     score_kind: Literal["analysis_crop_embedding_cosine"]
     analysis_max_edge: int
-    analysis_sizes: LegacyAnalysisSizes
+    analysis_sizes: AnalysisSizes
     grid: int
     baseline_score: float
     query_map: list[list[float]]
@@ -243,7 +236,7 @@ class JobResponse(ResponseModel):
     status: Literal["pending", "running", "completed", "failed"]
     progress: int = Field(ge=0, le=100)
     message: str
-    result: ImportResult | LegacyExplanationResult | ExportResult | None
+    result: ImportResult | ExplanationResult | ExportResult | None
     error: str | None
     attempts: int = Field(ge=0)
     created_at: Timestamp
@@ -316,7 +309,7 @@ class ServiceLimits(ResponseModel):
 class ServiceFeatures(ResponseModel):
     immutable_snapshots: bool
     replay: bool
-    hnsw_index: bool
+    occlusion_explanations: bool
     durable_jobs: bool
     exports: list[Literal["json", "csv", "pdf", "case"]]
     expert_board: bool

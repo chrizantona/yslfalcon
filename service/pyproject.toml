@@ -18,11 +18,11 @@ dependencies = [
   "python-multipart==0.0.32",
   "httpx==0.28.1",
   "reportlab==4.5.1",
-  "faiss-cpu==1.15.1",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest==9.1.1", "ruff==0.16.8", "pip-audit==2.10.1"]
+ann = ["faiss-cpu==1.15.1"]
 
 [project.scripts]
 falcon-batch = "falcon_service.cli:main"

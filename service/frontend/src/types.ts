@@ -29,7 +29,7 @@ export interface Capabilities {
   features: {
     immutable_snapshots: boolean;
     replay: boolean;
-    hnsw_index: boolean;
+    occlusion_explanations: boolean;
     durable_jobs: boolean;
     exports: ('json' | 'csv' | 'pdf' | 'case')[];
     expert_board: boolean;
@@ -169,6 +169,18 @@ export interface ModelInfo {
   precision: string | null;
   weights_bytes: number | null;
   manifest?: Record<string, unknown>;
+}
+export interface Explanation {
+  method: string;
+  score_kind: string;
+  baseline_score: number;
+  query_map: number[][];
+  candidate_map: number[][];
+  grid: number;
+  fill: string;
+  semantics: string;
+  model_id: string;
+  mode: string;
 }
 export interface SystemInfo {
   status: string;

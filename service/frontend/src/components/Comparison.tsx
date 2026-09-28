@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import { api } from '../api';
+import { api, explanationFromJob } from '../api';
 import {
   errorMessage,
   formatDate,
   formatNumber,
+  heatOpacity,
   shortId,
   synchronizedScrollOffset,
   verdictLabels,
@@ -12,13 +13,15 @@ import type {
   AnnotationKind,
   BBox,
   Candidate,
+  Explanation,
+  Job,
   Review,
   ReviewAnnotation,
   ReviewAnnotationDraft,
   SearchResult,
   Verdict,
 } from '../types';
-import { Badge, Button, Icon, Message, Modal, useToast } from './ui';
+import { Badge, Button, Icon, JobProgress, Message, Modal, useToast } from './ui';
 
 type Pan = { x: number; y: number; source: string };
 
@@ -26,6 +29,7 @@ function ImageViewer({
   imageRef,
   src,
   label,
+  map,
   bbox,
   surface,
   zoom,
@@ -39,6 +43,7 @@ function ImageViewer({
   imageRef: string;
   src: string;
   label: string;
+  map?: number[][];
   bbox: BBox;
   surface: 'crop' | 'original';
   zoom: number;
@@ -73,6 +78,7 @@ function ImageViewer({
     });
     return () => cancelAnimationFrame(frame);
   }, [pan, viewportSize, zoom]);
+  const maximum = map ? Math.max(...map.flat().map(Math.abs)) : 0;
   const addAnnotation = (event: MouseEvent<HTMLDivElement>) => {
     if (!onAnnotate) return;
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -142,6 +148,25 @@ function ImageViewer({
               }}
             />
           )}
+          {map && (
+            <div
+              className="heat-grid"
+              style={{ gridTemplateColumns: `repeat(${map[0]?.length || 1}, 1fr)` }}
+            >
+              {map.flatMap((row, y) =>
+                row.map((value, x) => (
+                  <span
+                    key={`${x}-${y}`}
+                    title={`Δ cosine ${value.toFixed(5)}`}
+                    style={{
+                      background: value >= 0 ? 'var(--heat-positive)' : 'var(--heat-negative)',
+                      opacity: heatOpacity(value, maximum),
+                    }}
+                  />
+                )),
+              )}
+            </div>
+          )}
           {annotations
             .filter((item) => item.image_ref === imageRef && item.surface === surface)
             .map((item, index) => (
@@ -183,6 +208,9 @@ export function Comparison({
   onClose: () => void;
   onReview: (review: Review) => void;
 }) {
+  const [job, setJob] = useState<Job | null>(null);
+  const [explanation, setExplanation] = useState<Explanation | null>(null);
+  const [showMap, setShowMap] = useState(true);
   const [originals, setOriginals] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Pan>({ x: 0, y: 0, source: '' });
@@ -192,6 +220,7 @@ export function Comparison({
   const [coordinateX, setCoordinateX] = useState(50);
   const [coordinateY, setCoordinateY] = useState(50);
   const [draftAnnotations, setDraftAnnotations] = useState<ReviewAnnotationDraft[]>([]);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [verdict, setVerdict] = useState<Verdict>('uncertain');
   const [note, setNote] = useState('');
@@ -207,12 +236,26 @@ export function Comparison({
   const annotations = [...savedAnnotations, ...draftAnnotations];
   const surface = originals ? 'original' : 'crop';
   useEffect(() => {
+    setExplanation(null);
+    setJob(null);
     setError('');
     setDraftAnnotations([]);
     setCoordinateImage('query');
     setZoom(1);
     setPan({ x: 0, y: 0, source: '' });
   }, [candidate.observation_id]);
+  const explain = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      setJob(await api.explain(result.id, candidate.observation_id));
+      setOriginals(false);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
   const save = async () => {
     setSaving(true);
     setError('');
@@ -235,13 +278,21 @@ export function Comparison({
       setSaving(false);
     }
   };
-  const viewer = (imageRef: string, label: string, original: string, crop: string, bbox: BBox) => (
+  const viewer = (
+    imageRef: string,
+    label: string,
+    original: string,
+    crop: string,
+    bbox: BBox,
+    map?: number[][],
+  ) => (
     <ImageViewer
       imageRef={imageRef}
       src={originals ? original : crop}
       label={label}
       bbox={bbox}
       surface={surface}
+      map={!originals && showMap ? map : undefined}
       zoom={zoom}
       onZoom={setZoom}
       pan={pan}
@@ -286,6 +337,7 @@ export function Comparison({
           result.query.image_url,
           result.query.crop_url,
           result.query.bbox,
+          explanation?.query_map,
         )}
         {viewer(
           candidate.observation_id,
@@ -293,6 +345,7 @@ export function Comparison({
           candidate.image_url,
           candidate.crop_url,
           candidate.bbox,
+          explanation?.candidate_map,
         )}
         {competitor &&
           viewer(
@@ -425,6 +478,68 @@ export function Comparison({
           </details>
         )}
       </section>
+      <div className="explanation-controls">
+        <div>
+          <h3>Проверка областей изображения</h3>
+          <p>
+            {canReview
+              ? 'Реальный расчёт изменения косинуса при перекрытии участков'
+              : 'Для расчёта карты необходима роль оператора'}
+          </p>
+        </div>
+        <Button
+          icon="target"
+          busy={busy}
+          disabled={!canReview || job?.status === 'pending' || job?.status === 'running'}
+          onClick={explain}
+        >
+          Рассчитать карту
+        </Button>
+      </div>
+      {job && (
+        <JobProgress
+          initial={job}
+          onUpdate={setJob}
+          onComplete={(completed) => {
+            const data = explanationFromJob(completed);
+            if (data) {
+              setExplanation(data);
+              setShowMap(true);
+            } else setError('Задание завершено, но сервер не вернул карту влияния.');
+          }}
+        />
+      )}
+      {explanation && (
+        <div className="explanation-detail">
+          <div className="row-between">
+            <label className="switch-label">
+              <input
+                type="checkbox"
+                checked={showMap}
+                onChange={(event) => setShowMap(event.target.checked)}
+                disabled={originals}
+              />
+              Показать карту на вырезках
+            </label>
+            <div className="heat-legend">
+              <span className="negative" />
+              Снижает оценку
+              <span className="positive" />
+              Поддерживает
+            </div>
+          </div>
+          <p>
+            {explanation.mode === 'preview'
+              ? 'Демонстрация интерфейса объяснений: модель не подключена. Карта рассчитана для технического признака заглушки.'
+              : 'Карта объясняет исходный косинус признаков, а не итоговое ранжирование.'}{' '}
+            Перекрытие области меняет оценку; это не доказательство идентичности автомобиля.
+          </p>
+          <code>
+            {explanation.method} · {explanation.grid} × {explanation.grid} ·{' '}
+            {explanation.score_kind} {formatNumber(explanation.baseline_score, 5)}
+          </code>
+        </div>
+      )}
       {error && <Message tone="error">{error}</Message>}
       <div className="review-section">
         <div>

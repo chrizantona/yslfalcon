@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   bboxFromPoints,
+  heatOpacity,
   normalizeProgress,
   safeDownloadUrl,
   synchronizedScrollOffset,
@@ -50,6 +51,12 @@ test('download links never leave the authenticated API origin', () => {
     '/downloads/file',
   ])
     assert.equal(safeDownloadUrl(unsafe), null);
+});
+test('zero sensitivity produces a transparent map, not fabricated emphasis', () => {
+  assert.equal(heatOpacity(0, 0), 0);
+  assert.equal(heatOpacity(0.5, 1), 0.4);
+  assert.equal(heatOpacity(-0.5, 1), 0.4);
+  assert.equal(heatOpacity(5, 1), 0.8);
 });
 test('shared pan remains normalized when zoom or viewport size changes', () => {
   assert.equal(synchronizedScrollOffset(0.5, 1200, 400), 400);

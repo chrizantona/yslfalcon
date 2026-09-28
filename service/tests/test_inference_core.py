@@ -9,7 +9,7 @@ from falcon_service.inference import (
     PreviewEncoder,
     RepositoryEncoder,
     crop_image,
-    rank_candidates,
+    explain_pair,
     rank_gallery,
     validate_image,
 )
@@ -102,23 +102,6 @@ def test_valid_policy_can_return_a_true_refusal():
     assert result["decision"] == "no_confident_match"
 
 
-def test_ann_candidates_do_not_inherit_an_exact_population_threshold():
-    candidates = [feature([1, 0]), feature([0, 1])]
-    result = rank_candidates(
-        feature([1, 0]),
-        candidates,
-        [17, 29],
-        TestEncoder(),
-        policy=policy(-100),
-        gallery_size=10,
-    )
-    assert result["decision"] == "calibration_unavailable"
-    assert result["calibration_reason"] == "ann_confidence_unavailable"
-    assert result["query_confidence"] is None
-    assert result["threshold"] is None
-    assert result["ranked"][0]["index"] == 17
-
-
 def test_degenerate_gallery_is_uncalibrated_and_empty_gallery_is_error():
     query = feature([1, 0])
     result = rank_gallery(query, [query, query], TestEncoder(), policy=policy())
@@ -194,6 +177,19 @@ def test_wire_roundtrip_and_pickle_rejection():
     np.savez(malicious, embeddings=np.array([{"bad": "object"}], dtype=object), model_id=np.asarray("x"))
     with pytest.raises(ValueError):
         unpack_features(malicious.getvalue())
+
+
+def test_occlusion_is_measured_and_labeled_preview():
+    pixels = np.zeros((24, 24, 3), dtype=np.uint8)
+    pixels[:12, :12] = (255, 0, 0)
+    stream = BytesIO()
+    Image.fromarray(pixels).save(stream, "PNG")
+    result = explain_pair(PreviewEncoder(), stream.getvalue(), None, stream.getvalue(), None, grid=2)
+    assert result["baseline_score"] == pytest.approx(1)
+    assert np.asarray(result["query_map"]).shape == (2, 2)
+    assert result["query_map"][0][0] > 0
+    assert result["mode"] == "preview"
+    assert "no trained vehicle model" in result["preview_warning"].lower()
 
 
 def test_the_trained_encoder_refuses_to_start_without_its_bundle(tmp_path):

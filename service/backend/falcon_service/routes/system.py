@@ -62,7 +62,7 @@ def capabilities(request: Request, _: Principal = Depends(principal)):
         "features": {
             "immutable_snapshots": True,
             "replay": True,
-            "hnsw_index": True,
+            "occlusion_explanations": True,
             "durable_jobs": True,
             "exports": ["json", "csv", "pdf", "case"],
             "expert_board": True,

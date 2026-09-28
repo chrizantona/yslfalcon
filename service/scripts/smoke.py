@@ -116,6 +116,15 @@ def run(url: str, token: str) -> dict:
                 },
             )
         )
+        explanation = await_job(
+            client,
+            expect(
+                client.post(
+                    f"/api/v1/searches/{result['id']}/explanations",
+                    json={"observation_id": candidate["observation_id"]},
+                )
+            ),
+        )
         exported = {}
         for format_name in ("json", "csv", "pdf", "case"):
             artifact = await_job(
@@ -178,6 +187,7 @@ def run(url: str, token: str) -> dict:
             "model_id": result["model_id"],
             "decision": result["decision"],
             "export_bytes": exported,
+            "explanation_method": explanation.get("method"),
             "gallery_diff": {
                 "added": diff["added"],
                 "removed": diff["removed"],

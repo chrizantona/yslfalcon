@@ -19,7 +19,6 @@ from .auth import router as auth_router
 from .config import Settings
 from .db import Database
 from .errors import ServiceError
-from .indexes import GalleryIndexStore
 from .logging_setup import configure_logging
 from .response_schemas import ERROR_RESPONSES
 from .routes import artifacts, galleries, searches, system
@@ -84,9 +83,6 @@ def create_app(settings: Settings | None = None, encoder=None) -> FastAPI:
         application.state.db = Database(settings.database_url)
         application.state.db.initialize()
         application.state.store = ArtifactStore(settings.storage_root)
-        application.state.indexes = GalleryIndexStore(
-            application.state.db, application.state.store, settings.index_cache_size
-        )
         application.state.runtime = EncoderRuntime(settings, encoder)
         await run_in_threadpool(application.state.runtime.initialize)
         try:
