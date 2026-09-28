@@ -35,6 +35,7 @@ envs:
   FALCON_JOB_LEASE_SECONDS: 120
   FALCON_JOB_MAX_ATTEMPTS: 3
   FALCON_WORKER_POLL_SECONDS: 1
+  FALCON_INDEX_CACHE_SIZE: 2
   FALCON_SESSION_HOURS: 12
 reservedEnvNames:
   - FALCON_RUNTIME_IMAGE
@@ -52,4 +53,5 @@ vaultSecretEnvs:
 notes:
   - Repository model integration is deliberately disabled.
   - Size CPU RAM and disk from measurements for the chosen workload.
+  - Each API process caches up to FALCON_INDEX_CACHE_SIZE HNSW graphs in CPU RAM.
   - No production hostname, secret or cloud account is included.

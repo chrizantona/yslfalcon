@@ -24,11 +24,11 @@ CASE_SPOOL_BYTES = 8 * 1024 * 1024
 PREVIEW_REASON = "preview_descriptor_is_not_vehicle_reidentification"
 
 
-def _report_notice(result: dict) -> str:
+def _pdf_notice(result: dict) -> str:
     if result.get("calibration_reason") == PREVIEW_REASON:
         return (
-            "PREVIEW: модель ReID не подключена. Результаты демонстрируют только работу сервиса; "
-            "заключения оператора хранятся отдельно, а оценка сходства не является вероятностью."
+            "Модель не подключена. Этот отчёт демонстрирует работу сервиса и не подтверждает "
+            "идентичность автомобилей."
         )
     return (
         f"Ранжирование сформировано моделью {result['model_id']}. Оценки сходства не являются "
@@ -37,7 +37,7 @@ def _report_notice(result: dict) -> str:
     )
 
 
-def _decision_label(result: dict) -> str:
+def _pdf_decision_label(result: dict) -> str:
     if result.get("calibration_reason") == PREVIEW_REASON:
         return "Не определено: работает техническая заглушка"
     return {
@@ -77,7 +77,7 @@ def make_passport(db: Database, store: ArtifactStore, workspace: str, search_id:
         "purpose": "visual_search_report",
         "search": result,
         "integrity": {"algorithm": "sha256", "original_images": originals},
-        "notice": _report_notice(result),
+        "notice": "PREVIEW: no trained vehicle ReID model is connected. Results demonstrate the service workflow only. Operator reviews are separate from algorithmic results; a similarity score is not a probability.",
     }
 
 
@@ -311,7 +311,7 @@ def render_case(
             (
                 "Фалькон · автономное дело\n\n"
                 "Откройте viewer.html в браузере. Для проверки целостности выполните "
-                f"python3 verify.py в этой папке.\n\n{passport['notice']}\n"
+                "python3 verify.py в этой папке. Результаты preview не подтверждают идентичность ТС.\n"
             ).encode(),
         )
         add(
@@ -412,14 +412,14 @@ def render_pdf(passport: dict, db: Database, store: ArtifactStore, workspace: st
         paragraph("ФАЛЬКОН / ВИЗУАЛЬНЫЙ ПОИСК"),
         Spacer(1, 8),
         Paragraph("Отчёт по поиску", styles["Title"]),
-        paragraph(passport["notice"]),
+        paragraph(_pdf_notice(result)),
         Spacer(1, 12),
     ]
     for label, value in [
         ("Идентификатор поиска", result["id"]),
         ("Время (UTC)", result["created_at"]),
         ("Версия галереи", result["gallery_version_id"]),
-        ("Решение алгоритма", _decision_label(result)),
+        ("Решение алгоритма", _pdf_decision_label(result)),
         ("Принятых кандидатов", len(result["accepted_candidates"])),
     ]:
         flow.append(paragraph(f"{label}: {value}"))

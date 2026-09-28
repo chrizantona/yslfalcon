@@ -103,7 +103,7 @@ export function IntegrationPage() {
             ['POST', '/searches', 'Выполнить и сохранить поиск'],
             ['GET', '/searches/{id}', 'Получить результат и заключения'],
             ['POST', '/searches/{id}/replays', 'Повторить поиск в сохранённом контексте'],
-            ['POST', '/searches/{id}/exports', 'Создать PDF, JSON, CSV или offline-дело ZIP'],
+            ['POST', '/searches/{id}/exports', 'Создать PDF, JSON или CSV'],
             ['GET', '/jobs/{id}', 'Проверить статус фоновой операции'],
           ].map(([method, path, description]) => (
             <div key={path}>

@@ -14,6 +14,7 @@ from falcon_service.inference import FeatureBundle, PreviewEncoder
 from falcon_service.inference.wire import pack_features, unpack_features
 from falcon_service.logging_setup import JsonFormatter
 from falcon_service.model_runtime import create_app as create_runtime
+from falcon_service.models import Job
 from falcon_service.response_schemas import ErrorResponse
 from falcon_service.runtime_schemas import RuntimeErrorResponse
 
@@ -37,6 +38,7 @@ def application(tmp_path):
 
 def test_all_operations_have_explicit_success_and_actual_error_contracts(application):
     schema = application.openapi()
+    assert "/api/v1/searches/{search_id}/explanations" not in schema["paths"]
     for path, operations in schema["paths"].items():
         for method, operation in operations.items():
             for status, response in operation["responses"].items():
@@ -102,7 +104,6 @@ def test_unsafe_request_id_is_replaced_and_docs_are_complete_offline(application
         assert docs.status_code == 200
         assert "SearchResponse" in docs.text and "ErrorResponse" in docs.text
         assert "Request body" in docs.text and "Idempotency-Key" in docs.text
-        assert "Preview is an explicit service stub" in docs.text
         assert "<script" not in docs.text
         assert "https://" not in docs.text
 
@@ -174,7 +175,6 @@ def test_public_capabilities_report_an_injected_production_runtime(tmp_path):
     with TestClient(create_app(settings, ProductionRuntime())) as client:
         capabilities = client.get("/api/v1/capabilities", headers=HEADERS).json()
         models = client.get("/api/v1/models", headers=HEADERS).json()
-        docs = client.get("/docs")
     assert capabilities["engine"] == {
         "mode": "production",
         "model_id": ProductionRuntime.model_id,
@@ -186,27 +186,49 @@ def test_public_capabilities_report_an_injected_production_runtime(tmp_path):
         "weights_bytes": 123_456_789,
     }
     assert capabilities["features"]["trained_model_connected"] is True
+    assert capabilities["features"]["hnsw_index"] is True
     assert models["items"][0]["trained_model_connected"] is True
     assert models["items"][0]["weights_bytes"] == 123_456_789
-    assert docs.status_code == 200
-    assert ProductionRuntime.model_id in docs.text
-    assert "A trained ReID runtime is connected" in docs.text
-    assert "Preview is an explicit service stub" not in docs.text
 
 
-def test_docs_report_an_unavailable_configured_runtime_without_calling_it_preview(tmp_path):
-    settings = Settings(
-        database_url=f"sqlite:///{tmp_path}/unavailable-contract.db",
-        storage_root=tmp_path / "artifacts",
-        engine_mode="repository",
-        auth_tokens={TOKEN: {"role": "admin", "workspace": "contracts"}},
-    )
-    with TestClient(create_app(settings)) as client:
-        docs = client.get("/docs")
-    assert docs.status_code == 200
-    assert "The configured repository runtime is unavailable" in docs.text
-    assert "Preview is an explicit service stub" not in docs.text
-    assert "A trained ReID runtime is connected" not in docs.text
+def test_legacy_explanation_jobs_remain_readable_after_creation_route_is_removed(application):
+    legacy_result = {
+        "method": "occlusion_sensitivity",
+        "score_kind": "analysis_crop_embedding_cosine",
+        "analysis_max_edge": 512,
+        "analysis_sizes": {"query": [32, 32], "candidate": [32, 32]},
+        "grid": 1,
+        "baseline_score": 0.5,
+        "query_map": [[0.1]],
+        "candidate_map": [[0.2]],
+        "fill": "crop_mean_rgb",
+        "model_id": "legacy-model",
+        "mode": "preview",
+        "semantics": "legacy",
+        "preview_warning": None,
+        "search_id": "legacy-search",
+        "observation_id": "legacy-observation",
+        "gallery_version_id": "legacy-version",
+    }
+    with TestClient(application) as client:
+        with client.app.state.db.transaction() as session:
+            session.add(
+                Job(
+                    id="legacy-explanation-job",
+                    workspace="contracts",
+                    kind="explanation",
+                    payload={},
+                    status="completed",
+                    progress=100,
+                    result=legacy_result,
+                )
+            )
+        item = client.get("/api/v1/jobs/legacy-explanation-job", headers=HEADERS)
+        listing = client.get("/api/v1/jobs", headers=HEADERS)
+    assert item.status_code == 200
+    assert item.json()["result"] == legacy_result
+    assert listing.status_code == 200
+    assert listing.json()["items"][0]["kind"] == "explanation"
 
 
 def test_documented_runtime_rerank_wire_round_trip():

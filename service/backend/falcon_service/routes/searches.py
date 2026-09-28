@@ -14,7 +14,7 @@ from ..jobs import enqueue
 from ..models import Review, ReviewAnnotation, Search
 from ..presenters import job_view, review_view
 from ..response_schemas import JobResponse, ReviewResponse, SearchList, SearchResponse
-from ..schemas import CreateExplanation, CreateExport, CreateReview
+from ..schemas import CreateExport, CreateReview
 from ..search import execute_search, reserve_search, search_view
 
 router = APIRouter(prefix="/searches", tags=["Searches"])
@@ -66,7 +66,9 @@ def _search(state, workspace, gallery_id, data, bbox, top_n, key):
         key,
         bbox_source="explicit" if bbox is not None else "full_frame",
     )
-    return execute_search(state.db, state.store, state.runtime, state.settings, workspace, search_id)
+    return execute_search(
+        state.db, state.store, state.indexes, state.runtime, state.settings, workspace, search_id
+    )
 
 
 @router.post("", response_model=SearchResponse)
@@ -125,7 +127,15 @@ def replay_search(
         pinned=original,
         bbox_source=original.query["bbox_source"],
     )
-    return execute_search(state.db, state.store, state.runtime, state.settings, identity.workspace, replay_id)
+    return execute_search(
+        state.db,
+        state.store,
+        state.indexes,
+        state.runtime,
+        state.settings,
+        identity.workspace,
+        replay_id,
+    )
 
 
 def _completed_search(session, search_id, workspace, observation_id=None):
@@ -179,28 +189,6 @@ def create_review(
         session.add_all(annotations)
         session.flush()
         return review_view(review, annotations)
-
-
-@router.post("/{search_id}/explanations", status_code=202, response_model=JobResponse)
-def create_explanation(
-    search_id: str,
-    body: CreateExplanation,
-    request: Request,
-    identity: Principal = Depends(require_role("operator")),
-):
-    with request.app.state.db.transaction() as session:
-        _completed_search(session, search_id, identity.workspace, body.observation_id)
-    return job_view(
-        enqueue(
-            request.app.state.db,
-            identity.workspace,
-            "explanation",
-            {
-                "search_id": search_id,
-                "observation_id": body.observation_id,
-            },
-        )
-    )
 
 
 @router.post("/{search_id}/exports", status_code=202, response_model=JobResponse)

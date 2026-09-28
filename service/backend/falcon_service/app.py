@@ -19,6 +19,7 @@ from .auth import router as auth_router
 from .config import Settings
 from .db import Database
 from .errors import ServiceError
+from .indexes import GalleryIndexStore
 from .logging_setup import configure_logging
 from .response_schemas import ERROR_RESPONSES
 from .routes import artifacts, galleries, searches, system
@@ -83,6 +84,9 @@ def create_app(settings: Settings | None = None, encoder=None) -> FastAPI:
         application.state.db = Database(settings.database_url)
         application.state.db.initialize()
         application.state.store = ArtifactStore(settings.storage_root)
+        application.state.indexes = GalleryIndexStore(
+            application.state.db, application.state.store, settings.index_cache_size
+        )
         application.state.runtime = EncoderRuntime(settings, encoder)
         await run_in_threadpool(application.state.runtime.initialize)
         try:
@@ -94,10 +98,7 @@ def create_app(settings: Settings | None = None, encoder=None) -> FastAPI:
         title="Falcon visual search service",
         version=__version__,
         lifespan=lifespan,
-        description=(
-            "Workspace-scoped visual search service. Runtime capability endpoints identify the "
-            "connected model and whether validated calibration applies."
-        ),
+        description="Workspace-scoped service. Preview mode has no connected vehicle ReID model.",
         docs_url=None,
         redoc_url=None,
         openapi_url="/api/v1/openapi.json",
@@ -172,26 +173,6 @@ def create_app(settings: Settings | None = None, encoder=None) -> FastAPI:
     @application.get("/docs", response_class=HTMLResponse, include_in_schema=False)
     def offline_docs():
         schema = application.openapi()
-        engine = application.state.runtime.capabilities()
-        if engine["ready"] and engine["real_model_connected"]:
-            runtime_notice = (
-                "A trained ReID runtime is connected: <code>"
-                + html.escape(str(engine["model_id"]))
-                + "</code>. Scores are ranking values, not identity probabilities. "
-                "<code>accepted_candidates</code> is populated only when versioned calibration applies."
-            )
-        elif engine["ready"] and engine["mode"] == "preview":
-            runtime_notice = (
-                "Preview is an explicit service stub. Scores are not vehicle identity probabilities and "
-                "<code>accepted_candidates</code> remains empty without validated calibration."
-            )
-        else:
-            runtime_notice = (
-                "The configured "
-                + html.escape(str(engine["mode"]))
-                + " runtime is unavailable. Search requests fail until the model configuration or runtime "
-                "connection is restored."
-            )
 
         def code(value):
             return "<pre>" + html.escape(json.dumps(value, ensure_ascii=False, indent=2)) + "</pre>"
@@ -251,9 +232,8 @@ The browser can instead use its HttpOnly session cookie. Cookie mutations requir
 <p>Errors use <code>{"error":{"code":"…","message":"…"},"request_id":"…"}</code>.
 The response includes the same <code>X-Request-ID</code>; a supplied safe ID is preserved.
 Search retries must reuse <code>Idempotency-Key</code> and the identical input.</p>
-<p>"""
-            + runtime_notice
-            + """</p>
+<p>Preview is an explicit service stub. Scores are not vehicle identity probabilities and
+<code>accepted_candidates</code> remains empty without validated calibration.</p>
 <h2>Operations</h2>"""
             + "".join(operations_html)
             + "<h2 id='schemas'>Schemas</h2>"

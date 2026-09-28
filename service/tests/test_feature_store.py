@@ -1,6 +1,7 @@
 """Relational vectors survive cache loss and migrate legacy snapshots without ML."""
 
 import io
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from fastapi.testclient import TestClient
@@ -12,7 +13,15 @@ from test_backend import settings as settings
 from falcon_service.app import create_app
 from falcon_service.db import now
 from falcon_service.features import FeatureStore
-from falcon_service.models import FeatureArtifact, Gallery, GalleryVersion, Job, Observation
+from falcon_service.indexes import GalleryIndexStore
+from falcon_service.models import (
+    FeatureArtifact,
+    Gallery,
+    GalleryIndexArtifact,
+    GalleryVersion,
+    Job,
+    Observation,
+)
 
 
 def test_database_is_authoritative_after_feature_cache_removal_and_restart(client, settings):
@@ -21,7 +30,10 @@ def test_database_is_authoritative_after_feature_cache_removal_and_restart(clien
     state = client.app.state
     with state.db.transaction() as session:
         artifacts = list(session.scalars(select(FeatureArtifact)))
+        indexes = list(session.scalars(select(GalleryIndexArtifact)))
         assert len(artifacts) == 2
+        assert len(indexes) == 1
+        assert indexes[0].algorithm == "faiss-hnsw-flat-ip-v1"
         assert all(item.model_id == first["model_id"] and item.dtype == "float32" for item in artifacts)
         assert all(item.dimension == 192 and item.payload for item in artifacts)
     for path in (state.store.root / "features").glob("*.npz"):
@@ -59,17 +71,58 @@ def test_additive_schema_and_legacy_feature_files_backfill_on_first_search(clien
             )
         session.execute(delete(FeatureArtifact))
     # A pre-upgrade database has no new table at all. Startup creates it additively.
+    GalleryIndexArtifact.__table__.drop(state.db.engine)
     FeatureArtifact.__table__.drop(state.db.engine)
     state.db.initialize()
     with state.db.transaction() as session:
         assert session.scalar(select(func.count()).select_from(FeatureArtifact)) == 0
+        assert session.scalar(select(func.count()).select_from(GalleryIndexArtifact)) == 0
     migrated = search(client, gallery)
     assert migrated.status_code == 200, migrated.text
     with state.db.transaction() as session:
         assert session.scalar(select(func.count()).select_from(FeatureArtifact)) == 2
+        assert session.scalar(select(func.count()).select_from(GalleryIndexArtifact)) == 1
     for path in (state.store.root / "features").glob("*.npz"):
         path.unlink()
     assert search(client, gallery).json()["ranked_candidates"] == migrated.json()["ranked_candidates"]
+
+
+def test_corrupt_hnsw_artifact_is_rebuilt_from_authoritative_features(client):
+    gallery, _, _ = ready_gallery(client)
+    state = client.app.state
+    with state.db.transaction() as session:
+        original = session.scalar(select(GalleryIndexArtifact))
+        original_key = original.artifact_key
+    state.store.path(original_key).write_bytes(b"not a faiss index")
+    response = search(client, gallery)
+    assert response.status_code == 200, response.text
+    with state.db.transaction() as session:
+        rebuilt = session.scalar(select(GalleryIndexArtifact))
+        assert rebuilt.artifact_key != original_key
+        assert state.store.path(rebuilt.artifact_key).stat().st_size == rebuilt.size_bytes
+
+
+def test_concurrent_hnsw_rebuilds_publish_one_winner_and_clean_losers(client):
+    _, version_id, _ = ready_gallery(client)
+    state = client.app.state
+    with state.db.transaction() as session:
+        previous = session.get(GalleryIndexArtifact, version_id)
+        model_id, count = previous.model_id, previous.count
+    stores = [GalleryIndexStore(state.db, state.store) for _ in range(2)]
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        records = list(
+            executor.map(
+                lambda indexes: indexes._rebuild(previous, "one", version_id, model_id, count),
+                stores,
+            )
+        )
+    assert records[0].artifact_key == records[1].artifact_key
+    with state.db.transaction() as session:
+        winner = session.get(GalleryIndexArtifact, version_id)
+        assert winner.artifact_key == records[0].artifact_key
+    assert [path.name for path in (state.store.root / "indexes").glob("*.faiss")] == [
+        state.store.path(winner.artifact_key).name
+    ]
 
 
 def test_corrupt_database_feature_never_falls_back_to_valid_legacy_cache(client):

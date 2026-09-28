@@ -33,9 +33,5 @@ class CreateReview(Command):
     annotations: list[CreateReviewAnnotation] = Field(default_factory=list, max_length=20)
 
 
-class CreateExplanation(Command):
-    observation_id: str
-
-
 class CreateExport(Command):
     format: Literal["json", "csv", "pdf", "case"]

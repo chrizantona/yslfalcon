@@ -60,8 +60,6 @@
   --danger: #f2958d;
   --danger-soft: #2c1d1d;
   --danger-border: #573330;
-  --heat-negative: #aaaaaa;
-  --heat-positive: #edaa76;
   --image-scrim: #0d0d0edf;
   --shadow: 0 14px 44px #00000040;
   --radius: 6px;
@@ -1802,12 +1800,6 @@ small {
 .viewer-image.is-zoomed img {
   max-height: none;
 }
-.heat-grid {
-  display: grid;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
 .annotation-tools {
   margin: 0 24px 8px;
   padding: 18px;
@@ -1860,9 +1852,6 @@ small {
   width: 100%;
   margin-top: 5px;
 }
-.heat-grid > span {
-  min-height: 1px;
-}
 .comparison-metrics {
   display: flex;
   align-items: center;
@@ -1883,18 +1872,9 @@ small {
   margin-left: auto;
   font-size: 12px;
 }
-.explanation-controls {
-  padding: 21px 24px 15px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-}
-.explanation-controls h3,
 .review-section h3 {
   font-size: 12px;
 }
-.explanation-controls p,
 .review-section > div > p {
   color: var(--muted);
   font-size: 12px;
@@ -1904,44 +1884,6 @@ small {
 .modal-wide > .message {
   margin-left: 24px;
   margin-right: 24px;
-}
-.explanation-detail {
-  margin: 0 24px 22px;
-  padding: 15px;
-  border: 1px solid var(--border);
-  background: var(--subtle);
-  border-radius: 6px;
-}
-.explanation-detail p {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.8;
-  margin-top: 10px;
-}
-.explanation-detail code {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 8px;
-}
-.heat-legend {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.heat-legend span {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  margin-left: 7px;
-}
-.heat-legend .negative {
-  background: var(--heat-negative);
-}
-.heat-legend .positive {
-  background: var(--heat-positive);
 }
 .review-section {
   padding: 22px 24px;
@@ -3074,9 +3016,6 @@ td .button {
   .comparison-metrics > span:last-child {
     margin-left: 0;
   }
-  .explanation-detail .row-between {
-    flex-wrap: wrap;
-  }
   .viewer-viewport {
     height: 270px;
     min-height: 180px;
@@ -3391,15 +3330,6 @@ td .button {
   .zoom-controls button {
     min-height: 40px;
     min-width: 38px;
-  }
-  .explanation-controls {
-    padding: 18px 16px;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .explanation-detail {
-    margin-left: 16px;
-    margin-right: 16px;
   }
   .review-section {
     padding: 20px 16px;

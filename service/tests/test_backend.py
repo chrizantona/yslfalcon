@@ -127,7 +127,7 @@ def ready_gallery(client):
     return gallery_id, version_id, job_id
 
 
-def test_search_review_explanation_and_all_exports(client, tmp_path):
+def test_search_review_and_all_exports(client, tmp_path):
     gallery, version, _ = ready_gallery(client)
     response = search(client, gallery)
     assert response.status_code == 200, response.text
@@ -172,16 +172,6 @@ def test_search_review_explanation_and_all_exports(client, tmp_path):
     assert reread["ranked_candidates"] == result["ranked_candidates"]
     assert reread["reviews"][0]["note"] == "Проверить ракурс"
     assert reread["reviews"][0]["annotations"][0]["image_ref"] == "query"
-    explained = client.post(
-        f"/api/v1/searches/{result['id']}/explanations",
-        headers=HEADERS,
-        json={"observation_id": candidate["observation_id"]},
-    ).json()
-    work(client)
-    explanation = client.get(f"/api/v1/jobs/{explained['id']}", headers=HEADERS).json()
-    assert explanation["status"] == "completed", explanation
-    assert explanation["result"]["method"] == "occlusion_sensitivity"
-    assert len(explanation["result"]["query_map"]) == 6
     for format in ("json", "csv", "pdf", "case"):
         job = client.post(
             f"/api/v1/searches/{result['id']}/exports", headers=HEADERS, json={"format": format}
@@ -250,7 +240,7 @@ def test_search_review_explanation_and_all_exports(client, tmp_path):
             assert "observation_id" in download.text
 
 
-def test_production_exports_describe_the_pinned_model(settings):
+def test_production_pdf_describes_the_pinned_model(settings):
     class ProductionRuntime(PreviewEncoder):
         mode = "production"
         model_id = "falcon-production-report-fixture"
@@ -269,26 +259,21 @@ def test_production_exports_describe_the_pinned_model(settings):
     with TestClient(create_app(configured, ProductionRuntime())) as production:
         gallery, _, _ = ready_gallery(production)
         result = search(production, gallery).json()
-        downloads = {}
-        for format in ("json", "pdf"):
-            job = production.post(
-                f"/api/v1/searches/{result['id']}/exports",
-                headers=HEADERS,
-                json={"format": format},
-            ).json()
-            work(production)
-            completed = production.get(f"/api/v1/jobs/{job['id']}", headers=HEADERS).json()
-            assert completed["status"] == "completed", completed
-            downloads[format] = production.get(completed["result"]["download_url"], headers=HEADERS).content
+        job = production.post(
+            f"/api/v1/searches/{result['id']}/exports",
+            headers=HEADERS,
+            json={"format": "pdf"},
+        ).json()
+        work(production)
+        completed = production.get(f"/api/v1/jobs/{job['id']}", headers=HEADERS).json()
+        assert completed["status"] == "completed", completed
+        pdf = production.get(completed["result"]["download_url"], headers=HEADERS).content
 
-    report = json.loads(downloads["json"])
-    assert ProductionRuntime.model_id in report["notice"]
-    assert "не подключена" not in report["notice"]
     if shutil.which("pdftotext") is None:
         pytest.skip("pdftotext is required to inspect the public PDF artifact")
     converted = subprocess.run(
         ["pdftotext", "-layout", "-", "-"],
-        input=downloads["pdf"],
+        input=pdf,
         capture_output=True,
         timeout=10,
         check=False,
