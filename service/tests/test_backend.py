@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import shutil
 import subprocess
 import sys
 import threading
@@ -19,6 +20,7 @@ from sqlalchemy.orm import Session
 from falcon_service.app import create_app
 from falcon_service.config import Settings
 from falcon_service.db import now
+from falcon_service.inference import PreviewEncoder
 from falcon_service.jobs import claim, run_once
 from falcon_service.models import GalleryVersion, Job, Observation, ObservationDigest, Search
 
@@ -246,6 +248,56 @@ def test_search_review_explanation_and_all_exports(client, tmp_path):
             assert download.json()["search"]["reviews"][0]["verdict"] == "uncertain"
         else:
             assert "observation_id" in download.text
+
+
+def test_production_exports_describe_the_pinned_model(settings):
+    class ProductionRuntime(PreviewEncoder):
+        mode = "production"
+        model_id = "falcon-production-report-fixture"
+        real_model_connected = True
+        device = "cuda:0"
+        precision = "float16"
+        weights_bytes = 123_456_789
+
+    configured = settings.model_copy(
+        update={
+            "engine_mode": "remote",
+            "expected_model_id": ProductionRuntime.model_id,
+            "expected_weights_bytes": ProductionRuntime.weights_bytes,
+        }
+    )
+    with TestClient(create_app(configured, ProductionRuntime())) as production:
+        gallery, _, _ = ready_gallery(production)
+        result = search(production, gallery).json()
+        downloads = {}
+        for format in ("json", "pdf"):
+            job = production.post(
+                f"/api/v1/searches/{result['id']}/exports",
+                headers=HEADERS,
+                json={"format": format},
+            ).json()
+            work(production)
+            completed = production.get(f"/api/v1/jobs/{job['id']}", headers=HEADERS).json()
+            assert completed["status"] == "completed", completed
+            downloads[format] = production.get(completed["result"]["download_url"], headers=HEADERS).content
+
+    report = json.loads(downloads["json"])
+    assert ProductionRuntime.model_id in report["notice"]
+    assert "не подключена" not in report["notice"]
+    if shutil.which("pdftotext") is None:
+        pytest.skip("pdftotext is required to inspect the public PDF artifact")
+    converted = subprocess.run(
+        ["pdftotext", "-layout", "-", "-"],
+        input=downloads["pdf"],
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    assert converted.returncode == 0, converted.stderr.decode(errors="replace")
+    text = converted.stdout.decode()
+    assert ProductionRuntime.model_id in text
+    assert "Модель не подключена" not in text
+    assert "работает техническая заглушка" not in text
 
 
 def test_review_annotations_reject_images_outside_the_saved_result(client):

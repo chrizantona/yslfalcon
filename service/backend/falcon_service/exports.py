@@ -21,6 +21,30 @@ from .storage import ArtifactStore
 MAX_CASE_SOURCE_BYTES = 256 * 1024 * 1024
 MAX_CASE_ARCHIVE_BYTES = 256 * 1024 * 1024
 CASE_SPOOL_BYTES = 8 * 1024 * 1024
+PREVIEW_REASON = "preview_descriptor_is_not_vehicle_reidentification"
+
+
+def _report_notice(result: dict) -> str:
+    if result.get("calibration_reason") == PREVIEW_REASON:
+        return (
+            "PREVIEW: модель ReID не подключена. Результаты демонстрируют только работу сервиса; "
+            "заключения оператора хранятся отдельно, а оценка сходства не является вероятностью."
+        )
+    return (
+        f"Ранжирование сформировано моделью {result['model_id']}. Оценки сходства не являются "
+        "вероятностями; подтверждение совпадения допустимо только при применимой версионированной "
+        "калибровке."
+    )
+
+
+def _decision_label(result: dict) -> str:
+    if result.get("calibration_reason") == PREVIEW_REASON:
+        return "Не определено: работает техническая заглушка"
+    return {
+        "candidates": "Кандидат найден",
+        "no_confident_match": "Уверенное совпадение не найдено",
+        "calibration_unavailable": "Ранжирование без решения: калибровка недоступна",
+    }.get(result.get("decision"), str(result.get("decision", "Не определено")))
 
 
 def make_passport(db: Database, store: ArtifactStore, workspace: str, search_id: str) -> dict:
@@ -53,7 +77,7 @@ def make_passport(db: Database, store: ArtifactStore, workspace: str, search_id:
         "purpose": "visual_search_report",
         "search": result,
         "integrity": {"algorithm": "sha256", "original_images": originals},
-        "notice": "PREVIEW: no trained vehicle ReID model is connected. Results demonstrate the service workflow only. Operator reviews are separate from algorithmic results; a similarity score is not a probability.",
+        "notice": _report_notice(result),
     }
 
 
@@ -287,7 +311,7 @@ def render_case(
             (
                 "Фалькон · автономное дело\n\n"
                 "Откройте viewer.html в браузере. Для проверки целостности выполните "
-                "python3 verify.py в этой папке. Результаты preview не подтверждают идентичность ТС.\n"
+                f"python3 verify.py в этой папке.\n\n{passport['notice']}\n"
             ).encode(),
         )
         add(
@@ -388,16 +412,14 @@ def render_pdf(passport: dict, db: Database, store: ArtifactStore, workspace: st
         paragraph("ФАЛЬКОН / ВИЗУАЛЬНЫЙ ПОИСК"),
         Spacer(1, 8),
         Paragraph("Отчёт по поиску", styles["Title"]),
-        paragraph(
-            "Модель не подключена. Этот отчёт демонстрирует работу сервиса и не подтверждает идентичность автомобилей."
-        ),
+        paragraph(passport["notice"]),
         Spacer(1, 12),
     ]
     for label, value in [
         ("Идентификатор поиска", result["id"]),
         ("Время (UTC)", result["created_at"]),
         ("Версия галереи", result["gallery_version_id"]),
-        ("Решение алгоритма", "Не определено: работает техническая заглушка"),
+        ("Решение алгоритма", _decision_label(result)),
         ("Принятых кандидатов", len(result["accepted_candidates"])),
     ]:
         flow.append(paragraph(f"{label}: {value}"))

@@ -1,4 +1,5 @@
 import { createTypewriterClock } from './typewriterClock.ts';
+import { createHoverActivationGuard } from './hoverActivation.ts';
 
 const HIGHLIGHT = 'falcon-typewriter-hidden';
 const TARGETS = [
@@ -113,6 +114,10 @@ export function installHoverTypewriter(root: HTMLElement): () => void {
   };
 
   const stop = () => clock.stop();
+  const activation = createHoverActivationGuard(stop, {
+    schedule: (callback, delay) => window.setTimeout(callback, delay),
+    cancel: (id) => window.clearTimeout(id),
+  });
   const begin = (owner: HTMLElement) => {
     stop();
     if (disposed || preference.matches || document.hidden || !enabled(owner)) return;
@@ -310,29 +315,44 @@ export function installHoverTypewriter(root: HTMLElement): () => void {
   };
   root.addEventListener('pointerover', over);
   root.addEventListener('pointerout', out);
-  root.addEventListener('pointerdown', stop, true);
-  root.addEventListener('focusin', stop, true);
+  const pointerDown = (event: PointerEvent) => {
+    if (event.button === 0) activation.pointerDown();
+    else stop();
+  };
+  const pointerUp = () => activation.pointerUp();
+  const pointerCancel = () => activation.pointerCancel();
+  const focusIn = () => activation.focusIn();
+  const activate = () => activation.activate();
+  root.addEventListener('pointerdown', pointerDown, true);
+  window.addEventListener('pointerup', pointerUp, true);
+  window.addEventListener('pointercancel', pointerCancel, true);
+  root.addEventListener('click', activate, true);
+  root.addEventListener('focusin', focusIn, true);
   root.addEventListener('keydown', stop, true);
   root.addEventListener('wheel', stop, { capture: true, passive: true });
   document.addEventListener('scroll', stop, { capture: true, passive: true });
-  document.addEventListener('visibilitychange', stop);
+  document.addEventListener('visibilitychange', pointerCancel);
   window.addEventListener('resize', stop, { passive: true });
-  window.addEventListener('blur', stop);
+  window.addEventListener('blur', pointerCancel);
   preference.addEventListener('change', stop);
 
   return () => {
     disposed = true;
+    activation.dispose();
     clock.dispose();
     root.removeEventListener('pointerover', over);
     root.removeEventListener('pointerout', out);
-    root.removeEventListener('pointerdown', stop, true);
-    root.removeEventListener('focusin', stop, true);
+    root.removeEventListener('pointerdown', pointerDown, true);
+    window.removeEventListener('pointerup', pointerUp, true);
+    window.removeEventListener('pointercancel', pointerCancel, true);
+    root.removeEventListener('click', activate, true);
+    root.removeEventListener('focusin', focusIn, true);
     root.removeEventListener('keydown', stop, true);
     root.removeEventListener('wheel', stop, true);
     document.removeEventListener('scroll', stop, true);
-    document.removeEventListener('visibilitychange', stop);
+    document.removeEventListener('visibilitychange', pointerCancel);
     window.removeEventListener('resize', stop);
-    window.removeEventListener('blur', stop);
+    window.removeEventListener('blur', pointerCancel);
     preference.removeEventListener('change', stop);
   };
 }
