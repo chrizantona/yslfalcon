@@ -177,6 +177,7 @@ export interface SystemInfo {
   timings: {
     sample_count: number;
     total_ms?: { p50: number | null; p95: number | null } | null;
+    model_ms?: { p50: number | null; p95: number | null } | null;
     [key: string]: unknown;
   };
 }

@@ -113,6 +113,7 @@ class TimingSummary(ResponseModel):
     load_ms: Percentiles | None
     encode_ms: Percentiles | None
     rank_ms: Percentiles | None
+    model_ms: Percentiles | None = None
 
 
 class SystemResponse(ResponseModel):

@@ -25,7 +25,9 @@ The internal runtime contract consists of authenticated `GET /internal/v1/capabi
 capability handshake declares `mode`, exact `model_id`, dimension, rerank window, calibration policy,
 whether a real model is connected, device, precision and total inference weight bytes. API startup
 fails closed when the response is invalid or its identity differs from `FALCON_EXPECTED_MODEL_ID`.
-The binary feature format and independent-query rules are unchanged. Deployment details live in
+The binary feature format and independent-query rules are unchanged. An encode answer may add a
+scalar `forward_ms`: the model's own forward pass on the device, without decoding, cropping or
+transport; the API stores it as `timings.model_ms` (null for the preview). Deployment details live in
 [GPU_RUNTIME.md](docs/GPU_RUNTIME.md).
 
 ## Public HTTP contract

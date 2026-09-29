@@ -134,8 +134,9 @@ def system(request: Request, identity: Principal = Depends(principal)):
             )
         ]
     timings = {"sample_count": len(samples)}
-    for key in ["total_ms", "load_ms", "encode_ms", "rank_ms"]:
-        values = [sample[key] for sample in samples]
+    for key in ["total_ms", "load_ms", "encode_ms", "rank_ms", "model_ms"]:
+        # searches recorded before model_ms existed simply do not contribute to it
+        values = [sample[key] for sample in samples if sample.get(key) is not None]
         timings[key] = (
             {"p50": float(np.percentile(values, 50)), "p95": float(np.percentile(values, 95))}
             if values

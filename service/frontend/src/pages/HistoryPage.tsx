@@ -73,7 +73,7 @@ export function HistoryPage({ navigate }: { navigate: (path: string) => void }) 
                   </span>
                 </div>
                 <div className="history-time">
-                  {formatNumber(result.timings.total_ms, 1)} <span>мс</span>
+                  {formatNumber(result.timings.model_ms, 1)} <span>мс</span>
                 </div>
                 <Icon name="chevron" size={18} />
               </button>

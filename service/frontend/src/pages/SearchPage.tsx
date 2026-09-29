@@ -444,8 +444,8 @@ export function SearchPage({
                     <dd title={result.model_id}>{shortId(result.model_id)}</dd>
                   </div>
                   <div>
-                    <dt>Время обработки</dt>
-                    <dd>{formatNumber(result.timings.total_ms, 1)} мс</dd>
+                    <dt>Проход модели</dt>
+                    <dd>{formatNumber(result.timings.model_ms, 1)} мс</dd>
                   </div>
                   <div>
                     <dt>Уверенность / порог</dt>

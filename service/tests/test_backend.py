@@ -137,7 +137,8 @@ def test_search_review_and_all_exports(client, tmp_path):
     assert result["accepted_candidates"] == []
     assert all(not item["accepted"] for item in result["ranked_candidates"])
     assert result["query"]["bbox_source"] == "explicit"
-    assert all(value >= 0 for value in result["timings"].values())
+    assert all(value >= 0 for key, value in result["timings"].items() if key != "model_ms")
+    assert result["timings"]["model_ms"] is None  # the preview has no model pass to measure
     candidate = result["ranked_candidates"][0]
     assert client.get(candidate["image_url"], headers=HEADERS).status_code == 200
     assert client.get(result["query"]["crop_url"], headers=HEADERS).headers["content-type"] == "image/png"

@@ -15,6 +15,7 @@ class FeatureBundle:
     embedding: np.ndarray
     tokens: np.ndarray | None
     model_id: str
+    forward_ms: float | None = None  # the model's own forward pass for this encoding, when it was measured
 
 
 class Encoder(Protocol):

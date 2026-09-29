@@ -55,6 +55,7 @@ class SearchTimings(ResponseModel):
     encode_ms: float = Field(ge=0)
     rank_ms: float = Field(ge=0)
     total_ms: float = Field(ge=0)
+    model_ms: float | None = Field(default=None, ge=0)  # the model's forward pass alone; None for the preview
 
 
 class SearchResponse(ResponseModel):

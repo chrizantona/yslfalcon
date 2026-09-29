@@ -1,6 +1,7 @@
 """HTTP adapter for the internal inference port; credentials never enter image URLs."""
 
 import json
+from dataclasses import replace
 from urllib.parse import urlparse
 
 import httpx
@@ -80,14 +81,19 @@ class RemoteEncoder:
         data = self._request(
             "/internal/v1/encode", files={"image": ("upload", image)}, data={"bbox": json.dumps(bbox)}
         )
-        features, _ = unpack_features(data)
+        features, extras = unpack_features(data)
         if (
             len(features) != 1
             or features[0].model_id != self.model_id
             or len(features[0].embedding) != self.dimension
         ):
             raise RuntimeError("Runtime changed model identity or feature shape")
-        return features[0]
+        forward = extras.get("forward_ms")
+        if forward is None:
+            return features[0]
+        if forward.shape != () or not 0 <= float(forward) < 600_000:
+            raise RuntimeError("Runtime returned an invalid forward time")
+        return replace(features[0], forward_ms=float(forward))
 
     def rerank(self, query, candidates, similarities):
         if not self.rerank_window:

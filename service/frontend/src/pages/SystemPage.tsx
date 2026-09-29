@@ -101,26 +101,26 @@ export function SystemPage() {
             </section>
             <div className="two-column">
               <section className="panel">
-                <SectionTitle title="Время ответа" caption="Измерения по выполненным поискам" />
+                <SectionTitle title="Проход модели" caption="Измерения по выполненным поискам" />
                 {system.data.timings.sample_count ? (
                   <div className="timing-stats">
                     <div>
                       <span>Медиана · p50</span>
                       <strong>
-                        {formatNumber(system.data.timings.total_ms?.p50, 1)}
+                        {formatNumber(system.data.timings.model_ms?.p50, 1)}
                         <small>мс</small>
                       </strong>
                     </div>
                     <div>
                       <span>95-й перцентиль</span>
                       <strong>
-                        {formatNumber(system.data.timings.total_ms?.p95, 1)}
+                        {formatNumber(system.data.timings.model_ms?.p95, 1)}
                         <small>мс</small>
                       </strong>
                     </div>
                     <p>
-                      По {system.data.timings.sample_count} измерениям. Это работающий сервис в
-                      текущей конфигурации, не конкурсный GPU-бенчмарк.
+                      Только прогон модели на GPU — без приёма и подготовки кадра, поиска по галерее
+                      и передачи по сети.
                     </p>
                   </div>
                 ) : (

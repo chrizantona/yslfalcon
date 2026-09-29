@@ -263,6 +263,7 @@ def execute_search(
                     "encode_ms": (encoded - loaded) * 1000,
                     "rank_ms": (finished - encoded) * 1000,
                     "total_ms": (finished - started) * 1000,
+                    "model_ms": query.forward_ms,
                 },
                 "created_at": timestamp(row.created_at),
                 "replay_of": row.replay_of,

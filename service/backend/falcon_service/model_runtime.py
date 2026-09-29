@@ -138,7 +138,8 @@ def create_app(encoder=None, token=None):
         try:
             box = json.loads(bbox) if bbox is not None else None
             feature = await run_in_threadpool(execute, state["encoder"].encode, data, box)
-            return Response(pack_features([feature]), media_type="application/octet-stream")
+            timing = {} if feature.forward_ms is None else {"forward_ms": feature.forward_ms}
+            return Response(pack_features([feature], **timing), media_type="application/octet-stream")
         except (ValueError, TypeError) as exc:
             raise HTTPException(422, str(exc)) from exc
 

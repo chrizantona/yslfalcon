@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import threading
+import time
 from io import BytesIO
 from pathlib import Path
 
@@ -169,11 +170,18 @@ class RepositoryEncoder:
         batch = to_model_input(crop_box(frame, box, self._max_side), self._input_hw, self._mean, self._std)
         batch = batch[None].to(self._device_name)
         with self._lock:
+            if self._device_name == "cuda":
+                self._torch.cuda.synchronize()  # the clock starts on an idle device with the batch in place
+            started = time.perf_counter()
             embedding, tokens = self._view_head.mean_patch_tokens(self._encoder, lambda: self._forward(batch))
+            # _forward returns host memory, so the clock stops once the device has finished
+            forward_ms = (time.perf_counter() - started) * 1000
         logits = tokens @ self._head["weight"].T + self._head["bias"]
         probabilities = np.exp(logits - logits.max(1, keepdims=True))
         probabilities /= probabilities.sum(1, keepdims=True)
-        return FeatureBundle(normalise(embedding[0]), probabilities.astype(np.float32), self.model_id)
+        return FeatureBundle(
+            normalise(embedding[0]), probabilities.astype(np.float32), self.model_id, forward_ms
+        )
 
     def rerank(self, query, candidates, similarities):
         views = np.array([_view_index(item) for item in candidates])

@@ -1,5 +1,6 @@
 import csv
 import json
+from dataclasses import replace
 from io import BytesIO
 
 import httpx
@@ -122,6 +123,38 @@ def test_remote_adapter_preserves_binary_features_and_auth(monkeypatch):
         assert received.model_id == feature.model_id
         assert remote.mode == "preview"
         assert remote.real_model_connected is False
+    finally:
+        remote.close()
+
+
+def test_the_model_forward_time_travels_from_the_runtime_to_the_client(monkeypatch):
+    class TimedEncoder(PreviewEncoder):
+        def encode(self, image, bbox=None):
+            return replace(super().encode(image, bbox), forward_ms=19.25)
+
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    with TestClient(create_app(TimedEncoder(), TOKEN)) as runtime:
+        capabilities = runtime.get("/internal/v1/capabilities", headers=headers).json()
+        wire = runtime.post(
+            "/internal/v1/encode", files={"image": ("image.png", image_bytes())}, headers=headers
+        )
+    _, extras = unpack_features(wire.content)
+    assert float(extras["forward_ms"]) == 19.25
+
+    client_class = httpx.Client
+
+    def route(request):
+        if request.url.path.endswith("capabilities"):
+            return httpx.Response(200, json=capabilities)
+        return httpx.Response(200, content=wire.content)
+
+    monkeypatch.setattr(
+        "falcon_service.inference.remote.httpx.Client",
+        lambda **kwargs: client_class(transport=httpx.MockTransport(route), **kwargs),
+    )
+    remote = RemoteEncoder("http://runtime.local", TOKEN)
+    try:
+        assert remote.encode(image_bytes()).forward_ms == 19.25
     finally:
         remote.close()
 
