@@ -51,7 +51,8 @@ vaultSecretEnvs:
   - FALCON_RUNTIME_TOKEN
   - FALCON_DB_PASSWORD
 notes:
-  - Repository model integration is deliberately disabled.
+  - The default Compose runtime is an explicit preview stub; it does not identify vehicles.
+  - Optional model/GPU overlays require a separately verified bundle and runtime image.
   - Size CPU RAM and disk from measurements for the chosen workload.
   - Each API process caches up to FALCON_INDEX_CACHE_SIZE HNSW graphs in CPU RAM.
   - No production hostname, secret or cloud account is included.

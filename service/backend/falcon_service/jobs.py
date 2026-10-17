@@ -3,6 +3,7 @@
 import hashlib
 import logging
 import tempfile
+import time
 from datetime import timedelta
 from uuid import uuid4
 
@@ -268,7 +269,9 @@ def run_once(db: Database, store: ArtifactStore, runtime: EncoderRuntime, settin
     job = claim(db, settings)
     if job is None:
         return False
-    logger.info("job_claimed", extra={"job_id": job.id, "job_kind": job.kind})
+    started = time.perf_counter()
+    log_context = {"component": "worker", "job_id": job.id, "job_kind": job.kind, "attempt": job.attempts}
+    logger.info("job_claimed", extra=log_context)
     try:
         with heartbeat(db, Job, job.id, job.claim_token, settings.job_lease_seconds):
             if job.kind == "import":
@@ -282,9 +285,15 @@ def run_once(db: Database, store: ArtifactStore, runtime: EncoderRuntime, settin
                 current.status, current.progress, current.result = "completed", 100, result
                 current.completed_at, current.lease_until, current.claim_token = now(), None, None
                 current.message = "Готово"
-            logger.info("job_completed", extra={"job_id": job.id, "job_kind": job.kind})
+            logger.info(
+                "job_completed",
+                extra={**log_context, "duration_ms": round((time.perf_counter() - started) * 1000, 3)},
+            )
     except Exception as exc:
-        logger.exception("job_failed", extra={"job_id": job.id, "job_kind": job.kind})
+        logger.exception(
+            "job_failed",
+            extra={**log_context, "duration_ms": round((time.perf_counter() - started) * 1000, 3)},
+        )
         with db.transaction() as session:
             changed = session.execute(
                 update(Job)
@@ -316,4 +325,9 @@ def run_once(db: Database, store: ArtifactStore, runtime: EncoderRuntime, settin
                         )
                         .values(status="failed")
                     )
+        if changed.rowcount == 1 and not terminal:
+            logger.warning(
+                "job_retry_scheduled",
+                extra={**log_context, "retry_in_seconds": min(60, 2**current.attempts)},
+            )
     return True

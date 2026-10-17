@@ -3,8 +3,6 @@
 import html
 import json
 import logging
-import re
-import time
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
@@ -20,14 +18,13 @@ from .config import Settings
 from .db import Database
 from .errors import ServiceError
 from .indexes import GalleryIndexStore
-from .logging_setup import configure_logging
+from .logging_setup import RequestLoggingMiddleware, configure_logging
 from .response_schemas import ERROR_RESPONSES
 from .routes import artifacts, galleries, searches, system
 from .runtime import EncoderRuntime
 from .storage import ArtifactStore
 
 logger = logging.getLogger(__name__)
-REQUEST_ID = re.compile(r"[A-Za-z0-9._-]{1,128}\Z")
 
 
 class RequestLimits:
@@ -80,19 +77,32 @@ def create_app(settings: Settings | None = None, encoder=None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(application):
         configure_logging()
-        application.state.settings = settings
-        application.state.db = Database(settings.database_url)
-        application.state.db.initialize()
-        application.state.store = ArtifactStore(settings.storage_root)
-        application.state.indexes = GalleryIndexStore(
-            application.state.db, application.state.store, settings.index_cache_size
+        logger.info("api_starting", extra={"component": "api"})
+        database = None
+        try:
+            application.state.settings = settings
+            database = application.state.db = Database(settings.database_url)
+            database.initialize()
+            application.state.store = ArtifactStore(settings.storage_root)
+            application.state.indexes = GalleryIndexStore(
+                database, application.state.store, settings.index_cache_size
+            )
+            application.state.runtime = EncoderRuntime(settings, encoder)
+            await run_in_threadpool(application.state.runtime.initialize)
+        except Exception:
+            logger.exception("api_startup_failed", extra={"component": "api"})
+            if database is not None:
+                database.close()
+            raise
+        logger.info(
+            "api_started",
+            extra={"component": "api", "engine_ready": application.state.runtime.encoder is not None},
         )
-        application.state.runtime = EncoderRuntime(settings, encoder)
-        await run_in_threadpool(application.state.runtime.initialize)
         try:
             yield
         finally:
             application.state.db.close()
+            logger.info("api_stopped", extra={"component": "api"})
 
     application = FastAPI(
         title="Falcon visual search service",
@@ -105,29 +115,7 @@ def create_app(settings: Settings | None = None, encoder=None) -> FastAPI:
         responses=ERROR_RESPONSES,
     )
     application.add_middleware(RequestLimits, limit=settings.max_request_bytes)
-
-    @application.middleware("http")
-    async def request_context(request: Request, call_next):
-        supplied_id = request.headers.get("x-request-id", "")
-        request.state.request_id = supplied_id if REQUEST_ID.fullmatch(supplied_id) else str(uuid4())
-        started = time.perf_counter()
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request.state.request_id
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Cache-Control"] = "no-store"
-        route = request.scope.get("route")
-        logger.info(
-            "http_request",
-            extra={
-                "request_id": request.state.request_id,
-                "method": request.method,
-                "route": getattr(route, "path", "unmatched"),
-                "status": response.status_code,
-                "duration_ms": round((time.perf_counter() - started) * 1000, 3),
-            },
-        )
-        return response
+    application.add_middleware(RequestLoggingMiddleware, component="api")
 
     def error_response(request: Request, code: str, message: str, status: int):
         request_id = getattr(request.state, "request_id", str(uuid4()))
@@ -137,7 +125,12 @@ def create_app(settings: Settings | None = None, encoder=None) -> FastAPI:
                 "request_id": request_id,
             },
             status_code=status,
-            headers={"X-Request-ID": request_id, "Cache-Control": "no-store"},
+            headers={
+                "X-Request-ID": request_id,
+                "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "no-referrer",
+                "Cache-Control": "no-store",
+            },
         )
 
     @application.exception_handler(ServiceError)
@@ -244,4 +237,10 @@ Search retries must reuse <code>Idempotency-Key</code> and the identical input.<
     return application
 
 
-app = create_app()
+try:
+    app = create_app()
+except Exception:
+    # Import-time configuration errors precede lifespan and can contain secret inputs.
+    configure_logging()
+    logger.exception("api_startup_failed", extra={"component": "api"})
+    raise SystemExit(1) from None

@@ -1,19 +1,21 @@
 """Separate internal runtime: the preview descriptor, or the trained model with FALCON_ENCODER=production."""
 
 import json
+import logging
 import os
 import secrets
 import threading
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Security, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.concurrency import run_in_threadpool
 
 from .inference import PreviewEncoder, RepositoryEncoder
 from .inference.images import MAX_IMAGE_BYTES
 from .inference.wire import MAX_WIRE_BYTES, pack_features, unpack_features
+from .logging_setup import RequestLoggingMiddleware, configure_logging
 from .runtime_schemas import (
     RERANK_REQUEST,
     RUNTIME_ERRORS,
@@ -21,6 +23,8 @@ from .runtime_schemas import (
     RuntimeLiveResponse,
     feature_response,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(encoder=None, token=None):
@@ -35,21 +39,33 @@ def create_app(encoder=None, token=None):
 
     @asynccontextmanager
     async def lifespan(app):
-        state["token"] = state["token"] or os.environ.get("FALCON_RUNTIME_TOKEN")
-        if not state["token"] or len(state["token"]) < 24:
-            raise RuntimeError("FALCON_RUNTIME_TOKEN must contain at least 24 characters")
-        if state["encoder"] is None:
-            mode = os.environ.get("FALCON_ENCODER", "preview")
-            if mode == "preview":
-                state["encoder"] = PreviewEncoder()
-            elif mode == "production":
-                manifest = os.environ.get("FALCON_MODEL_MANIFEST")
-                if not manifest:
-                    raise RuntimeError("FALCON_MODEL_MANIFEST is required by the production encoder")
-                state["encoder"] = RepositoryEncoder(manifest, os.environ.get("FALCON_MODEL_DEVICE", "cuda"))
-            else:
-                raise RuntimeError(f"Unknown FALCON_ENCODER {mode!r}: expected preview or production")
-        yield
+        configure_logging()
+        logger.info("runtime_starting", extra={"component": "runtime"})
+        try:
+            state["token"] = state["token"] or os.environ.get("FALCON_RUNTIME_TOKEN")
+            if not state["token"] or len(state["token"]) < 24:
+                raise RuntimeError("FALCON_RUNTIME_TOKEN must contain at least 24 characters")
+            if state["encoder"] is None:
+                mode = os.environ.get("FALCON_ENCODER", "preview")
+                if mode == "preview":
+                    state["encoder"] = PreviewEncoder()
+                elif mode == "production":
+                    manifest = os.environ.get("FALCON_MODEL_MANIFEST")
+                    if not manifest:
+                        raise RuntimeError("FALCON_MODEL_MANIFEST is required by the production encoder")
+                    state["encoder"] = RepositoryEncoder(
+                        manifest, os.environ.get("FALCON_MODEL_DEVICE", "cuda")
+                    )
+                else:
+                    raise RuntimeError(f"Unknown FALCON_ENCODER {mode!r}: expected preview or production")
+        except Exception:
+            logger.exception("runtime_startup_failed", extra={"component": "runtime"})
+            raise
+        logger.info("runtime_started", extra={"component": "runtime", "engine_ready": True})
+        try:
+            yield
+        finally:
+            logger.info("runtime_stopped", extra={"component": "runtime"})
 
     app = FastAPI(
         title="Falcon internal preview runtime",
@@ -59,6 +75,21 @@ def create_app(encoder=None, token=None):
         redoc_url=None,
         responses=RUNTIME_ERRORS,
     )
+    app.add_middleware(RequestLoggingMiddleware, component="runtime")
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request: Request, _exc: Exception):
+        return JSONResponse(
+            {"detail": "Runtime processing failed"},
+            status_code=500,
+            headers={
+                "X-Request-ID": request.state.request_id,
+                "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "no-referrer",
+                "Cache-Control": "no-store",
+            },
+        )
+
     bearer = HTTPBearer(auto_error=False, scheme_name="RuntimeBearer")
 
     def authenticate(authorization: HTTPAuthorizationCredentials | None = Security(bearer)):
@@ -144,4 +175,10 @@ def create_app(encoder=None, token=None):
     return app
 
 
-app = create_app()
+try:
+    app = create_app()
+except Exception:
+    # Keep the Uvicorn entry point fail-closed without a raw configuration traceback.
+    configure_logging()
+    logger.exception("runtime_startup_failed", extra={"component": "runtime"})
+    raise SystemExit(1) from None

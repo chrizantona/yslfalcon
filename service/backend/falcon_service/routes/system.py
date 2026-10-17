@@ -41,7 +41,7 @@ def ready(request: Request):
         raise ServiceError("not_ready", "База данных недоступна", 503) from exc
     if not os.access(state.store.root, os.W_OK):
         raise ServiceError("not_ready", "Хранилище недоступно для записи", 503)
-    state.runtime.require()
+    state.runtime.check_ready()
     return {"status": "ready", "mode": state.runtime.capabilities()["mode"]}
 
 

@@ -17,7 +17,6 @@ EXCLUDED_DIRS = {
     "node_modules",
     "data",
     "falcon-data",
-    "models",
     "delivery",
     "dist",
     "__pycache__",
@@ -35,6 +34,7 @@ def source_files(root: Path):
             name
             for name in directories
             if name not in EXCLUDED_DIRS
+            and not (Path(directory) == root and name == "models")
             and not name.endswith(".egg-info")
             and not (Path(directory) / name).is_symlink()
         ]

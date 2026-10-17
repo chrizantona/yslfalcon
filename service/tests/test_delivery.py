@@ -27,7 +27,16 @@ def test_bundle_excludes_local_credentials_databases_and_uploaded_media(tmp_path
         "node_modules/dependency.js",
         "delivery/old/images.tar",
     ]
-    included = ["backend/app.py", ".env.example", "frontend/public/fonts/font.ttf", "docs/README.md"]
+    included = [
+        "backend/app.py",
+        "backend/falcon_service/models/__init__.py",
+        "backend/falcon_service/models/galleries.py",
+        "backend/falcon_service/response_contracts/common.py",
+        "runtime/reid/_model_backbones.py",
+        ".env.example",
+        "frontend/public/fonts/font.ttf",
+        "docs/README.md",
+    ]
     for relative in excluded + included:
         path = tmp_path / relative
         path.parent.mkdir(parents=True, exist_ok=True)

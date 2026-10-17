@@ -20,6 +20,8 @@ services:
         bind:
           create_host_path: false
     shm_size: ${FALCON_RUNTIME_SHM_SIZE:-1gb}
+    healthcheck:
+      start_period: 180s
     deploy:
       resources:
         reservations:

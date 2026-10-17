@@ -17,7 +17,7 @@ from .runtime import EncoderRuntime
 from .storage import ArtifactStore
 
 HEARTBEAT_FILE = Path("/tmp/falcon-worker-heartbeat")
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("falcon_service.worker")
 
 
 def healthcheck() -> int:
@@ -40,41 +40,54 @@ def healthcheck() -> int:
 
 
 def main():
+    configure_logging()
     if "--healthcheck" in sys.argv:
         raise SystemExit(healthcheck())
-    configure_logging()
-    settings = Settings()
-    database = Database(settings.database_url)
-    database.initialize()
-    store = ArtifactStore(settings.storage_root)
-    runtime = EncoderRuntime(settings)
-    runtime.initialize()
+    logger.info("worker_starting", extra={"component": "worker"})
+    database = None
     stopped = threading.Event()
+    heartbeat_thread = None
 
     def worker_heartbeat():
         while not stopped.is_set():
             HEARTBEAT_FILE.touch()
             stopped.wait(10)
 
-    heartbeat_thread = threading.Thread(target=worker_heartbeat, name="worker-health", daemon=True)
-    heartbeat_thread.start()
-    for signum in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(signum, lambda *_: stopped.set())
     try:
+        try:
+            settings = Settings()
+            database = Database(settings.database_url)
+            database.initialize()
+            store = ArtifactStore(settings.storage_root)
+            runtime = EncoderRuntime(settings)
+            runtime.initialize()
+            heartbeat_thread = threading.Thread(target=worker_heartbeat, name="worker-health", daemon=True)
+            heartbeat_thread.start()
+            for signum in (signal.SIGINT, signal.SIGTERM):
+                signal.signal(signum, lambda *_: stopped.set())
+        except Exception:
+            logger.exception("worker_startup_failed", extra={"component": "worker"})
+            raise SystemExit(1) from None
+        logger.info(
+            "worker_started", extra={"component": "worker", "engine_ready": runtime.encoder is not None}
+        )
         while not stopped.is_set():
             if runtime.encoder is None:
                 runtime.initialize()
             try:
                 processed = run_once(database, store, runtime, settings)
             except Exception:
-                logger.exception("Unable to claim a durable job")
+                logger.exception("job_poll_failed", extra={"component": "worker"})
                 processed = False
             if not processed:
                 stopped.wait(settings.worker_poll_seconds)
     finally:
         stopped.set()
-        heartbeat_thread.join(timeout=2)
-        database.close()
+        if heartbeat_thread is not None and heartbeat_thread.is_alive():
+            heartbeat_thread.join(timeout=2)
+        if database is not None:
+            database.close()
+        logger.info("worker_stopped", extra={"component": "worker"})
 
 
 if __name__ == "__main__":

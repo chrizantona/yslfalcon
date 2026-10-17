@@ -6,13 +6,14 @@ from urllib.parse import urlparse
 import httpx
 import numpy as np
 
+from ..logging_setup import request_id_context
 from ..runtime_schemas import RuntimeCapabilities
 from .images import validate_image
 from .wire import MAX_WIRE_BYTES, pack_features, unpack_features
 
 
 class RemoteEncoder:
-    def __init__(self, url: str, token: str, timeout=60):
+    def __init__(self, url: str, token: str, timeout=60, *, handshake_timeout: float | None = None):
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.username or parsed.password:
             raise RuntimeError("Runtime URL must be an HTTP(S) origin without credentials")
@@ -25,9 +26,13 @@ class RemoteEncoder:
             follow_redirects=False,
         )
         try:
-            response = self._client.get("/internal/v1/capabilities")
+            response = self._client.get(
+                "/internal/v1/capabilities",
+                timeout=timeout if handshake_timeout is None else handshake_timeout,
+            )
             response.raise_for_status()
             capabilities = RuntimeCapabilities.model_validate(response.json())
+            self._capabilities = capabilities
             self.model_id, self.mode = capabilities.model_id, capabilities.mode
             self.dimension = capabilities.dimension
             self.rerank_window = capabilities.rerank_window
@@ -40,7 +45,23 @@ class RemoteEncoder:
             self._client.close()
             raise RuntimeError("Model runtime is unavailable or returned invalid capabilities") from exc
 
+    def check_ready(self) -> None:
+        """Probe the current runtime without replacing the active model contract."""
+        request_id = request_id_context.get()
+        headers = {"X-Request-ID": request_id} if request_id else {}
+        try:
+            response = self._client.get("/internal/v1/capabilities", timeout=3, headers=headers)
+            response.raise_for_status()
+            capabilities = RuntimeCapabilities.model_validate(response.json())
+            if capabilities != self._capabilities:
+                raise ValueError("Runtime capabilities changed after initialization")
+        except (httpx.HTTPError, ValueError, KeyError) as exc:
+            raise RuntimeError("Model runtime is unavailable or its capabilities changed") from exc
+
     def _request(self, path, **kwargs):
+        request_id = request_id_context.get()
+        if request_id:
+            kwargs["headers"] = {**kwargs.get("headers", {}), "X-Request-ID": request_id}
         try:
             with self._client.stream("POST", path, **kwargs) as response:
                 response.raise_for_status()

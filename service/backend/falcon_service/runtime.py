@@ -1,10 +1,13 @@
 """One encoder factory shared by API and durable workers."""
 
 import json
+import logging
 import threading
 
 from .config import Settings
 from .inference import Encoder
+
+logger = logging.getLogger(__name__)
 
 
 class EncoderRuntime:
@@ -15,7 +18,7 @@ class EncoderRuntime:
         self.lock = threading.RLock()
         self.policy = None
 
-    def initialize(self) -> None:
+    def initialize(self, *, handshake_timeout: float = 60) -> None:
         from .inference import PreviewEncoder, RemoteEncoder, RepositoryEncoder
 
         try:
@@ -23,7 +26,11 @@ class EncoderRuntime:
                 if self.settings.engine_mode == "preview":
                     self.encoder = PreviewEncoder()
                 elif self.settings.engine_mode == "remote":
-                    self.encoder = RemoteEncoder(self.settings.runtime_url, self.settings.runtime_token)
+                    self.encoder = RemoteEncoder(
+                        self.settings.runtime_url,
+                        self.settings.runtime_token,
+                        handshake_timeout=handshake_timeout,
+                    )
                 elif self.settings.model_manifest:
                     self.encoder = RepositoryEncoder(self.settings.model_manifest, self.settings.model_device)
                 else:
@@ -42,19 +49,31 @@ class EncoderRuntime:
         except Exception as exc:
             self.error = str(exc)
             self.encoder = None
+            logger.exception("encoder_initialization_failed", extra={"component": "encoder"})
 
-    def require(self) -> Encoder:
+    def require(self, *, handshake_timeout: float = 60) -> Encoder:
         from .errors import ServiceError
 
         if self.encoder is None and self.settings.engine_mode == "remote":
             with self.lock:
                 if self.encoder is None:
-                    self.initialize()
+                    self.initialize(handshake_timeout=handshake_timeout)
         if self.encoder is None:
             raise ServiceError(
                 "model_unavailable", "Модель недоступна: проверьте конфигурацию и локальные веса", 503
             )
         return self.encoder
+
+    def check_ready(self) -> None:
+        from .errors import ServiceError
+        from .inference import RemoteEncoder
+
+        encoder = self.require(handshake_timeout=3)
+        if isinstance(encoder, RemoteEncoder):
+            try:
+                encoder.check_ready()
+            except RuntimeError as exc:
+                raise ServiceError("model_unavailable", "Вычислительный модуль недоступен", 503) from exc
 
     def capabilities(self) -> dict:
         encoder = self.encoder
