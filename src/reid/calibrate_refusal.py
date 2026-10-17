@@ -8,6 +8,9 @@ Three corrections over what our thresholds were fitted on until now:
     inside the fold - fit on half the vehicles, score on the other half.
 Our own reimplementation is checked first against the official numbers at the old thresholds.
 
+This feature-branch CLI retains the legacy EXP-178 candidate comparison. The final EXP-202 leave-one-fold-out
+calibration lives on main; the additive diagnostics here do not replace that recipe or its serving threshold.
+
 Usage: PYTHONPATH=src python -m reid.calibrate_refusal --data-config configs/data.yaml \
            --val-config configs/val_v2.yaml --config configs/exp178_refusal_calibration.yaml
 """
@@ -20,7 +23,7 @@ import numpy as np
 from reid.data import load_yaml
 from reid.embed import pick_device
 from reid.evaluate import load_fold
-from reid.metrics import reid_eval_top10
+from reid.metrics import official_refusal_diagnostics, reid_eval_top10
 from reid.official_check import realistic
 
 
@@ -108,9 +111,11 @@ def main():
         results[name] = {
             "mAP10": float(top10["mAP10"]),
             "old_threshold": {"threshold": spec["threshold"], "refusal": float(old[0]), "F1": float(old[1]),
-                              "TNR": float(old[2])},
+                              "TNR": float(old[2]),
+                              **official_refusal_diagnostics(conf, has_pair, right, spec["threshold"])},
             "refitted": {"threshold": float(t), "refusal": float(best), "F1": float(f1), "TNR": float(tnr),
-                         "points": 45 * float(top10["mAP10"]) + 10 * float(best)},
+                         "points": 45 * float(top10["mAP10"]) + 10 * float(best),
+                         **official_refusal_diagnostics(conf, has_pair, right, t)},
             "plateau": {"within_0.001": width_1, "within_0.005": width_5, "centre": centre},
             "split_half": halves}
         print(json.dumps({"candidate": name, **results[name]}), flush=True)

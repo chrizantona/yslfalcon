@@ -72,6 +72,25 @@ def zscore(sim):
     return (sim - sim.mean(1, keepdims=True)) / np.maximum(sim.std(1, keepdims=True), 1e-12)
 
 
+def official_refusal_diagnostics(conf, has_pair, right, threshold, rows=None):
+    """Report official query-level counts and rates; ``right`` includes same-vehicle/same-camera top answers.
+
+    As in the official F1 calculation, a wrong answered match is FP, not FN, so recall is TP / (TP + FN).
+    ``answered_fraction_official`` is the fraction of the selected queries whose confidence is >= threshold.
+    This helper only reports diagnostics; it does not select or change a threshold.
+    """
+    if rows is not None:
+        conf, has_pair, right = conf[rows], has_pair[rows], right[rows]
+    answered = conf >= threshold
+    tp = int((answered & has_pair & right).sum())
+    fp = int((answered & ~(has_pair & right)).sum())
+    fn = int((~answered & has_pair).sum())
+    tn = int((~answered & ~has_pair).sum())
+    return {"TP_official": tp, "FP_official": fp, "FN_official": fn, "TN_official": tn,
+            "precision_official": tp / max(tp + fp, 1), "recall_official": tp / max(tp + fn, 1),
+            "answered_fraction_official": float(answered.mean()) if answered.size else 0.0}
+
+
 def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=None, grid=None):
     """Candidate mode scored as the organisers do, for a grid of thresholds on the top-1 z-score, or on another
     per-query confidence when one is given (reid.refusal_confidence); the ranking stays the same.
@@ -81,7 +100,9 @@ def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=
     strict variant takes the very first one, junk included, and counts junk as wrong. Query level, micro-averaged:
     TP - a cross-camera pair exists and the decisive candidate is that vehicle; FP - answered but the candidate is
     wrong or no pair exists; FN - a pair exists but no answer; TN - no pair and no answer.
-    F1 = 2TP / (2TP + FP + FN), TNR = TN / (TN + FP) over queries without a pair, score = 0.7 F1 + 0.3 TNR."""
+    F1 = 2TP / (2TP + FP + FN), TNR = TN / (TN + FP) over queries without a pair, score = 0.7 F1 + 0.3 TNR.
+    The explicitly suffixed *_official fields count the actual top candidate as correct whenever it is the same
+    vehicle, including junk; the existing unsuffixed precision/recall fields keep their junk-filtered meaning."""
     z = zscore(sim)
     order = np.argsort(-z, axis=1, kind="stable")[:, :TOP_K]
     rows = np.arange(len(q_pid))
@@ -114,7 +135,8 @@ def refusal_curve(sim, q_pid, q_cam, g_pid, g_cam, n_thresholds=201, confidence=
         curve.append({"threshold": float(t), "score": 0.7 * f1 + 0.3 * tnr, "F1": f1, "TNR": tnr,
                       "precision": tp / max(tp + fp, 1), "recall": tp / max(tp + fn, 1), "answered": answered.mean(),
                       "F1_strict": f1_strict, "score_strict": 0.7 * f1_strict + 0.3 * tnr,
-                      "F1_official": f1_official, "score_official": 0.7 * f1_official + 0.3 * tnr})
+                      "F1_official": f1_official, "score_official": 0.7 * f1_official + 0.3 * tnr,
+                      **official_refusal_diagnostics(top_z, has_pair, correct_official, t)})
     return pd.DataFrame(curve)
 
 
