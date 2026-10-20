@@ -19,7 +19,8 @@ inference:
   precision: fp16           # fp16 weights cast once; embeddings match fp32 to the fifth decimal of the metric
 refusal:
   max_candidates: 1         # evaluate.py judges only the highest-confidence row of a query
-  threshold: 7.0828         # median of five out-of-sample plateau centres, plus the seed-to-soup offset
+  threshold: 6.09           # EXP-209: plateau centre on a gallery without the query's own-camera frames, as in the
+                            # closed test, over five leave-one-fold-out runs, plus the seed-to-soup offset
 view:
   head: 4d6b0f9c81a74e35b2c7ad1e6f508392.npz   # softmax head on the mean patch token, fitted on all five folds
   delta: 0.07                                  # penalty on a candidate shot from the query's own viewpoint

@@ -115,8 +115,9 @@ class RepositoryEncoder:
             "threshold": float(cfg["refusal"]["threshold"]),
             "gallery_size_min": lo,
             "gallery_size_max": hi,
-            "validation_reference": "leave-one-fold-out calibration on five folds (EXP-202): median plateau "
-            "centre of the top-1 z-score plus the seed-to-soup offset",
+            "validation_reference": "leave-one-fold-out calibration on five folds (EXP-209): plateau centre of "
+            "the top-1 z-score on a gallery without the query's own-camera frames, as in the closed test, plus the "
+            "seed-to-soup offset",
         }
         warmup = BytesIO()
         Image.new("RGB", (64, 48), (90, 110, 130)).save(warmup, "PNG")
