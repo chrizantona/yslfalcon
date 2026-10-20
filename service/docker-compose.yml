@@ -1,0 +1,123 @@
+name: yslfalcon-service
+
+x-api-environment: &api-environment
+  FALCON_DATABASE_URL: postgresql+psycopg://falcon:${FALCON_DB_PASSWORD:?Run python3 scripts/init_env.py}@postgres:5432/falcon
+  FALCON_STORAGE_ROOT: /data
+  FALCON_AUTH_TOKENS: ${FALCON_AUTH_TOKENS:?Run python3 scripts/init_env.py}
+  FALCON_ENGINE_MODE: remote
+  FALCON_RUNTIME_URL: http://runtime:8001
+  FALCON_RUNTIME_TOKEN: ${FALCON_RUNTIME_TOKEN:?Run python3 scripts/init_env.py}
+  FALCON_EXPECTED_MODEL_ID: ${FALCON_EXPECTED_MODEL_ID:-}
+  FALCON_ALLOWED_ORIGINS: ${FALCON_ALLOWED_ORIGINS:-["http://localhost:8090","http://127.0.0.1:8090"]}
+  FALCON_COOKIE_SECURE: ${FALCON_COOKIE_SECURE:-false}
+  FALCON_LOCAL_AUTO_LOGIN: ${FALCON_LOCAL_AUTO_LOGIN:-true}
+  FALCON_INDEX_CACHE_SIZE: ${FALCON_INDEX_CACHE_SIZE:-2}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: falcon
+      POSTGRES_DB: falcon
+      POSTGRES_PASSWORD: ${FALCON_DB_PASSWORD:?Run python3 scripts/init_env.py}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U falcon -d falcon"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  runtime:
+    image: yslfalcon-api:${FALCON_IMAGE_TAG:-local-38c6da2}
+    build:
+      context: .
+    command: [uvicorn, falcon_service.model_runtime:app, --host, 0.0.0.0, --port, "8001", --no-server-header, --no-access-log]
+    environment:
+      FALCON_ENCODER: preview
+      FALCON_RUNTIME_TOKEN: ${FALCON_RUNTIME_TOKEN:?Run python3 scripts/init_env.py}
+      FALCON_RUNTIME_MAX_CONCURRENCY: "2"
+      FALCON_PORT: "8001"
+      FALCON_HEALTH_PATH: /health/live
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      # Uvicorn serves this only after the encoder's startup initialization succeeds.
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/live', timeout=3).close()"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+
+  api:
+    image: yslfalcon-api:${FALCON_IMAGE_TAG:-local-38c6da2}
+    build:
+      context: .
+    environment: *api-environment
+    depends_on:
+      postgres: {condition: service_healthy}
+      runtime: {condition: service_healthy}
+    volumes: [artifacts:/data]
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=3).close()"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+
+  worker:
+    image: yslfalcon-api:${FALCON_IMAGE_TAG:-local-38c6da2}
+    build:
+      context: .
+    command: [python, -m, falcon_service.worker]
+    environment: *api-environment
+    depends_on:
+      api: {condition: service_healthy}
+    volumes: [artifacts:/data]
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python, -m, falcon_service.worker, --healthcheck]
+      interval: 10s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+
+  web:
+    image: yslfalcon-web:${FALCON_IMAGE_TAG:-local-38c6da2}
+    build:
+      context: ./frontend
+      dockerfile: ../deploy/web.Dockerfile
+    ports: ["127.0.0.1:${FALCON_WEB_PORT:-8090}:8080"]
+    depends_on:
+      api: {condition: service_healthy}
+    init: true
+    read_only: true
+    tmpfs: [/tmp, /var/cache/nginx, /var/run]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, wget, -q, -T, "2", -O, /dev/null, http://127.0.0.1:8080/health]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  database:
+  artifacts:

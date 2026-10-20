@@ -1,0 +1,12 @@
+# Direct runtime dependencies; requirements.lock pins the complete tested Linux environment.
+fastapi==0.141.1
+uvicorn==0.53.0
+SQLAlchemy==2.0.54
+psycopg[binary]==3.3.6
+pydantic-settings==2.15.0
+numpy==2.5.3
+Pillow==12.3.0
+python-multipart==0.0.32
+httpx==0.28.1
+reportlab==4.5.1
+faiss-cpu==1.15.1

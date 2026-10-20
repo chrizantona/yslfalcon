@@ -1,0 +1,11 @@
+# The runtime image is built from the repository root; only the files deploy/runtime.Dockerfile copies go in.
+*
+!requirements-inference.txt
+!configs/final_model.yaml
+!configs/weights.json
+!src/reid
+!service/requirements.lock
+!service/runtime/fetch_weights.py
+!service/backend
+**/__pycache__
+**/*.pyc

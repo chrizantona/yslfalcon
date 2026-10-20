@@ -1,0 +1,43 @@
+# The stack with the trained model: the runtime container runs the model image on an NVIDIA GPU.
+#
+# Built here from this checkout (scripts/start_model.sh does exactly this):
+#   docker compose -f docker-compose.yml -f docker-compose.model.yml up --build --detach --wait
+# The runtime image is built from the repository root (deploy/runtime.Dockerfile), with the submission's own model
+# code, configuration and weight manifest.
+#
+# Or from pushed images:
+#   set -a; . .local/images.env; set +a      # written by scripts/build_push.sh
+#   docker compose -f docker-compose.yml -f docker-compose.registry.yml -f docker-compose.model.yml \
+#     up --no-build --pull always --detach --wait
+#
+# The API and the worker refuse to start unless the runtime reports exactly this model and weight inventory, so a
+# preview runtime, a different checkpoint or a partial download cannot pass for the trained model.
+x-model-identity: &model-identity
+  FALCON_EXPECTED_MODEL_ID: emb-so400m-224-v1
+  FALCON_EXPECTED_WEIGHTS_BYTES: "1717977561"
+
+services:
+  api:
+    environment: *model-identity
+  worker:
+    environment: *model-identity
+  runtime:
+    image: ${FALCON_RUNTIME_IMAGE:-yslfalcon-runtime:local}
+    build:
+      context: ..
+      dockerfile: service/deploy/runtime.Dockerfile
+    environment:
+      FALCON_ENCODER: production
+      FALCON_MODEL_MANIFEST: /models/runtime-bundle.json
+      FALCON_MODEL_DEVICE: ${FALCON_MODEL_DEVICE:-cuda}
+      FALCON_RUNTIME_MAX_CONCURRENCY: ${FALCON_RUNTIME_MAX_CONCURRENCY:-1}
+    shm_size: ${FALCON_RUNTIME_SHM_SIZE:-1gb}
+    healthcheck:
+      start_period: 180s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: ${FALCON_GPU_COUNT:-1}
+              capabilities: [gpu]

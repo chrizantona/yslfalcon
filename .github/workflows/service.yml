@@ -1,0 +1,113 @@
+name: Service
+
+on:
+  push:
+    paths:
+      - "service/**"
+      - "src/reid/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/service.yml"
+  pull_request:
+    paths:
+      - "service/**"
+      - "src/reid/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/service.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: service-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: service/requirements*.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: ruff check backend tests scripts
+      - run: ruff format --check backend tests scripts
+      - run: python -m pytest
+      - run: pip-audit -r requirements.lock
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: service/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: service/frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run format:check
+      - run: npm audit --audit-level=high
+
+  ml-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: src
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install pinned CPU-only PyTorch
+        run: >-
+          python -m pip install
+          torch==2.10.0+cpu torchvision==0.25.0+cpu
+          --index-url https://download.pytorch.org/whl/cpu
+      - run: python -m pip install -r requirements.txt pytest==9.1.1
+      - name: Check the model code the submission and the runtime share, without weights
+        run: python -m pytest -q -rs tests
+
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [backend, frontend, ml-compatibility]
+    defaults:
+      run:
+        working-directory: service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -r requirements.lock
+      - run: python scripts/init_env.py
+      - run: docker compose config --quiet
+      - run: >-
+          FALCON_RUNTIME_IMAGE=registry.example/falcon-runtime@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          FALCON_MODEL_BUNDLE_DIR=./models
+          FALCON_EXPECTED_MODEL_ID=ci-fixture
+          FALCON_EXPECTED_WEIGHTS_BYTES=1
+          docker compose -f docker-compose.yml -f docker-compose.gpu.yml config --quiet
+      - run: docker compose up --build --detach --wait
+      - run: python scripts/smoke.py
+      - run: python scripts/smoke_gallery.py
+      - if: always()
+        run: docker compose down --volumes

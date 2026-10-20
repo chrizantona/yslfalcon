@@ -1,0 +1,31 @@
+services:
+  api:
+    environment:
+      FALCON_EXPECTED_WEIGHTS_BYTES: ${FALCON_EXPECTED_WEIGHTS_BYTES:?Run scripts/start_gpu.sh}
+  worker:
+    environment:
+      FALCON_EXPECTED_WEIGHTS_BYTES: ${FALCON_EXPECTED_WEIGHTS_BYTES:?Run scripts/start_gpu.sh}
+  runtime:
+    image: ${FALCON_RUNTIME_IMAGE:?Set the model-runtime image by @sha256 digest}
+    environment:
+      FALCON_ENCODER: ${FALCON_ENCODER:-production}
+      FALCON_MODEL_MANIFEST: /models/runtime-bundle.json
+      FALCON_MODEL_DEVICE: ${FALCON_MODEL_DEVICE:-cuda}
+      FALCON_RUNTIME_MAX_CONCURRENCY: ${FALCON_RUNTIME_MAX_CONCURRENCY:-1}
+    volumes:
+      - type: bind
+        source: ${FALCON_MODEL_BUNDLE_DIR:?Set the model bundle directory}
+        target: /models
+        read_only: true
+        bind:
+          create_host_path: false
+    shm_size: ${FALCON_RUNTIME_SHM_SIZE:-1gb}
+    healthcheck:
+      start_period: 180s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: ${FALCON_GPU_COUNT:-1}
+              capabilities: [gpu]

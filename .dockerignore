@@ -4,6 +4,7 @@
 .agents
 .codex
 BIG_DATA
+service
 hf
 eda
 artifacts

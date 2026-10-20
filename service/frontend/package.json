@@ -1,0 +1,31 @@
+{
+  "name": "falcon-service-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "preview": "vite preview --host 0.0.0.0",
+    "format": "prettier --write src tests index.html vite.config.ts tsconfig.json package.json",
+    "format:check": "prettier --check src tests index.html vite.config.ts tsconfig.json package.json"
+  },
+  "dependencies": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "prettier": "3.9.8",
+    "typescript": "5.9.3",
+    "vite": "8.3.0"
+  }
+}

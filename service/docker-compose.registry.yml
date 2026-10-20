@@ -1,0 +1,16 @@
+# Run the stack from pushed images instead of building it here: the host needs Docker, this file, docker-compose.yml
+# and an .env from scripts/init_env.py - no source tree, no build context.
+#
+#   set -a; . .local/images.env; set +a
+#   docker compose -f docker-compose.yml -f docker-compose.registry.yml up --no-build --pull always --detach --wait
+#
+# Both variables are digests, so a moved tag cannot change what runs.
+services:
+  api:
+    image: ${FALCON_API_IMAGE:?Run scripts/build_push.sh, or set the api image by @sha256}
+  worker:
+    image: ${FALCON_API_IMAGE:?Run scripts/build_push.sh, or set the api image by @sha256}
+  runtime:
+    image: ${FALCON_API_IMAGE:?Run scripts/build_push.sh, or set the api image by @sha256}
+  web:
+    image: ${FALCON_WEB_IMAGE:?Run scripts/build_push.sh, or set the web image by @sha256}
