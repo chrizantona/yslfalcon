@@ -36,4 +36,4 @@ def test_fit_finds_the_best_threshold_and_plateau_measures_its_flatness():
 
 def test_the_submitted_threshold_is_the_median_centre_plus_the_soup_offset():
     centres = [7.0363, 6.8675, 7.0805, 7.0528, 7.0915]  # the five plateau centres of EXP-202, folds 0-4
-    assert np.isclose(combine(centres, 0.03), 7.0828)   # refusal.threshold of configs/final_model.yaml
+    assert np.isclose(combine(centres, 0.03), 7.0828)   # the submitted threshold until EXP-209
