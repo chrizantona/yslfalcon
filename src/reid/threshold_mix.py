@@ -2,7 +2,8 @@
 
 Score = 0.7 F1 + 0.3 TNR as evaluate.py counts it. The threshold is the centre of the plateau (within 0.001 of the
 best) of the score averaged over the five folds and, with weight w, over the two settings (w = share of 'clean').
-Its out-of-sample cost is checked fold by fold: fit on four folds, score on the fifth, against the current threshold.
+Its out-of-sample cost is checked fold by fold: fit on four folds, score on the fifth, against the current threshold;
+at the main weight and at w = 1, the setting of the closed test (organisers, 20.10.2026).
 Thresholds are those of one seed; the soup's is 0.03 higher (EXP-202).
 
 Usage: python -m reid.threshold_mix --dir artifacts/EXP-209
@@ -76,15 +77,15 @@ def main():
         t = centre(mixed(curves, folds, w))
         report["by_weight_of_clean"][w] = {"threshold": t, **summary_at(runs, t)}
 
-    lofo = []
-    for k in folds if len(folds) > 1 else []:
-        t = centre(mixed(curves, [j for j in folds if j != k], MAIN_WEIGHT))
-        new, old = ({s: float(counts(*runs[k][s], th)["refusal"]) for s in SETTINGS} for th in (t, CURRENT_SINGLE))
-        lofo.append({"fold": k, "threshold_from_other_folds": t,
-                     **{f"delta_{s}": round(new[s] - old[s], 4) for s in SETTINGS}})
-    report["leave_one_fold_out"] = lofo
-    report["leave_one_fold_out_mean_delta"] = {s: round(float(np.mean([r[f"delta_{s}"] for r in lofo])), 4)
-                                               for s in SETTINGS}
+    for w, key in ((MAIN_WEIGHT, "leave_one_fold_out"), (1.0, "leave_one_fold_out_clean_only")):
+        lofo = []
+        for k in folds if len(folds) > 1 else []:
+            t = centre(mixed(curves, [j for j in folds if j != k], w))
+            new, old = ({s: float(counts(*runs[k][s], th)["refusal"]) for s in SETTINGS} for th in (t, CURRENT_SINGLE))
+            lofo.append({"fold": k, "threshold_from_other_folds": t,
+                         **{f"delta_{s}": round(new[s] - old[s], 4) for s in SETTINGS}})
+        report[key] = lofo
+        report[f"{key}_mean_delta"] = {s: round(float(np.mean([r[f"delta_{s}"] for r in lofo])), 4) for s in SETTINGS}
 
     chosen = report["by_weight_of_clean"][MAIN_WEIGHT]["threshold"]
     table = sorted({6.0, 6.25, 6.5, 6.75, CURRENT_SINGLE, chosen})
